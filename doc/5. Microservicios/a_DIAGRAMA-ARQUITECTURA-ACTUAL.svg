@@ -1,0 +1,310 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1240" width="1900" height="1240" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+<defs>
+<marker id="m-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#1f6fd0"/></marker>
+<marker id="m-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#1e9e54"/></marker>
+<marker id="m-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#d62828"/></marker>
+<marker id="m-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#f08c00"/></marker>
+<marker id="m-gray" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#6b7280"/></marker>
+</defs>
+<rect width="1900" height="1240" fill="#f8fafc"/>
+<text x="20" y="38" font-size="28" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Sistema de Seguro Vehicular</text>
+<text x="20" y="64" font-size="14.5" font-weight="normal" fill="#4b5a78" text-anchor="start" style="">Arquitectura actual (AS IS) – Monolito en capas (Clean Architecture) + worker asíncrono orientado a eventos</text>
+<rect x="20" y="100" width="270" height="125" rx="8" fill="#f3e9fc" stroke="#8e5fc9" stroke-width="1.5"/>
+<text x="36" y="124" font-size="16" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Usuarios</text>
+<text x="36" y="144" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Roles del sistema:</text>
+<text x="50" y="168" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• ADMIN</text>
+<text x="150" y="168" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• AGENTE</text>
+<text x="50" y="190" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• ACTUARIO</text>
+<text x="150" y="190" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• CLIENTE</text>
+<circle cx="262" cy="130" r="9" fill="#3b2a78"/><path d="M245,158 Q262,136 279,158 Z" fill="#3b2a78"/>
+<rect x="20" y="275" width="270" height="112" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="36" y="297" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Google Authenticator</text>
+<text x="36" y="313" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(app del usuario)</text>
+<text x="36" y="333" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Escanea QR · genera código TOTP (MFA)</text>
+<text x="36" y="352" font-size="11.5" font-weight="bold" fill="#c81e1e" text-anchor="start" style="">No es un servicio de red</text>
+<text x="36" y="369" font-size="10.5" font-weight="normal" fill="#4b5563" text-anchor="start" style="">Solo comparte el secreto por QR</text>
+<path d="M262,225 V275" fill="none" stroke="#6b7280" stroke-width="2" marker-start="url(#m-gray)" marker-end="url(#m-gray)"/>
+<text x="254" y="246" font-size="10" font-weight="normal" fill="#374151" text-anchor="end" style="">escanea QR /</text>
+<text x="254" y="259" font-size="10" font-weight="normal" fill="#374151" text-anchor="end" style="">genera código TOTP</text>
+<rect x="20" y="440" width="270" height="260" rx="8" fill="#e7f1fd" stroke="#3b82c4" stroke-width="1.5"/>
+<text x="36" y="466" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Cliente Web (Navegador)</text>
+<text x="36" y="484" font-size="11" font-weight="normal" fill="#4b5563" text-anchor="start" style="">Chrome, Edge, etc.</text>
+<text x="40" y="508" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Vue 3.5 (SPA)</text>
+<text x="40" y="525" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• TypeScript (compilado)</text>
+<text x="40" y="542" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Pinia</text>
+<text x="40" y="559" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Vue Router</text>
+<text x="40" y="576" font-size="12" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Axios</text>
+<rect x="34" y="605" width="242" height="80" rx="6" fill="#fff" stroke="#a7c4e4" stroke-width="1"/>
+<text x="44" y="624" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">El código Vue se ejecuta en el navegador</text>
+<text x="44" y="639" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">y llama al backend directamente</text>
+<text x="44" y="654" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(JWT, timeout 15 s). Nginx no interviene.</text>
+<path d="M20,162 H8 V570 H20" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#m-gray)"/>
+<text x="14" y="430" font-size="10.5" font-weight="bold" fill="#374151" text-anchor="start" style="">usa</text>
+<rect x="640" y="112" width="290" height="128" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
+<text x="656" y="134" font-size="13.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Google Identity Services</text>
+<text x="656" y="154" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Botón de inicio de sesión (accounts.id)</text>
+<text x="656" y="170" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Emite el ID token (JWT firmado)</text>
+<text x="656" y="186" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• El backend verifica el ID token</text>
+<text x="656" y="202" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• HTTPS</text>
+<circle cx="905" cy="132" r="9" fill="#4285f4"/>
+<rect x="980" y="112" width="290" height="128" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
+<text x="996" y="134" font-size="13.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Facebook OAuth + Graph API v22.0</text>
+<text x="996" y="154" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Redirección desde el navegador (OAuth 2.0)</text>
+<text x="996" y="170" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Callback al backend (authorization code)</text>
+<text x="996" y="186" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• El backend obtiene token y /me</text>
+<text x="996" y="202" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• HTTPS</text>
+<rect x="1300" y="112" width="240" height="128" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
+<text x="1316" y="134" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">JSON.pe – Consulta de placas</text>
+<text x="1316" y="154" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• https://api.json.pe</text>
+<text x="1316" y="170" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• POST /api/placa</text>
+<text x="1316" y="186" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Bearer token · HTTPS</text>
+<text x="1316" y="202" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Usado por el backend</text>
+<path d="M290,470 H310 V92 H1200 V112" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="330" y="86" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">redirección OAuth (desde el navegador)</text>
+<path d="M290,485 H320 V165 H640" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="330" y="159" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">carga botón / ID token (desde el navegador)</text>
+<path d="M900,345 V240" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="908" y="262" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">verifica ID token</text>
+<text x="908" y="274" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">(HTTPS)</text>
+<path d="M1060,345 V240" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="1068" y="262" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">token y /me</text>
+<text x="1068" y="274" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">(HTTPS)</text>
+<path d="M1140,345 V252 H1420 V240" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="1150" y="271" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">POST /api/placa (HTTPS)</text>
+<rect x="340" y="280" width="1200" height="810" rx="10" fill="none" stroke="#6b8fb5" stroke-width="1.6" stroke-dasharray="9 6"/>
+<rect x="358" y="288" width="16" height="12" rx="2" fill="#2a7de1"/><rect x="362" y="284" width="4" height="4" fill="#2a7de1"/>
+<text x="382" y="299" font-size="13.5" font-weight="bold" fill="#1d5fa8" text-anchor="start" style="">Docker Compose (proyecto andina-clean)</text>
+<rect x="680" y="305" width="540" height="770" rx="10" fill="#dcf5e6" stroke="#2e9e5b" stroke-width="1.6" fill-opacity="0.65"/>
+<rect x="1070" y="305" width="455" height="770" rx="10" fill="#fbe4e4" stroke="#d94848" stroke-width="1.6" fill-opacity="0.55"/>
+<rect x="360" y="790" width="280" height="285" rx="10" fill="#e3effb" stroke="#3b82c4" stroke-width="1.6"/>
+<text x="692" y="324" font-size="14" font-weight="bold" fill="#1b6e3f" text-anchor="start" style="">clean_network</text>
+<text x="692" y="338" font-size="10" font-weight="normal" fill="#1b6e3f" text-anchor="start" style="">(MongoDB, Backend y Consumer)</text>
+<text x="1240" y="324" font-size="14" font-weight="bold" fill="#a12a2a" text-anchor="start" style="">rabbitmq_network</text>
+<text x="1240" y="338" font-size="10" font-weight="normal" fill="#a12a2a" text-anchor="start" style="">(RabbitMQ, Backend y Consumer)</text>
+<text x="375" y="810" font-size="11" font-weight="bold" fill="#1d5fa8" text-anchor="start" style="">RED POR DEFECTO (solo frontend)</text>
+<rect x="375" y="830" width="250" height="230" rx="8" fill="#fff" stroke="#2e9e8f" stroke-width="1.5"/>
+<text x="389" y="854" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Frontend (Nginx)</text>
+<text x="389" y="872" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Contenedor: frontend</text>
+<text x="389" y="888" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">nginx:1.27-alpine</text>
+<rect x="389" y="896" width="120" height="18" rx="4" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="1"/>
+<text x="449" y="909" font-size="11" font-weight="bold" fill="#111827" text-anchor="middle" style="">Puerto 5173 → 80</text>
+<rect x="389" y="924" width="222" height="50" rx="6" fill="#eef7ff" stroke="#b6d3ee" stroke-width="1"/>
+<text x="398" y="941" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Build (Vite 6, solo en compilación):</text>
+<text x="398" y="956" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Vue 3.5 + TypeScript → archivos estáticos</text>
+<text x="389" y="992" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Sirve /index.html, JS y CSS (try_files).</text>
+<text x="389" y="1010" font-size="10.5" font-weight="bold" fill="#c81e1e" text-anchor="start" style="">Solo sirve estáticos. No llama al backend.</text>
+<text x="389" y="1028" font-size="10" font-weight="normal" fill="#4b5563" text-anchor="start" style="">Compilado con VITE_API_URL y</text>
+<text x="389" y="1041" font-size="10" font-weight="normal" fill="#4b5563" text-anchor="start" style="">VITE_GOOGLE_CLIENT_ID (build args).</text>
+<path d="M150,700 V930 H375" fill="none" stroke="#1f6fd0" stroke-width="2" marker-start="url(#m-blue)" marker-end="url(#m-blue)"/>
+<text x="160" y="800" font-size="11" font-weight="bold" fill="#1f6fd0" text-anchor="start" style="">HTTP :5173</text>
+<text x="160" y="815" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="">entrega de archivos estáticos</text>
+<text x="160" y="827" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="">(HTML / JS / CSS)</text>
+<path d="M290,570 H700" fill="none" stroke="#1f6fd0" stroke-width="2" marker-start="url(#m-blue)" marker-end="url(#m-blue)"/>
+<text x="495" y="554" font-size="11.5" font-weight="bold" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTP REST :8083/api</text>
+<text x="495" y="588" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">(JWT Bearer · timeout 15 s)</text>
+<text x="1145" y="1068" font-size="9" font-weight="normal" fill="#7a4a2a" text-anchor="middle" style="font-style:italic;">clean + rabbitmq</text>
+<rect x="700" y="345" width="450" height="390" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
+<text x="716" y="368" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Backend – andina-seguros-clean</text>
+<text x="716" y="386" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Contenedor: andina-clean-backend</text>
+<text x="716" y="402" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Java 21 + Spring Boot</text>
+<rect x="716" y="410" width="116" height="18" rx="4" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="1"/>
+<text x="774" y="423" font-size="11" font-weight="bold" fill="#111827" text-anchor="middle" style="">Puerto 8083 → 8080</text>
+<text x="842" y="424" font-size="9.5" font-weight="normal" fill="#6b7280" text-anchor="start" style="font-style:italic;">clean_network + rabbitmq_network</text>
+<rect x="1000" y="355" width="135" height="36" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+<text x="1067" y="370" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Swagger UI</text>
+<text x="1067" y="384" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">/swagger-ui.html</text>
+<rect x="714" y="442" width="224" height="282" rx="6" fill="#f8fbff" stroke="#bcd3ea" stroke-width="1"/>
+<text x="724" y="458" font-size="9" font-weight="bold" fill="#1d4f91" text-anchor="start" style="">Clean Architecture (dependencias hacia adentro)</text>
+<rect x="724" y="468" width="204" height="46" rx="5" fill="#cfe3fa" stroke="#5b95d6" stroke-width="1"/>
+<text x="826" y="484" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Frameworks &amp; Drivers</text>
+<text x="826" y="499" font-size="8.5" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">Spring Boot, Security, AMQP, Mongo, OpenAPI</text>
+<rect x="724" y="526" width="204" height="64" rx="5" fill="#d6f2df" stroke="#4fae77" stroke-width="1"/>
+<text x="826" y="542" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Interface Adapters (IN / OUT)</text>
+<text x="826" y="556" font-size="9" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">IN: Controllers REST</text>
+<text x="826" y="567" font-size="9" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">OUT: Mongo, RabbitMQ, Google,</text>
+<text x="826" y="578" font-size="9" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">Facebook, JSON.pe</text>
+<rect x="724" y="602" width="204" height="54" rx="5" fill="#fdf0c4" stroke="#dcae2d" stroke-width="1"/>
+<text x="826" y="618" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Use Cases (Application)</text>
+<text x="826" y="631" font-size="8.8" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">auth, clientes, vehículos, cotizaciones,</text>
+<text x="826" y="642" font-size="8.8" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">pólizas, siniestros, renovaciones, tarifas</text>
+<rect x="724" y="668" width="204" height="44" rx="5" fill="#fbd5d9" stroke="#d9707c" stroke-width="1"/>
+<text x="826" y="684" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Entities (Domain)</text>
+<text x="826" y="699" font-size="8.8" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">Entidades, Value Objects, Domain Events</text>
+<path d="M826,514 V526" fill="none" stroke="#6b7280" stroke-width="1.5" marker-end="url(#m-gray)"/>
+<path d="M826,590 V602" fill="none" stroke="#6b7280" stroke-width="1.5" marker-end="url(#m-gray)"/>
+<path d="M826,656 V668" fill="none" stroke="#6b7280" stroke-width="1.5" marker-end="url(#m-gray)"/>
+<rect x="948" y="442" width="190" height="282" rx="6" fill="#fff" stroke="#d1d5db" stroke-width="1"/>
+<text x="958" y="458" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Funciones principales</text>
+<text x="958" y="478" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Autenticación (JWT, Google,</text>
+<text x="958" y="496" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">   Facebook, MFA TOTP)</text>
+<text x="958" y="514" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Gestión de usuarios</text>
+<text x="958" y="532" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Gestión de clientes</text>
+<text x="958" y="550" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Gestión de vehículos y</text>
+<text x="958" y="568" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">   consulta de placa</text>
+<text x="958" y="586" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Cotizaciones</text>
+<text x="958" y="604" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Pólizas (emisión)</text>
+<text x="958" y="622" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Siniestros</text>
+<text x="958" y="640" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Renovaciones</text>
+<text x="958" y="658" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Tablas tarifarias</text>
+<text x="958" y="676" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Publicación de eventos</text>
+<text x="958" y="694" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">   (RabbitMQ)</text>
+<path d="M820,735 V800" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
+<text x="830" y="763" font-size="10" font-weight="normal" fill="#1e7d43" text-anchor="start" style="">lectura / escritura</text>
+<text x="830" y="776" font-size="10" font-weight="normal" fill="#1e7d43" text-anchor="start" style="">(Spring Data MongoDB)</text>
+<rect x="700" y="800" width="240" height="260" rx="8" fill="#efe7fb" stroke="#8b5cc7" stroke-width="2"/>
+<text x="714" y="823" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">MongoDB</text>
+<text x="714" y="840" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Contenedor: andina-clean-mongodb</text>
+<text x="714" y="855" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Imagen mongo:8 · BD andina_seguros_clean</text>
+<rect x="714" y="863" width="116" height="18" rx="4" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="1"/>
+<text x="772" y="876" font-size="11" font-weight="bold" fill="#111827" text-anchor="middle" style="">Puerto 27020 → 27017</text>
+<rect x="714" y="892" width="212" height="160" rx="6" fill="#fff" stroke="#c4b0e6" stroke-width="1"/>
+<text x="724" y="908" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Colecciones (9)</text>
+<text x="724" y="924" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• usuarios</text>
+<text x="724" y="938" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• clientes</text>
+<text x="724" y="952" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• vehiculos</text>
+<text x="724" y="966" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• cotizaciones</text>
+<text x="724" y="980" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• polizas</text>
+<text x="724" y="994" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• siniestros</text>
+<text x="724" y="1008" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• propuestas_renovacion</text>
+<text x="724" y="1022" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• tablas_tarifarias</text>
+<text x="724" y="1036" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• processed_notification_events</text>
+<rect x="1250" y="345" width="265" height="355" rx="8" fill="#fff" stroke="#d94848" stroke-width="2"/>
+<text x="1264" y="367" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">RabbitMQ</text>
+<text x="1264" y="383" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Contenedor: rabbitmq · rabbitmq:3.13-management</text>
+<text x="1264" y="398" font-size="10" font-weight="bold" fill="#1f2937" text-anchor="start" style="">5672→5672 (AMQP) · 15672→15672 (UI)</text>
+<rect x="1258" y="408" width="249" height="284" rx="6" fill="#fff5ef" stroke="#f0b39a" stroke-width="1" stroke-dasharray="5 4"/>
+<rect x="1268" y="418" width="229" height="38" rx="5" fill="#e6dcfb" stroke="#8b6fd6" stroke-width="1"/>
+<text x="1382" y="433" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Exchange (topic)</text>
+<text x="1382" y="447" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">andina.insurance.events</text>
+<path d="M1330,456 L1320,505" fill="none" stroke="#d62828" stroke-width="1.5" marker-end="url(#m-red)"/>
+<path d="M1440,456 L1445,505" fill="none" stroke="#d62828" stroke-width="1.5" marker-end="url(#m-red)"/>
+<text x="1382" y="482" font-size="10" font-weight="normal" fill="#374151" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">policy.issued.v1</text>
+<rect x="1265" y="505" width="110" height="50" rx="5" fill="#fbd0d5" stroke="#d9707c" stroke-width="1"/>
+<text x="1320" y="519" font-size="9.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">andina.policy.</text>
+<text x="1320" y="531" font-size="9.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">notification.queue</text>
+<text x="1320" y="543" font-size="9.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">(durable)</text>
+<rect x="1390" y="505" width="110" height="66" rx="5" fill="#fdf0c4" stroke="#dcae2d" stroke-width="1"/>
+<text x="1445" y="519" font-size="9.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">andina.policy.</text>
+<text x="1445" y="531" font-size="9.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">audit.queue</text>
+<text x="1445" y="543" font-size="9.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">(durable)</text>
+<text x="1445" y="563" font-size="9" font-weight="bold" fill="#c81e1e" text-anchor="middle" style="">SIN CONSUMIDOR</text>
+<rect x="1360" y="600" width="140" height="40" rx="5" fill="#e9e3fa" stroke="#8b6fd6" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="1430" y="616" font-size="10" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">DLX (exchange)</text>
+<text x="1430" y="630" font-size="8.5" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">andina.insurance.events.dlx</text>
+<rect x="1360" y="656" width="140" height="36" rx="5" fill="#e9e3fa" stroke="#8b6fd6" stroke-width="1"/>
+<text x="1430" y="671" font-size="10" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">DLQ (durable)</text>
+<text x="1430" y="684" font-size="8.5" font-weight="normal" fill="#1f2937" text-anchor="middle" style="">andina.policy.notification.dlq</text>
+<path d="M1330,555 V620 H1360" fill="none" stroke="#f08c00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-orange)"/>
+<text x="1338" y="583" font-size="9.5" font-weight="bold" fill="#b86e00" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">rechazo tras</text>
+<text x="1338" y="594" font-size="9.5" font-weight="bold" fill="#b86e00" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">4 intentos</text>
+<path d="M1430,640 V656" fill="none" stroke="#f08c00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-orange)"/>
+<path d="M1150,442 H1268" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
+<text x="1157" y="400" font-size="9.5" font-weight="bold" fill="#d62828" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">publica</text>
+<text x="1157" y="412" font-size="9.5" font-weight="bold" fill="#d62828" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">policy.issued.v1</text>
+<text x="1157" y="424" font-size="9.5" font-weight="bold" fill="#d62828" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">(AMQP)</text>
+<text x="1157" y="462" font-size="9" font-weight="normal" fill="#d62828" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">confirmaciones</text>
+<path d="M1285,555 V760" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-red)"/>
+<text x="1277" y="728" font-size="10" font-weight="bold" fill="#d62828" text-anchor="end" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">consume mensajes</text>
+<text x="1277" y="740" font-size="10" font-weight="bold" fill="#d62828" text-anchor="end" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">(AMQP, ACK manual)</text>
+<rect x="1100" y="760" width="415" height="300" rx="8" fill="#fff" stroke="#2e9e5b" stroke-width="2"/>
+<text x="1116" y="783" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Notification Consumer</text>
+<text x="1116" y="800" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Contenedor: consumer (andina-notification-consumer)</text>
+<text x="1116" y="815" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Java 21 + Spring Boot · worker sin HTTP · sin puerto expuesto</text>
+<text x="1116" y="830" font-size="9.5" font-weight="normal" fill="#6b7280" text-anchor="start" style="font-style:italic;">clean_network + rabbitmq_network</text>
+<rect x="1114" y="840" width="387" height="208" rx="6" fill="#f3fbf6" stroke="#b7dcc5" stroke-width="1"/>
+<text x="1124" y="857" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Características</text>
+<text x="1124" y="874" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• @RabbitListener (andina.policy.notification.queue)</text>
+<text x="1124" y="894" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• ACK manual · prefetch 10 · 1 a 3 consumidores</text>
+<text x="1124" y="914" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Valida evento PolicyIssued v1</text>
+<text x="1124" y="934" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Idempotencia (processed_notification_events)</text>
+<text x="1124" y="954" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Lee el cliente en MongoDB (teléfono)</text>
+<text x="1124" y="974" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Envía el WhatsApp por JSON.pe</text>
+<text x="1124" y="994" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• 4 reintentos con backoff (1 s ×2, máx. 10 s)</text>
+<text x="1124" y="1014" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Si falla: rechazo → DLX → DLQ</text>
+<path d="M1100,930 H940" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
+<text x="1020" y="918" font-size="9.5" font-weight="normal" fill="#1e7d43" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">lee: clientes</text>
+<text x="1020" y="948" font-size="9.5" font-weight="normal" fill="#1e7d43" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">escribe:</text>
+<text x="1020" y="960" font-size="8.5" font-weight="normal" fill="#1e7d43" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">processed_notification_events</text>
+<rect x="1610" y="900" width="280" height="150" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
+<text x="1626" y="922" font-size="13.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">JSON.pe – WhatsApp</text>
+<text x="1626" y="942" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• https://api.whatsapp.json.pe</text>
+<text x="1626" y="959" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• POST /send/text</text>
+<text x="1626" y="976" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Bearer token · HTTPS</text>
+<text x="1626" y="993" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Usado por el consumer</text>
+<path d="M1515,975 H1610" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="1562" y="964" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTPS</text>
+<text x="1562" y="994" font-size="9" font-weight="normal" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">POST /send/text</text>
+<rect x="1610" y="112" width="280" height="300" rx="8" fill="#fdeaea" stroke="#d94848" stroke-width="1.5"/>
+<text x="1626" y="136" font-size="13" font-weight="bold" fill="#b42323" text-anchor="start" style="">⚠ Observaciones importantes</text>
+<text x="1626" y="158" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">1. Estado en memoria del backend (tickets, MFA y</text>
+<text x="1626" y="171" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">    state OAuth): impide varias réplicas.</text>
+<text x="1626" y="194" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">2. Tokens de Google, Facebook y JSON.pe escritos</text>
+<text x="1626" y="207" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">    en application.yml (mover a variables de entorno).</text>
+<text x="1626" y="230" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">3. WHATSAPP_TOKEN no se pasa al consumer en el</text>
+<text x="1626" y="243" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">    docker-compose ni en el .env.</text>
+<text x="1626" y="266" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">4. Base MongoDB compartida por backend y consumer</text>
+<text x="1626" y="279" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">    (acoplamiento por datos).</text>
+<text x="1626" y="302" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">5. audit.queue existe pero no tiene consumidor.</text>
+<text x="1626" y="325" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">6. Sin patrón Outbox: guardar la póliza y publicar</text>
+<text x="1626" y="338" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">    el evento son pasos separados (riesgo de</text>
+<text x="1626" y="351" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">    inconsistencia).</text>
+<rect x="1610" y="430" width="280" height="250" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="1626" y="453" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Leyenda</text>
+<path d="M1626,475 H1672" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
+<text x="1682" y="479" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">HTTP (síncrono, navegador ↔ servidor)</text>
+<path d="M1626,499 H1672" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
+<text x="1682" y="503" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">HTTPS con servicios externos (Internet)</text>
+<path d="M1626,523 H1672" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
+<text x="1682" y="527" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Publicación de eventos (AMQP)</text>
+<path d="M1626,547 H1672" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-red)"/>
+<text x="1682" y="551" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Consumo de mensajes (AMQP)</text>
+<path d="M1626,571 H1672" fill="none" stroke="#f08c00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-orange)"/>
+<text x="1682" y="575" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">DLX / reintentos / rechazo</text>
+<path d="M1626,595 H1672" fill="none" stroke="#1e9e54" stroke-width="2" marker-end="url(#m-green)"/>
+<text x="1682" y="599" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Acceso a base de datos (MongoDB)</text>
+<path d="M1626,619 H1672" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#m-gray)"/>
+<text x="1682" y="623" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Relación de uso / dependencia</text>
+<rect x="1626" y="640" width="46" height="14" rx="3" fill="#fff7e0" stroke="#e0a030" stroke-width="1"/>
+<text x="1682" y="651" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Servicio externo (Internet)</text>
+<rect x="1626" y="660" width="46" height="14" rx="3" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="1"/>
+<text x="1682" y="671" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Puerto host → contenedor</text>
+<rect x="1610" y="700" width="280" height="170" rx="8" fill="#e8f0ff" stroke="#3b82c4" stroke-width="1.5"/>
+<text x="1626" y="724" font-size="13" font-weight="bold" fill="#1d4f91" text-anchor="start" style="">Resumen de despliegue</text>
+<text x="1626" y="746" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">3 aplicaciones desplegables:</text>
+<text x="1626" y="761" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  Frontend, Backend y Notification Consumer.</text>
+<text x="1626" y="776" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">2 infraestructuras:</text>
+<text x="1626" y="791" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  MongoDB y RabbitMQ.</text>
+<text x="1626" y="806" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Backend y Consumer se comunican solo</text>
+<text x="1626" y="821" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">por eventos a través de RabbitMQ.</text>
+<text x="1626" y="836" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Stack completo: Arquitectura-Clean/</text>
+<text x="1626" y="851" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">docker-compose.yml</text>
+<rect x="20" y="1110" width="640" height="115" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="36" y="1132" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Orden de arranque (depends_on + healthcheck)</text>
+<rect x="36" y="1146" width="190" height="66" rx="6" fill="#e6f7ec" stroke="#4fae77" stroke-width="1"/>
+<text x="46" y="1163" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">1. Infraestructura (en paralelo)</text>
+<text x="46" y="1178" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">mongodb · rabbitmq</text>
+<text x="46" y="1193" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(esperan a estar healthy)</text>
+<rect x="256" y="1146" width="190" height="66" rx="6" fill="#e6f7ec" stroke="#4fae77" stroke-width="1"/>
+<text x="266" y="1163" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">2. Aplicaciones (en paralelo)</text>
+<text x="266" y="1178" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">backend · consumer</text>
+<text x="266" y="1193" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(dependen de mongodb y rabbitmq)</text>
+<path d="M226,1179 H256" fill="none" stroke="#6b7280" stroke-width="1.5" marker-end="url(#m-gray)"/>
+<rect x="476" y="1146" width="170" height="66" rx="6" fill="#eef2ff" stroke="#8b8fdc" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="486" y="1163" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Independiente</text>
+<text x="486" y="1178" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">frontend</text>
+<text x="486" y="1193" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(sin dependencias)</text>
+<rect x="680" y="1110" width="860" height="115" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="696" y="1132" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Redes Docker y miembros</text>
+<rect x="696" y="1146" width="240" height="66" rx="6" fill="#e3effb" stroke="#3b82c4" stroke-width="1"/>
+<text x="706" y="1163" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">red por defecto</text>
+<text x="706" y="1178" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(solo frontend)</text>
+<text x="706" y="1193" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• frontend (nginx)</text>
+<rect x="956" y="1146" width="240" height="66" rx="6" fill="#dcf5e6" stroke="#2e9e5b" stroke-width="1"/>
+<text x="966" y="1163" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">clean_network</text>
+<text x="966" y="1178" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• backend  • consumer</text>
+<text x="966" y="1193" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• mongodb</text>
+<rect x="1216" y="1146" width="240" height="66" rx="6" fill="#fbe4e4" stroke="#d94848" stroke-width="1"/>
+<text x="1226" y="1163" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">rabbitmq_network</text>
+<text x="1226" y="1178" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• backend  • consumer</text>
+<text x="1226" y="1193" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• rabbitmq</text>
+</svg>
