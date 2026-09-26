@@ -5,9 +5,6 @@ metadata:
   namespace: andina-seguros
 data:
   SERVER_PORT: "8080"
-  # Base propia identity_db (database per service). El MongoDB del cluster aun no exige
-  # autenticacion (paso 0.6 pendiente, ver README).
-  SPRING_DATA_MONGODB_URI: "mongodb://mongodb-service.andina-seguros.svc.cluster.local:27017/identity_db"
   REDIS_HOST: "redis-service.andina-seguros.svc.cluster.local"
   REDIS_PORT: "6379"
   REDIS_DATABASE: "1" # la 0 es del rate limiter del gateway
