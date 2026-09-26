@@ -20,6 +20,11 @@ spring:
       httpclient:
         connect-timeout: 3000 # ms
         response-timeout: 5s
+        # Conexiones del pool con vida limitada: si un servicio cambia de IP (contenedor recreado)
+        # no se siguen reutilizando conexiones hacia la IP vieja.
+        pool:
+          max-idle-time: 15s
+          max-life-time: 60s
       globalcors:
         add-to-simple-url-handler-mapping: true
         cors-configurations:
