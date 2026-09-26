@@ -23,6 +23,8 @@ public class OutboxEventDocument {
     public String aggregateId;
     public String payload;
     public String correlationId;
+    // Contexto W3C de la traza que originó el evento: el consumidor continúa la misma traza.
+    public String traceparent;
     public String status;
     public int attempts;
     public Instant createdAt;

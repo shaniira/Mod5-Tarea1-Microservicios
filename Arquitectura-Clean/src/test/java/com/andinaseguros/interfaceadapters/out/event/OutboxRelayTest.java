@@ -45,6 +45,8 @@ class OutboxRelayTest {
         verify(rabbit).send(eq("andina.events"), eq("customer.registered.v1"), mensaje.capture(), any(CorrelationData.class));
         assertThat(mensaje.getValue().getMessageProperties().getMessageId()).isEqualTo("e1");
         assertThat((String) mensaje.getValue().getMessageProperties().getHeader("X-Correlation-Id")).isEqualTo("corr-1");
+        assertThat((String) mensaje.getValue().getMessageProperties().getHeader("traceparent"))
+                .isEqualTo("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
     }
 
     @Test
@@ -93,6 +95,7 @@ class OutboxRelayTest {
         d.eventType = "CustomerRegistered";
         d.payload = "{\"eventId\":\"" + id + "\"}";
         d.correlationId = "corr-1";
+        d.traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
         d.status = OutboxEventDocument.PENDING;
         d.createdAt = Instant.parse("2026-09-25T09:59:00Z");
         return d;

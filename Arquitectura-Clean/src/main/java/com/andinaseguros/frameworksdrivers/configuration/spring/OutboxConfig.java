@@ -10,10 +10,14 @@ import com.andinaseguros.usecases.port.out.event.DomainEventPublisherPort;
 import com.andinaseguros.usecases.port.out.transaccion.TransaccionPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.TraceContext;
+import io.micrometer.tracing.Tracer;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,8 +52,20 @@ public class OutboxConfig {
     DomainEventPublisherPort domainEventPublisher(
             SpringDataOutboxMongoRepository outbox,
             IntegrationEventMapper mapper,
-            ObjectMapper objectMapper) {
-        return new OutboxDomainEventPublisherAdapter(outbox, mapper, objectMapper);
+            ObjectMapper objectMapper,
+            ObjectProvider<Tracer> tracer) {
+        return new OutboxDomainEventPublisherAdapter(
+                outbox, mapper, objectMapper, () -> traceparent(tracer.getIfAvailable()));
+    }
+
+    /** traceparent W3C de la traza en curso (null si no hay traza activa). */
+    private static String traceparent(Tracer tracer) {
+        Span span = tracer == null ? null : tracer.currentSpan();
+        if (span == null) {
+            return null;
+        }
+        TraceContext contexto = span.context();
+        return "00-" + contexto.traceId() + "-" + contexto.spanId() + "-01";
     }
 
     @Bean
