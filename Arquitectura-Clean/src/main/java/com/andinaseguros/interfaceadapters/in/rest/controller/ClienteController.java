@@ -1,7 +1,9 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
 import com.andinaseguros.interfaceadapters.in.rest.request.*;
+import com.andinaseguros.interfaceadapters.in.rest.response.ReenvioEventosClientesResponse;
 import static com.andinaseguros.interfaceadapters.in.rest.mapper.RestRequestMapper.toCore;
+import com.andinaseguros.usecases.dto.ActualizarContactoClienteRequestModel;
 import com.andinaseguros.usecases.dto.Responses.*;
 import com.andinaseguros.usecases.port.in.RegistrarClienteUseCase;
 import com.andinaseguros.usecases.port.in.RegistrarVehiculoUseCase;
@@ -21,24 +23,50 @@ public class ClienteController {
     private final ObtenerClienteUseCase obtenerClienteUseCase;
     private final RegistrarVehiculoUseCase crearVehiculo;
     private final ListarVehiculosClienteUseCase listarVehiculos;
+    private final ActualizarContactoClienteUseCase actualizarContacto;
+    private final PublicarClientesExistentesUseCase publicarClientesExistentes;
 
     public ClienteController(
             RegistrarClienteUseCase crearClienteUseCase,
             ListarClientesUseCase listarClientesUseCase,
             ObtenerClienteUseCase obtenerClienteUseCase,
             RegistrarVehiculoUseCase crearVehiculoUseCase,
-            ListarVehiculosClienteUseCase listarVehiculosClienteUseCase) {
+            ListarVehiculosClienteUseCase listarVehiculosClienteUseCase,
+            ActualizarContactoClienteUseCase actualizarContactoClienteUseCase,
+            PublicarClientesExistentesUseCase publicarClientesExistentesUseCase) {
         this.crearClienteUseCase = crearClienteUseCase;
         this.listarClientesUseCase = listarClientesUseCase;
         this.obtenerClienteUseCase = obtenerClienteUseCase;
         this.crearVehiculo = crearVehiculoUseCase;
         this.listarVehiculos = listarVehiculosClienteUseCase;
+        this.actualizarContacto = actualizarContactoClienteUseCase;
+        this.publicarClientesExistentes = publicarClientesExistentesUseCase;
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','AGENTE')")
     ResponseEntity<ClienteResponse> crear(@Valid @RequestBody CrearClienteRequest solicitud) {
         return ResponseEntity.status(201).body(crearClienteUseCase.execute(toCore(solicitud)));
+    }
+
+    @PatchMapping("/{id}/contacto")
+    @PreAuthorize("hasAnyRole('ADMIN','AGENTE')")
+    ClienteResponse actualizarContacto(
+            @PathVariable UUID id, @Valid @RequestBody ActualizarContactoClienteRequest solicitud) {
+        return actualizarContacto.execute(
+                new ActualizarContactoClienteRequestModel(
+                        id, solicitud.correo(), solicitud.telefono()));
+    }
+
+    /**
+     * Backfill de la fase 1: vuelve a publicar customer.registered.v1 por cada cliente para poblar
+     * (o reconstruir) la proyección customer_contacts de notification-service.
+     */
+    @PostMapping("/eventos/reenvio")
+    @PreAuthorize("hasRole('ADMIN')")
+    ResponseEntity<ReenvioEventosClientesResponse> reenviarEventos() {
+        return ResponseEntity.accepted()
+                .body(new ReenvioEventosClientesResponse(publicarClientesExistentes.execute()));
     }
 
     @GetMapping

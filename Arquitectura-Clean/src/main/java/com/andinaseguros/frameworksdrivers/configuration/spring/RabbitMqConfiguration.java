@@ -22,27 +22,17 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfiguration {
     private static final Logger log = LoggerFactory.getLogger(RabbitMqConfiguration.class);
 
+    // Fase 1: el backend solo declara los exchanges donde publica y la cola de auditoría. Las colas
+    // de notificación (y su DLQ) pasaron a ser de notification-service.
+
     @Bean
-    TopicExchange eventsExchange(RabbitMqProperties properties) {
+    TopicExchange insuranceEventsExchange(RabbitMqProperties properties) {
         return new TopicExchange(properties.exchange(), true, false);
     }
 
     @Bean
-    TopicExchange deadLetterExchange(RabbitMqProperties properties) {
-        return new TopicExchange(properties.deadLetterExchange(), true, false);
-    }
-
-    @Bean
-    Queue notificationQueue(RabbitMqProperties properties) {
-        return QueueBuilder.durable(properties.notificationQueue())
-                .deadLetterExchange(properties.deadLetterExchange())
-                .deadLetterRoutingKey(properties.routingKey() + ".dlq")
-                .build();
-    }
-
-    @Bean
-    Queue notificationDeadLetterQueue(RabbitMqProperties properties) {
-        return QueueBuilder.durable(properties.notificationDeadLetterQueue()).build();
+    TopicExchange andinaEventsExchange(RabbitMqProperties properties) {
+        return new TopicExchange(properties.eventsExchange(), true, false);
     }
 
     @Bean
@@ -51,18 +41,11 @@ public class RabbitMqConfiguration {
     }
 
     @Bean
-    Binding notificationBinding(Queue notificationQueue, TopicExchange eventsExchange, RabbitMqProperties properties) {
-        return BindingBuilder.bind(notificationQueue).to(eventsExchange).with(properties.routingKey());
-    }
-
-    @Bean
-    Binding auditBinding(Queue auditQueue, TopicExchange eventsExchange, RabbitMqProperties properties) {
-        return BindingBuilder.bind(auditQueue).to(eventsExchange).with(properties.routingKey());
-    }
-
-    @Bean
-    Binding deadLetterBinding(Queue notificationDeadLetterQueue, TopicExchange deadLetterExchange, RabbitMqProperties properties) {
-        return BindingBuilder.bind(notificationDeadLetterQueue).to(deadLetterExchange).with(properties.routingKey() + ".dlq");
+    Binding auditBinding(
+            Queue auditQueue, TopicExchange insuranceEventsExchange, RabbitMqProperties properties) {
+        return BindingBuilder.bind(auditQueue)
+                .to(insuranceEventsExchange)
+                .with(properties.routingKey());
     }
 
     @Bean

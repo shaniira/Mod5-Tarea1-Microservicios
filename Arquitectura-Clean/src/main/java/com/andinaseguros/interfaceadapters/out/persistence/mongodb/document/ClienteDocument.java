@@ -19,4 +19,7 @@ public class ClienteDocument {
     public String correo;
     public String telefono;
     public boolean activo;
+
+    // Los clientes guardados antes de la fase 1 no tienen este campo: se leen como versión 1.
+    public Long version;
 }
