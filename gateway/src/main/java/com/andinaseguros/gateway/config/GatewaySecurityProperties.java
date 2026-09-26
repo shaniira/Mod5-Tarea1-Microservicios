@@ -9,15 +9,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @param jwksUri claves publicas de identity-service (fase 2)
  * @param issuer emisor esperado en los tokens
- * @param legacyHs256Enabled ventana de transicion: acepta tambien los HS256 antiguos
- * @param jwtSecret secreto HS256 antiguo; solo se usa durante la ventana
  */
 @ConfigurationProperties(prefix = "app.security")
 public record GatewaySecurityProperties(
         String jwksUri,
         String issuer,
-        boolean legacyHs256Enabled,
-        String jwtSecret,
         List<String> publicPaths,
         String correlationIdHeader) {
     public GatewaySecurityProperties {

@@ -69,25 +69,6 @@
       <artifactId>spring-security-oauth2-jose</artifactId>
     </dependency>
 
-    <!-- Ventana de transicion: tokens HS256 antiguos del monolito (se retira al cerrar la fase 2) -->
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-api</artifactId>
-      <version>0.12.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-impl</artifactId>
-      <version>0.12.6</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-jackson</artifactId>
-      <version>0.12.6</version>
-      <scope>runtime</scope>
-    </dependency>
-
     <!-- Observabilidad: health checks (liveness/readiness) y metricas Prometheus -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -161,9 +161,6 @@ app:
     # Fase 2: claves publicas de identity-service. El gateway ya no necesita un secreto para validar.
     jwks-uri: ${JWT_JWKS_URI:http://localhost:8084/.well-known/jwks.json}
     issuer: ${JWT_ISSUER:andina-identity}
-    # Ventana de transicion (paso 2.3): acepta tambien los tokens HS256 antiguos del monolito.
-    legacy-hs256-enabled: ${JWT_LEGACY_HS256_ENABLED:false}
-    jwt-secret: ${JWT_SECRET:}
     correlation-id-header: X-Correlation-Id
     # Mismas rutas publicas que Arquitectura-Clean/SecurityConfig.java: /api/auth/** (login,
     # register, google, facebook, mfa/verificar), swagger y el health del propio Gateway.
