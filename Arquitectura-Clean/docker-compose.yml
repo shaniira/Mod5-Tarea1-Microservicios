@@ -5,6 +5,10 @@ services:
     image: mongo:8
     container_name: andina-clean-mongodb
     restart: unless-stopped
+    # Replica set de un nodo: habilita las transacciones que usa el Outbox (paso 0.7 de la ruta).
+    # Los datos existentes del volumen se conservan. Para conectarse desde el host (Compass):
+    # mongodb://localhost:27020/?directConnection=true
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     environment:
       MONGO_INITDB_DATABASE: andina_seguros_clean
     ports:
@@ -14,10 +18,17 @@ services:
     networks:
       - clean_network
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      # Inicia el replica set la primera vez y solo da "sano" cuando el nodo ya es PRIMARY.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]}) }; quit(db.hello().isWritablePrimary ? 0 : 1)"
       interval: 5s
-      timeout: 5s
-      retries: 15
+      timeout: 10s
+      retries: 20
+      start_period: 10s
 
   backend:
     image: andina-seguros-clean:1.0.0
@@ -28,7 +39,7 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean?replicaSet=rs0
       JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
       JWT_EXPIRATION_SECONDS: 28800
       CORS_ALLOWED_ORIGINS: http://localhost:5173
@@ -73,20 +84,60 @@ services:
       timeout: 5s
       retries: 15
 
-  consumer:
+  # --- Fase 1: notification-service (antes "consumer") con base propia ---------------------------
+  # Ya no esta en clean_network: no puede llegar al MongoDB del backend ni aunque quisiera.
+  notification-mongodb:
+    image: mongo:8
+    container_name: andina-notification-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${NOTIFICATION_MONGO_ROOT_PASSWORD:-notification-root-local}
+      MONGO_INITDB_DATABASE: notification_db
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-notification-local}
+    volumes:
+      - notification_mongo_data:/data/db
+      - ../services/notification-service/mongo-init:/docker-entrypoint-initdb.d:ro
+    networks: ["notification_data_network"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    # Sin puerto publicado al host.
+
+  notification-service:
+    image: andina-notification-service:1.1.0
+    container_name: andina-notification-service
     build:
-      context: ../andina-notification-consumer
+      context: ../services/notification-service
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean
-    networks: [clean_network, rabbitmq_network]
+      # Credenciales solo de notification_db (paso 1.9).
+      SPRING_DATA_MONGODB_URI: mongodb://notification:${NOTIFICATION_DB_PASSWORD:-notification-local}@notification-mongodb:27017/notification_db?authSource=notification_db
+      WHATSAPP_BASE_URL: ${WHATSAPP_BASE_URL:-https://api.whatsapp.json.pe}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_CB_WAIT_OPEN: ${WHATSAPP_CB_WAIT_OPEN:-30s}
+    networks: [notification_data_network, rabbitmq_network]
     depends_on:
-      mongodb: { condition: service_healthy }
+      notification-mongodb: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
+
+  # WhatsApp simulado para probar sin enviar mensajes reales. Se levanta solo con
+  # "--profile whatsapp-mock" y WHATSAPP_BASE_URL=http://whatsapp-mock:8080 (ver
+  # services/notification-service/README.md).
+  whatsapp-mock:
+    image: wiremock/wiremock:3.9.1
+    container_name: andina-whatsapp-mock
+    profiles: ["whatsapp-mock"]
+    command: ["--global-response-templating", "--disable-banner"]
+    volumes:
+      - ../services/notification-service/whatsapp-mock:/home/wiremock/mappings:ro
+    networks: [rabbitmq_network]
 
   redis:
     image: redis:7-alpine
@@ -140,11 +191,15 @@ volumes:
   clean_mongo_data:
     name: andina_clean_mongo_data
   rabbitmq_data:
+  notification_mongo_data:
+    name: andina_notification_mongo_data
 
 networks:
   clean_network:
     name: andina_clean_network
   rabbitmq_network:
+  notification_data_network:
+    name: andina_notification_data_network
   gateway_network:
     name: andina_gateway_network
 
