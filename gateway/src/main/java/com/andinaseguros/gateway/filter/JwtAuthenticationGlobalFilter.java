@@ -67,18 +67,21 @@ public class JwtAuthenticationGlobalFilter implements GlobalFilter, Ordered {
         }
 
         String token = authorization.substring("Bearer ".length()).trim();
-        JwtValidator.ValidatedToken result = jwtValidator.validate(token);
-        if (!result.valid()) {
-            log.debug("Token rechazado en el Gateway: {}", result.reason());
-            return unauthorized(exchange, "Token invalido o expirado");
-        }
-
-        ServerHttpRequest mutatedRequest =
-                request.mutate()
-                        .header("X-User-Id", result.subject())
-                        .header("X-User-Rol", result.rol() != null ? result.rol() : "")
-                        .build();
-        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+        return jwtValidator
+                .validate(token)
+                .flatMap(
+                        result -> {
+                            if (!result.valid()) {
+                                log.debug("Token rechazado en el Gateway: {}", result.reason());
+                                return unauthorized(exchange, "Token invalido o expirado");
+                            }
+                            ServerHttpRequest mutatedRequest =
+                                    request.mutate()
+                                            .header("X-User-Id", result.subject())
+                                            .header("X-User-Rol", result.rol() != null ? result.rol() : "")
+                                            .build();
+                            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                        });
     }
 
     private boolean isPublicPath(String path) {

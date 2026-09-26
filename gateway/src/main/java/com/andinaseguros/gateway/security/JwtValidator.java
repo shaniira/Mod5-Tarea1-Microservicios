@@ -1,56 +1,78 @@
 package com.andinaseguros.gateway.security;
 
 import com.andinaseguros.gateway.config.GatewaySecurityProperties;
-import io.jsonwebtoken.JwtException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jwt.JWTParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 /**
- * Valida la firma y vigencia del JWT emitido hoy por el backend (HS256, secreto compartido).
+ * Valida los JWT en el borde (fase 2): los RS256 que firma identity-service se verifican con su
+ * clave pública, descargada de /.well-known/jwks.json y cacheada. El gateway ya no necesita ningún
+ * secreto para validar.
  *
- * <p>Decision tecnica: el Gateway NO usa Spring Security OAuth2 Resource Server con JWKS
- * porque todavia no existe identity-service (fase 2 de la migracion) exponiendo claves
- * publicas RS256 en {@code /.well-known/jwks.json}. Mientras tanto, tanto el backend
- * (JwtTokenAdapter, HS256) como este Gateway comparten el mismo secreto por variable de
- * entorno ({@code JWT_SECRET}). Cuando identity-service exista, este validador se reemplaza
- * por un {@code ReactiveJwtDecoder} basado en JWKS y deja de compartirse el secreto. Este
- * cambio de tecnologia esta documentado y justificado en
- * doc/5. Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md.
+ * <p>Ventana de transición (paso 2.3): mientras app.security.legacy-hs256-enabled=true también se
+ * aceptan los tokens HS256 que emitía el monolito, para no cerrar sesiones abiertas.
  *
- * <p>El Gateway valida el token para poder rechazar temprano peticiones sin sesion (evita
- * saturar al backend), pero el backend sigue validando el mismo token de forma independiente
- * (defensa en profundidad): el Gateway nunca es la unica barrera de seguridad.
+ * <p>El gateway valida para rechazar temprano peticiones sin sesión, pero cada servicio vuelve a
+ * validar el token (defensa en profundidad).
  */
 @Component
 public class JwtValidator {
-
-    private final SecretKey key;
+    private final ReactiveJwtDecoder rs256;
+    private final SecretKey legado;
 
     public JwtValidator(GatewaySecurityProperties properties) {
+        NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withJwkSetUri(properties.jwksUri()).build();
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.issuer()));
+        this.rs256 = decoder;
         String secret = properties.jwtSecret();
-        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException(
-                    "JWT_SECRET no configurado o menor a 32 bytes; el Gateway no puede arrancar"
-                            + " sin un secreto valido (evita repetir el riesgo S3 del analisis"
-                            + " de arquitectura).");
-        }
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.legado =
+                properties.legacyHs256Enabled()
+                                && secret != null
+                                && secret.getBytes(StandardCharsets.UTF_8).length >= 32
+                        ? Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8))
+                        : null;
     }
 
-    /** Devuelve las claims del token si la firma y la expiracion son validas. */
-    public ValidatedToken validate(String token) {
+    /** Emite las claims del token si la firma, el emisor y la vigencia son válidos. */
+    public Mono<ValidatedToken> validate(String token) {
+        final boolean hmac;
         try {
-            var claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
-            String subject = claims.getSubject();
-            String rol = claims.get("rol", String.class);
-            if (subject == null || subject.isBlank()) {
+            hmac = JWSAlgorithm.Family.HMAC_SHA.contains(JWTParser.parse(token).getHeader().getAlgorithm());
+        } catch (Exception ex) {
+            return Mono.just(ValidatedToken.invalid("Token mal formado"));
+        }
+        if (hmac) {
+            return Mono.fromCallable(() -> validarLegado(token));
+        }
+        return rs256.decode(token)
+                .map(
+                        jwt ->
+                                jwt.getSubject() == null || jwt.getSubject().isBlank()
+                                        ? ValidatedToken.invalid("El token no trae subject")
+                                        : ValidatedToken.valid(jwt.getSubject(), jwt.getClaimAsString("rol")))
+                .onErrorResume(ex -> Mono.just(ValidatedToken.invalid(ex.getMessage())));
+    }
+
+    private ValidatedToken validarLegado(String token) {
+        if (legado == null) {
+            return ValidatedToken.invalid("Los tokens HS256 del monolito ya no se aceptan");
+        }
+        try {
+            var claims = Jwts.parser().verifyWith(legado).build().parseSignedClaims(token).getPayload();
+            if (claims.getSubject() == null || claims.getSubject().isBlank()) {
                 return ValidatedToken.invalid("El token no trae subject");
             }
-            return ValidatedToken.valid(subject, rol);
-        } catch (JwtException | IllegalArgumentException ex) {
+            return ValidatedToken.valid(claims.getSubject(), claims.get("rol", String.class));
+        } catch (RuntimeException ex) {
             return ValidatedToken.invalid(ex.getMessage());
         }
     }

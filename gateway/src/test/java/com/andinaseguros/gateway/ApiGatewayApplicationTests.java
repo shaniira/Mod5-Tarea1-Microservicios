@@ -6,7 +6,7 @@ import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(
-        properties = {"app.security.jwt-secret=test-secret-key-must-be-at-least-32-bytes-long"})
+        properties = {"app.security.jwks-uri=http://localhost:1/.well-known/jwks.json"})
 class ApiGatewayApplicationTests {
 
     @Test

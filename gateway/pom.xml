@@ -63,7 +63,13 @@
       <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
     </dependency>
 
-    <!-- Validacion de JWT (HS256, mismo secreto compartido que el backend en esta fase) -->
+    <!-- Fase 2: validacion de los JWT RS256 de identity-service con su JWKS (reactivo). -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+
+    <!-- Ventana de transicion: tokens HS256 antiguos del monolito (se retira al cerrar la fase 2) -->
     <dependency>
       <groupId>io.jsonwebtoken</groupId>
       <artifactId>jjwt-api</artifactId>
