@@ -11,7 +11,8 @@ RUN mvn -B clean package --no-transfer-progress -Dstyle.color=never \
 
 # --- Etapa 2: runtime (sin JDK ni Maven, usuario sin privilegios) ---
 FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S spring && adduser -S spring -G spring
+# uid fijo: Kubernetes solo puede comprobar runAsNonRoot con un uid numerico.
+RUN addgroup -S -g 1001 spring && adduser -S -u 1001 spring -G spring
 WORKDIR /app
 COPY --from=build /build/target/notification-service-*.jar app.jar
 RUN chown -R spring:spring /app

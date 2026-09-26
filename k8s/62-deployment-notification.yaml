@@ -1,0 +1,63 @@
+# notification-service (fase 1). No expone API (solo consume RabbitMQ), por eso no tiene Service
+# ni Ingress; Prometheus lo descubre por las anotaciones del Pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: andina-seguros
+  labels:
+    app: notification-service
+spec:
+  replicas: 1 # la idempotencia (inbox) permite subir replicas; 1 basta para el volumen actual
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001 # usuario "spring" de la imagen
+      containers:
+        - name: notification-service
+          image: andina-notification-service:1.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef: { name: notification-config }
+            - secretRef: { name: notification-secrets }
+          resources:
+            requests: { cpu: "200m", memory: "320Mi" }
+            limits: { cpu: "750m", memory: "512Mi" }
+          startupProbe:
+            httpGet: { path: /actuator/health, port: http }
+            timeoutSeconds: 5
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            # Depende de su MongoDB y de RabbitMQ.
+            httpGet: { path: /actuator/health/readiness, port: http }
+            timeoutSeconds: 5
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            timeoutSeconds: 5
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+      # Apagado ordenado: termina el mensaje en curso (server.shutdown=graceful).
+      terminationGracePeriodSeconds: 30
