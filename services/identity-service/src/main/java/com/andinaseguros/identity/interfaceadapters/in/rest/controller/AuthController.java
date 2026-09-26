@@ -51,8 +51,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody CrearUsuarioRequest solicitud) {
-        registrarUsuario.execute(toCore(solicitud));
+    public ResponseEntity<Void> register(
+            @Valid @RequestBody CrearUsuarioRequest solicitud, Authentication authentication) {
+        // Riesgo S1: el rol pedido solo se respeta si quien llama es un ADMIN autenticado.
+        boolean esAdmin =
+                authentication != null
+                        && authentication.getAuthorities().stream()
+                                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        registrarUsuario.execute(toCore(solicitud), esAdmin);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -115,12 +121,6 @@ public class AuthController {
     @PreAuthorize("isAuthenticated()")
     public PerfilResponse me(Authentication authentication) {
         return obtenerPerfil.execute(authentication.getName());
-    }
-
-    @PostMapping("/logout")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> logout() {
-        return ResponseEntity.noContent().build();
     }
 
     private String frontendCallbackUrl() {
