@@ -82,8 +82,10 @@ kubectl apply -f k8s/00-namespace.yaml
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
 kubectl create secret generic identity-jwt-key --namespace andina-seguros \
   --from-file=private.pem=private.pem && rm private.pem
-# repetir el patrón con identity-secrets (51-secret-identity.example.yaml), backend-secrets
-# (21-secret-backend.example.yaml) y rabbitmq-secrets (31-secret-rabbitmq.example.yaml)
+# repetir el patrón con mongodb-secrets (33-secret-mongodb.example.yaml), identity-secrets
+# (51), backend-secrets (21), notification-secrets (61) y rabbitmq-secrets (31).
+# MongoDB usa los mismos scripts que Docker Compose (replica set + usuarios por servicio):
+kubectl create configmap mongodb-scripts --namespace andina-seguros --from-file=infra/mongo/
 
 kubectl apply -f k8s/11-configmap-gateway.yaml
 kubectl apply -f k8s/12-deployment-gateway.yaml
@@ -103,6 +105,10 @@ kubectl apply -f k8s/50-configmap-identity.yaml
 kubectl apply -f k8s/52-deployment-identity.yaml
 kubectl apply -f k8s/53-service-identity.yaml
 
+# Fase 1: notification-service (sin Service: solo consume RabbitMQ)
+kubectl apply -f k8s/60-configmap-notification.yaml
+kubectl apply -f k8s/62-deployment-notification.yaml
+
 kubectl apply -f k8s/40-ingress.yaml
 ```
 
@@ -118,9 +124,9 @@ kubectl logs -n andina-seguros deploy/api-gateway -f
 | Punto | Decisión | Por qué |
 |---|---|---|
 | **backend sin HPA** | No se define `HorizontalPodAutoscaler` para `backend` y su `Deployment` queda en `replicas: 1` | Desde la fase 2 el estado efímero (OAuth, tickets, MFA) está en Redis dentro de identity-service, pero el relay del Outbox del backend está pensado para una sola réplica. Se habilita el escalado cuando el relay reclame cada evento antes de enviarlo. |
-| **identity-service con 2 réplicas** | `replicas: 2`, sin HPA todavía | No guarda estado en memoria (Redis), así que escala sin fallos de MFA ni Facebook (probado en Docker Compose, paso 2.10). Usa la base `identity_db` del MongoDB compartido, que en el clúster aún no exige autenticación (paso 0.6). |
+| **identity-service con 2 réplicas** | `replicas: 2`, sin HPA todavía | No guarda estado en memoria (Redis), así que escala sin fallos de MFA ni Facebook (probado en Docker Compose, paso 2.10). Usa la base `identity_db` del MongoDB del clúster con su propio usuario (solo `readWrite` sobre esa base). |
 | **api-gateway con HPA y 2 réplicas mínimo** | `minReplicas: 2`, CPU 70% / memoria 80% | El Gateway no guarda estado propio (el rate limiter vive en Redis), así que sí es seguro escalarlo horizontalmente desde ya. Cumple la regla "API Gateway: mínimo 2 réplicas en ambientes no locales". |
-| **MongoDB y RabbitMQ de un solo Pod** | `replicas: 1`, sin clustering | Igual que hoy en Docker Compose: son infraestructura compartida de la fase 0, no el foco de esta entrega. Alta disponibilidad de datos queda para la fase 7 (endurecimiento) del plan de migración. |
+| **MongoDB y RabbitMQ de un solo Pod** | `replicas: 1`, sin clustering | MongoDB es un replica set **de un nodo** (necesario para las transacciones del Outbox) con autenticación obligatoria y un usuario por servicio (`andina`, `identity`, `notification`), cada uno solo con permiso sobre su base. El Service es headless para que el nombre del replica set resuelva a la IP del Pod. Alta disponibilidad real (3 nodos) queda para la fase 7. |
 | **JWT RS256 con JWKS (fase 2)** | Solo `identity-service` monta el `Secret` `identity-jwt-key`; `api-gateway` y `backend` descargan la clave pública de `/.well-known/jwks.json` | Se retiró el secreto simétrico compartido (`andina-jwt-secret`): robar el gateway o el backend ya no permite firmar tokens. |
 | **Sin TLS real configurado** | El `Ingress` referencia `andina-seguros-tls` y `letsencrypt-prod`, pero ninguno existe todavía | Son placeholders de ejemplo; instalar cert-manager (o cargar un certificado propio) es un paso de entorno, no de este repositorio. |
 | **Sin Eureka / service discovery adicional** | Se usa el DNS interno de Kubernetes (`<service>.<namespace>.svc.cluster.local`) | Cumple la regla "no introducir Eureka salvo necesidad real"; el DNS de Kubernetes ya resuelve el problema. |

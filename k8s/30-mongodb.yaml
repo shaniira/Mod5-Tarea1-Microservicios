@@ -1,6 +1,11 @@
-# Mongo de un solo Pod para este entorno de practica/demo (no alta disponibilidad; un
-# ReplicaSet real con Operator queda fuera del alcance de esta fase). PVC para no perder datos
-# entre reinicios del Pod.
+# MongoDB de un solo Pod para este entorno de practica/demo: replica set de un nodo (transacciones
+# del Outbox, paso 0.7) con autenticacion obligatoria (paso 0.6) y una base y un usuario por
+# servicio (backend, identity, notification). Alta disponibilidad real (3 nodos u Operator) queda
+# para la fase 7.
+#
+# Usa los mismos scripts que Docker Compose (infra/mongo). Crear el ConfigMap antes de aplicar:
+#   kubectl create configmap mongodb-scripts -n andina-seguros --from-file=infra/mongo/
+# y el Secret con las claves (ver 33-secret-mongodb.example.yaml).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -29,23 +34,30 @@ spec:
       containers:
         - name: mongodb
           image: mongo:8
+          # Crea keyFile y usuarios (idempotente) y arranca con --replSet y --keyFile.
+          command: ["bash", "/scripts/arranque.sh"]
           ports: [{ name: mongo, containerPort: 27017 }]
+          envFrom:
+            - secretRef: { name: mongodb-secrets } # MONGO_ROOT_PASSWORD, MONGO_APP_USERS
           env:
-            - name: MONGO_INITDB_DATABASE
-              value: andina_seguros_clean
+            - { name: MONGO_ROOT_USERNAME, value: root }
+            - { name: MONGO_REPLICA_SET, value: rs0 }
+            # Nombre con el que los clientes llegan a este nodo. El Service es headless, asi el
+            # nombre resuelve a la IP del Pod y mongod se reconoce en la configuracion.
+            - { name: MONGO_REPLICA_HOST, value: "mongodb-service.andina-seguros.svc.cluster.local:27017" }
           volumeMounts:
             - { name: data, mountPath: /data/db }
-          # mongosh arranca un proceso Node.js nuevo en cada invocacion: puede superar el
-          # timeout por defecto de 1s de Kubernetes bajo CPU limitada (mismo problema real
-          # encontrado y corregido en rabbitmq, ver 31-rabbitmq.yaml).
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+          # healthcheck.sh inicia el replica set la primera vez y solo responde OK con el nodo
+          # PRIMARY. mongosh tarda en arrancar: timeouts amplios (problema real ya visto en rabbitmq).
           startupProbe:
-            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
-            timeoutSeconds: 10
+            exec: { command: ["bash", "/scripts/healthcheck.sh"] }
+            timeoutSeconds: 15
             periodSeconds: 5
-            failureThreshold: 24
+            failureThreshold: 36
           readinessProbe:
-            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
-            timeoutSeconds: 10
+            exec: { command: ["bash", "/scripts/healthcheck.sh"] }
+            timeoutSeconds: 15
             periodSeconds: 10
           livenessProbe:
             exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
@@ -57,6 +69,8 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: mongodb-data }
+        - name: scripts
+          configMap: { name: mongodb-scripts, defaultMode: 0555 }
 ---
 apiVersion: v1
 kind: Service
@@ -64,5 +78,8 @@ metadata:
   name: mongodb-service
   namespace: andina-seguros
 spec:
+  clusterIP: None # headless: el nombre resuelve a la IP del Pod (necesario para el replica set)
+  # El nombre debe existir antes de que el Pod este listo: rs.initiate lo necesita para arrancar.
+  publishNotReadyAddresses: true
   selector: { app: mongodb }
   ports: [{ name: mongo, port: 27017, targetPort: mongo }]
