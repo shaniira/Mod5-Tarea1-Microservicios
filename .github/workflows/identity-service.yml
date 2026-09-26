@@ -1,0 +1,32 @@
+# CI de identity-service (plantilla del microservicio, paso 16): compila, corre las pruebas y
+# las reglas ArchUnit, y construye la imagen. Solo se ejecuta si cambia el servicio o sus contratos.
+name: identity-service
+
+on:
+  push:
+    paths:
+      - "services/identity-service/**"
+      - "contracts/**"
+      - ".github/workflows/identity-service.yml"
+  pull_request:
+    paths:
+      - "services/identity-service/**"
+      - "contracts/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/identity-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Pruebas y ArchUnit
+        run: mvn -B --no-transfer-progress verify
+      - name: Imagen Docker
+        run: docker build -t andina-identity-service:${{ github.sha }} .
