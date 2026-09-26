@@ -1,5 +1,7 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.interfaceadapters.in.rest.request.*;
 import static com.andinaseguros.interfaceadapters.in.rest.mapper.RestRequestMapper.toCore;
 import com.andinaseguros.usecases.dto.Responses.SiniestroResponse;
@@ -26,6 +28,7 @@ public class SiniestroController {
     }
 
     @PostMapping
+    @PreAuthorize(Roles.OPERACION)
     public ResponseEntity<SiniestroResponse> crear(
             @PathVariable UUID polizaId, @Valid @RequestBody RegistrarSiniestroRequest solicitud) {
         return ResponseEntity.status(201)
@@ -42,11 +45,13 @@ public class SiniestroController {
     }
 
     @GetMapping
+    @PreAuthorize(Roles.PERSONAL + " or @acceso.esDuenoDePoliza(#polizaId)")
     public List<SiniestroResponse> listar(@PathVariable UUID polizaId) {
         return listarSiniestrosUseCase.execute(polizaId);
     }
 
     @PatchMapping("/{id}/estado")
+    @PreAuthorize(Roles.OPERACION)
     public SiniestroResponse actualizar(
             @PathVariable UUID polizaId,
             @PathVariable UUID id,

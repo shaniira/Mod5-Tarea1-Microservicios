@@ -1,5 +1,7 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.interfaceadapters.in.rest.request.CrearCotizacionRequest;
 import static com.andinaseguros.interfaceadapters.in.rest.mapper.RestRequestMapper.toCore;
 import com.andinaseguros.usecases.dto.Responses.CotizacionResponse;
@@ -34,6 +36,7 @@ public class CotizacionController {
     }
 
     @GetMapping
+    @PreAuthorize(Roles.OPERACION)
     public List<CotizacionResponse> listar(
             @RequestParam(required = false)
                     com.andinaseguros.entities.enums.EstadoCotizacion estado) {
@@ -41,21 +44,25 @@ public class CotizacionController {
     }
 
     @GetMapping("/pendientes-emision")
+    @PreAuthorize(Roles.OPERACION)
     public List<CotizacionResponse> pendientesEmision() {
         return listarPendientesUseCase.execute();
     }
 
     @PostMapping
+    @PreAuthorize(Roles.OPERACION)
     public ResponseEntity<CotizacionResponse> crear(@Valid @RequestBody CrearCotizacionRequest solicitud) {
         return ResponseEntity.status(201).body(crearCotizacionUseCase.execute(toCore(solicitud)));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(Roles.OPERACION + " or @acceso.esDuenoDeCotizacion(#id)")
     public CotizacionResponse obtener(@PathVariable UUID id) {
         return obtenerCotizacionUseCase.execute(id);
     }
 
     @PatchMapping("/{id}/aceptar")
+    @PreAuthorize(Roles.OPERACION)
     public CotizacionResponse aceptar(@PathVariable UUID id) {
         return aceptarCotizacionUseCase.execute(id);
     }
