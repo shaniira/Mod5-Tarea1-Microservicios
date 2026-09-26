@@ -1,5 +1,6 @@
 package com.andinaseguros.usecases.service.cliente;
 
+import com.andinaseguros.entities.model.Cliente;
 import com.andinaseguros.usecases.dto.Responses.MiCuentaResponse;
 import com.andinaseguros.usecases.dto.Responses.PolizaConRenovacionesResponse;
 import com.andinaseguros.usecases.mapper.ClienteResponseMapper;
@@ -8,52 +9,37 @@ import com.andinaseguros.usecases.mapper.RenovacionResponseMapper;
 import com.andinaseguros.usecases.port.out.repository.ClienteRepository;
 import com.andinaseguros.usecases.port.out.repository.PolizaRepository;
 import com.andinaseguros.usecases.port.out.repository.RenovacionRepository;
-import com.andinaseguros.usecases.port.out.repository.UsuarioRepository;
-import com.andinaseguros.entities.model.Cliente;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Fase 2: los usuarios viven en identity-service. El token trae el customerId del cliente, así que
+ * aquí no se consulta ninguna colección de usuarios.
+ */
 public class ObtenerMiCuentaUseCase {
-    private final UsuarioRepository usuarios;
     private final ClienteRepository clientes;
     private final PolizaRepository polizas;
     private final RenovacionRepository renovaciones;
 
     public ObtenerMiCuentaUseCase(
-            UsuarioRepository usuarios,
             ClienteRepository clientes,
             PolizaRepository polizas,
             RenovacionRepository renovaciones) {
-        this.usuarios = usuarios;
         this.clientes = clientes;
         this.polizas = polizas;
         this.renovaciones = renovaciones;
     }
 
     /**
-     * Fase 2: identity-service pone en el token el customerId del cliente; con él no hace falta
-     * consultar usuarios. Sin customerId (tokens antiguos de la ventana de transición) se usa la
-     * búsqueda por correo de siempre.
+     * Sin customerId (un usuario CLIENTE cuyo correo aún no está registrado como cliente) se prueba
+     * con el username, que para los clientes es su correo.
      */
     public MiCuentaResponse execute(String username, UUID customerId) {
-        if (customerId == null) {
-            return execute(username);
-        }
-        return responder(clientes.buscarPorId(customerId));
-    }
-
-    public MiCuentaResponse execute(String username) {
-        var correo =
-                usuarios.buscarPorUsername(username)
-                        .map(usuario -> usuario.getEmail() != null ? usuario.getEmail() : usuario.getUsername())
-                        .orElse(username);
-
-        return responder(clientes.buscarPorCorreo(correo));
-    }
-
-    private MiCuentaResponse responder(Optional<Cliente> cliente) {
+        Optional<Cliente> cliente =
+                customerId != null ? clientes.buscarPorId(customerId) : clientes.buscarPorCorreo(username);
         if (cliente.isEmpty()) {
-            return new MiCuentaResponse(null, java.util.List.of());
+            return new MiCuentaResponse(null, List.of());
         }
 
         var misPolizas =

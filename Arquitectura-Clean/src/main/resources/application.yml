@@ -28,29 +28,8 @@ app:
     # Fase 2: los tokens los firma identity-service (RS256); aqui solo se verifican con su JWKS.
     jwks-uri: ${JWT_JWKS_URI:http://identity-service:8080/.well-known/jwks.json}
     issuer: ${JWT_ISSUER:andina-identity}
-    # Ventana de transicion (paso 2.3): acepta tambien los HS256 que emitia el monolito.
-    legacy-hs256-enabled: ${JWT_LEGACY_HS256_ENABLED:false}
-    secret: ${JWT_SECRET:andina-seguros-clave-secreta-superior-a-32-caracteres-2026}
-    expiration-seconds: ${JWT_EXPIRATION_SECONDS:28800}
-  facebook:
-    app-id: ${FACEBOOK_APP_ID:}
-    app-secret: ${FACEBOOK_APP_SECRET:}
-    redirect-uri: ${FACEBOOK_REDIRECT_URI:}
-    authorization-uri: ${FACEBOOK_AUTHORIZATION_URI:https://www.facebook.com/v22.0/dialog/oauth}
-    token-uri: ${FACEBOOK_TOKEN_URI:https://graph.facebook.com/v22.0/oauth/access_token}
-    graph-base-url: ${FACEBOOK_GRAPH_BASE_URL:https://graph.facebook.com/v22.0}
-    scopes: ${FACEBOOK_SCOPES:public_profile,email}
-    oauth-state-ttl-seconds: ${FACEBOOK_OAUTH_STATE_TTL_SECONDS:300}
-    frontend-callback-url: ${FACEBOOK_FRONTEND_CALLBACK_URL:http://localhost:5173/login}
-    login-ticket-ttl-seconds: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:60}
-    token-encryption-key: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
-  google:
-    client-id: ${GOOGLE_CLIENT_ID:}
-    issuer: https://accounts.google.com
-  mfa:
-    challenge-expiration-seconds: ${MFA_CHALLENGE_EXPIRATION_SECONDS:300}
   notification:
     adapter: whatsapp
   whatsapp:
