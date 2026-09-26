@@ -1,6 +1,7 @@
 package com.andinaseguros.entities.model;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Cliente {
@@ -13,6 +14,7 @@ public class Cliente {
     private final String correo;
     private final String telefono;
     private final boolean activo;
+    private final long version;
 
     public Cliente(
             UUID id,
@@ -24,6 +26,30 @@ public class Cliente {
             String correo,
             String telefono,
             boolean activo) {
+        this(
+                id,
+                tipoDocumento,
+                numeroDocumento,
+                nombres,
+                apellidos,
+                fechaNacimiento,
+                correo,
+                telefono,
+                activo,
+                1);
+    }
+
+    public Cliente(
+            UUID id,
+            String tipoDocumento,
+            String numeroDocumento,
+            String nombres,
+            String apellidos,
+            LocalDate fechaNacimiento,
+            String correo,
+            String telefono,
+            boolean activo,
+            long version) {
         if (numeroDocumento == null || numeroDocumento.isBlank())
             throw new IllegalArgumentException("Documento obligatorio");
         if (nombres == null || nombres.isBlank())
@@ -39,6 +65,7 @@ public class Cliente {
         this.correo = correo;
         this.telefono = telefono;
         this.activo = activo;
+        this.version = version;
     }
 
     public UUID getId() {
@@ -75,6 +102,32 @@ public class Cliente {
 
     public boolean isActivo() {
         return activo;
+    }
+
+    /**
+     * Versión del agregado: sube en cada cambio y viaja en los eventos customer.* para que los
+     * consumidores descarten los mensajes más viejos que la copia que ya tienen.
+     */
+    public long getVersion() {
+        return version;
+    }
+
+    public boolean tieneMismoContacto(String nuevoCorreo, String nuevoTelefono) {
+        return Objects.equals(correo, nuevoCorreo) && Objects.equals(telefono, nuevoTelefono);
+    }
+
+    public Cliente conContacto(String nuevoCorreo, String nuevoTelefono) {
+        return new Cliente(
+                id,
+                tipoDocumento,
+                numeroDocumento,
+                nombres,
+                apellidos,
+                fechaNacimiento,
+                nuevoCorreo,
+                nuevoTelefono,
+                activo,
+                version + 1);
     }
 
     public int edad() {

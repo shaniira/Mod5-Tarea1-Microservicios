@@ -14,12 +14,16 @@ spring:
       auto-index-creation: true
 app:
   rabbitmq:
+    # Exchange heredado: policy.issued.v1 sigue saliendo aqui para no romper a sus consumidores.
     exchange: ${RABBITMQ_EXCHANGE:andina.insurance.events}
-    dead-letter-exchange: ${RABBITMQ_DLX:andina.insurance.events.dlx}
+    # Exchange objetivo de la migracion (seccion 4 de la propuesta): eventos nuevos (customer.*).
+    events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
     routing-key: ${RABBITMQ_ROUTING_KEY:policy.issued.v1}
-    notification-queue: ${RABBITMQ_NOTIFICATION_QUEUE:andina.policy.notification.queue}
-    notification-dead-letter-queue: ${RABBITMQ_NOTIFICATION_DLQ:andina.policy.notification.dlq}
     audit-queue: ${RABBITMQ_AUDIT_QUEUE:andina.policy.audit.queue}
+  outbox:
+    relay-interval-ms: ${OUTBOX_RELAY_INTERVAL_MS:1000}
+    batch-size: ${OUTBOX_BATCH_SIZE:100}
+    confirm-timeout-ms: ${OUTBOX_CONFIRM_TIMEOUT_MS:5000}
   jwt:
     secret: ${JWT_SECRET:andina-seguros-clave-secreta-superior-a-32-caracteres-2026}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:28800}
@@ -76,6 +80,8 @@ management:
     tags:
       application: andina-seguros-clean
 logging:
+  pattern:
+    level: "%5p [correlationId=%X{correlationId:-}]"
   level:
     com.andinaseguros.interfaceadapters.out.event: DEBUG
     com.andinaseguros.interfaceadapters.out.external.jsonpe: INFO

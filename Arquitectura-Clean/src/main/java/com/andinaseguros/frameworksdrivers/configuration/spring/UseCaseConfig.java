@@ -10,10 +10,12 @@ import com.andinaseguros.usecases.service.auth.RegistrarUsuarioUseCase;
 import com.andinaseguros.usecases.service.auth.VerificarMfaUseCase;
 import com.andinaseguros.usecases.service.auth.ObtenerPerfilUseCase;
 import com.andinaseguros.usecases.service.mfa.*;
+import com.andinaseguros.usecases.service.cliente.ActualizarContactoClienteUseCase;
 import com.andinaseguros.usecases.service.cliente.CrearClienteUseCase;
 import com.andinaseguros.usecases.service.cliente.ListarClientesUseCase;
 import com.andinaseguros.usecases.service.cliente.ObtenerClienteUseCase;
 import com.andinaseguros.usecases.service.cliente.ObtenerMiCuentaUseCase;
+import com.andinaseguros.usecases.service.cliente.PublicarClientesExistentesUseCase;
 import com.andinaseguros.usecases.service.cotizacion.AceptarCotizacionUseCase;
 import com.andinaseguros.usecases.service.cotizacion.CrearCotizacionUseCase;
 import com.andinaseguros.usecases.service.cotizacion.ListarCotizacionesPendientesEmisionUseCase;
@@ -63,6 +65,7 @@ import com.andinaseguros.usecases.port.out.facebook.FacebookOAuthPort;
 import com.andinaseguros.usecases.port.out.facebook.OAuthStatePort;
 import com.andinaseguros.usecases.port.out.security.*;
 import com.andinaseguros.usecases.port.out.time.ClockPort;
+import com.andinaseguros.usecases.port.out.transaccion.TransaccionPort;
 import com.andinaseguros.usecases.port.out.vehicle.VehicleInformationPort;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -70,7 +73,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -262,8 +264,33 @@ public class UseCaseConfig {
     }
 
     @Bean
-    CrearClienteUseCase crearCliente(ClienteRepository clienteRepository) {
-        return new CrearClienteUseCase(clienteRepository);
+    CrearClienteUseCase crearCliente(
+            ClienteRepository clienteRepository,
+            DomainEventPublisherPort eventPublisher,
+            TransaccionPort transaccion,
+            ClockPort clock,
+            IdGeneratorPort ids) {
+        return new CrearClienteUseCase(clienteRepository, eventPublisher, transaccion, clock, ids);
+    }
+
+    @Bean
+    ActualizarContactoClienteUseCase actualizarContactoCliente(
+            ClienteRepository clienteRepository,
+            DomainEventPublisherPort eventPublisher,
+            TransaccionPort transaccion,
+            ClockPort clock,
+            IdGeneratorPort ids) {
+        return new ActualizarContactoClienteUseCase(
+                clienteRepository, eventPublisher, transaccion, clock, ids);
+    }
+
+    @Bean
+    PublicarClientesExistentesUseCase publicarClientesExistentes(
+            ClienteRepository clienteRepository,
+            DomainEventPublisherPort eventPublisher,
+            ClockPort clock,
+            IdGeneratorPort ids) {
+        return new PublicarClientesExistentesUseCase(clienteRepository, eventPublisher, clock, ids);
     }
 
     @Bean
@@ -344,10 +371,11 @@ public class UseCaseConfig {
             CotizacionRepository cotizacionRepository,
             PolizaRepository polizaRepository,
             DomainEventPublisherPort eventPublisher,
+            TransaccionPort transaccion,
             ClockPort clock,
             IdGeneratorPort ids) {
         return new EmitirPolizaUseCase(
-                cotizacionRepository, polizaRepository, eventPublisher, clock, ids);
+                cotizacionRepository, polizaRepository, eventPublisher, transaccion, clock, ids);
     }
 
     @Bean
@@ -358,19 +386,6 @@ public class UseCaseConfig {
     @Bean
     ListarPolizasUseCase listarPolizas(PolizaRepository polizaRepository) {
         return new ListarPolizasUseCase(polizaRepository);
-    }
-
-    @Bean
-    PolicyIssuedMessageMapper policyIssuedMessageMapper() {
-        return new PolicyIssuedMessageMapper();
-    }
-
-    @Bean
-    DomainEventPublisherPort domainEventPublisher(
-            RabbitTemplate rabbitTemplate,
-            PolicyIssuedMessageMapper mapper,
-            RabbitMqProperties properties) {
-        return new RabbitMqDomainEventPublisherAdapter(rabbitTemplate, mapper, properties);
     }
 
     @Bean

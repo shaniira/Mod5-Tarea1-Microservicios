@@ -18,6 +18,7 @@ public class ClienteMongoMapper {
         d.correo = x.getCorreo();
         d.telefono = x.getTelefono();
         d.activo = x.isActivo();
+        d.version = x.getVersion();
         return d;
     }
 
@@ -31,6 +32,7 @@ public class ClienteMongoMapper {
                 d.fechaNacimiento,
                 d.correo,
                 d.telefono,
-                d.activo);
+                d.activo,
+                d.version == null ? 1 : d.version);
     }
 }

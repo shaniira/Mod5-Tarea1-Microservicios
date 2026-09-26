@@ -18,6 +18,7 @@ import com.andinaseguros.entities.valueobject.PeriodoVigencia;
 import com.andinaseguros.usecases.port.out.event.DomainEventPublisherPort;
 import com.andinaseguros.usecases.port.out.id.IdGeneratorPort;
 import com.andinaseguros.usecases.port.out.time.ClockPort;
+import com.andinaseguros.usecases.port.out.transaccion.TransaccionPort;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.ZoneOffset;
@@ -27,6 +28,7 @@ public class EmitirPolizaUseCase implements EmitirPolizaInputPort {
     private final CotizacionRepository cotizacionRepository;
     private final PolizaRepository polizaRepository;
     private final DomainEventPublisherPort eventPublisher;
+    private final TransaccionPort transaccion;
     private final ClockPort clock;
     private final IdGeneratorPort ids;
 
@@ -34,11 +36,13 @@ public class EmitirPolizaUseCase implements EmitirPolizaInputPort {
             CotizacionRepository cotizacionRepository,
             PolizaRepository polizaRepository,
             DomainEventPublisherPort eventPublisher,
+            TransaccionPort transaccion,
             ClockPort clock,
             IdGeneratorPort ids) {
         this.cotizacionRepository = cotizacionRepository;
         this.polizaRepository = polizaRepository;
         this.eventPublisher = eventPublisher;
+        this.transaccion = transaccion;
         this.clock = clock;
         this.ids = ids;
     }
@@ -75,16 +79,23 @@ public class EmitirPolizaUseCase implements EmitirPolizaInputPort {
                         new PeriodoVigencia(inicioVigencia, inicioVigencia.plusYears(1)),
                         EstadoPoliza.VIGENTE);
 
-        cotizacionRepository.guardar(cotizacion);
-        Poliza polizaGuardada = polizaRepository.guardar(poliza);
-        eventPublisher.publicar(
-                new PolizaEmitidaEvent(
-                        ids.generar(),
-                        clock.now(),
-                        polizaGuardada.getId(),
-                        cotizacion.getId(),
-                        cotizacion.getClienteId(),
-                        polizaGuardada.getNumero()));
+        // Cotización, póliza y evento policy.issued.v1 (en el Outbox) se confirman juntos: ya no
+        // puede quedar una póliza emitida sin su evento (riesgo A1).
+        Poliza polizaGuardada =
+                transaccion.ejecutar(
+                        () -> {
+                            cotizacionRepository.guardar(cotizacion);
+                            Poliza guardada = polizaRepository.guardar(poliza);
+                            eventPublisher.publicar(
+                                    new PolizaEmitidaEvent(
+                                            ids.generar(),
+                                            clock.now(),
+                                            guardada.getId(),
+                                            cotizacion.getId(),
+                                            cotizacion.getClienteId(),
+                                            guardada.getNumero()));
+                            return guardada;
+                        });
 
         return toResponse(polizaGuardada);
     }

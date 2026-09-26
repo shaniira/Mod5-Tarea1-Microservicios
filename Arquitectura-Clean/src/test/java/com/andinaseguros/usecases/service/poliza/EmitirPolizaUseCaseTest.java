@@ -12,6 +12,7 @@ import com.andinaseguros.entities.valueobject.Dinero;
 import com.andinaseguros.usecases.port.out.event.DomainEventPublisherPort;
 import com.andinaseguros.usecases.port.out.id.IdGeneratorPort;
 import com.andinaseguros.usecases.port.out.time.ClockPort;
+import com.andinaseguros.usecases.support.TransaccionDirecta;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.*;
@@ -23,6 +24,7 @@ class EmitirPolizaUseCaseTest {
     private final DomainEventPublisherPort eventos = mock(DomainEventPublisherPort.class);
     private final ClockPort clock = mock(ClockPort.class);
     private final IdGeneratorPort ids = mock(IdGeneratorPort.class);
+    private final TransaccionDirecta transaccion = new TransaccionDirecta();
     private final UUID cotizacionId = UUID.randomUUID();
     private final UUID clienteId = UUID.randomUUID();
     private final Cotizacion cotizacion =
@@ -44,12 +46,13 @@ class EmitirPolizaUseCaseTest {
         when(polizas.guardar(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(clock.now()).thenReturn(Instant.parse("2026-07-27T12:00:00Z"));
         when(ids.generar()).thenReturn(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
-        var useCase = new EmitirPolizaUseCase(cotizaciones, polizas, eventos, clock, ids);
+        var useCase = new EmitirPolizaUseCase(cotizaciones, polizas, eventos, transaccion, clock, ids);
 
         var respuesta = useCase.execute(new EmitirPolizaRequestModel(cotizacionId, LocalDate.now()));
 
         assertThat(respuesta.cotizacionId()).isEqualTo(cotizacionId);
         verify(eventos).publicar(any());
+        assertThat(transaccion.usos()).isEqualTo(1);
     }
 
     @Test
@@ -57,7 +60,7 @@ class EmitirPolizaUseCaseTest {
         when(cotizaciones.buscarPorId(cotizacionId)).thenReturn(Optional.of(cotizacion));
         when(polizas.buscarPorCotizacionId(cotizacionId))
                 .thenReturn(Optional.of(mock(Poliza.class)));
-        var useCase = new EmitirPolizaUseCase(cotizaciones, polizas, eventos, clock, ids);
+        var useCase = new EmitirPolizaUseCase(cotizaciones, polizas, eventos, transaccion, clock, ids);
 
         assertThatThrownBy(() -> useCase.execute(new EmitirPolizaRequestModel(cotizacionId, LocalDate.now())))
                 .isInstanceOf(ReglaNegocioException.class);
