@@ -1,0 +1,113 @@
+server:
+  port: ${SERVER_PORT:8080}
+  # Apagado ordenado (seccion 6.4): termina el mensaje en curso antes de detenerse.
+  shutdown: graceful
+
+spring:
+  application:
+    name: notification-service
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  data:
+    mongodb:
+      # Base propia (notification_db) con usuario propio. Este servicio ya no tiene acceso a la
+      # base del backend (paso 1.9 de la ruta).
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/notification_db}
+      auto-index-creation: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:andina}
+    password: ${SPRING_RABBITMQ_PASSWORD:andina-local}
+    listener:
+      simple:
+        # AUTO: confirma al terminar sin error. Los fallos los decide ManejoFallosMensajes
+        # (reintento, vuelta a la cola o DLQ).
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        prefetch: 10
+
+app:
+  rabbitmq:
+    legacy-exchange: ${RABBITMQ_LEGACY_EXCHANGE:andina.insurance.events}
+    events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
+    policy:
+      queue: ${RABBITMQ_POLICY_QUEUE:andina.policy.notification.queue}
+      routing-keys: [policy.issued.v1]
+      dead-letter-exchange: ${RABBITMQ_POLICY_DLX:andina.insurance.events.dlx}
+      dead-letter-routing-key: policy.issued.v1.dlq
+      dead-letter-queue: ${RABBITMQ_POLICY_DLQ:andina.policy.notification.dlq}
+      concurrency: 1-3
+    customer:
+      queue: ${RABBITMQ_CUSTOMER_QUEUE:notification.customer.events}
+      routing-keys: [customer.registered.v1, customer.updated.v1]
+      dead-letter-exchange: ${RABBITMQ_EVENTS_DLX:andina.events.dlx}
+      dead-letter-routing-key: notification.customer.events.dlq
+      dead-letter-queue: ${RABBITMQ_CUSTOMER_DLQ:notification.customer.events.dlq}
+    retry:
+      max-attempts: ${MESSAGE_RETRY_MAX_ATTEMPTS:3}
+      initial-interval-ms: 1000
+      multiplier: 2.0
+      max-interval-ms: 10000
+  whatsapp:
+    base-url: ${WHATSAPP_BASE_URL:https://api.whatsapp.json.pe}
+    token: ${WHATSAPP_TOKEN:}
+    timeout-seconds: ${WHATSAPP_TIMEOUT_SECONDS:5}
+  inbox:
+    consumer-name: ${INBOX_CONSUMER_NAME:notification-service}
+  dlq-monitor:
+    interval-ms: ${DLQ_MONITOR_INTERVAL_MS:30000}
+
+# Circuit breaker y reintentos hacia JSON.pe WhatsApp (seccion 6.2 de la propuesta). Solo los
+# fallos transitorios (timeout, conexion, 5xx, 429) cuentan y se reintentan; un rechazo del
+# proveedor (4xx) no abre el circuito.
+resilience4j:
+  circuitbreaker:
+    instances:
+      whatsapp:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: ${WHATSAPP_CB_MINIMUM_CALLS:5}
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 4s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: ${WHATSAPP_CB_WAIT_OPEN:30s}
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.andinaseguros.notification.interfaceadapters.out.whatsapp.WhatsAppTransitorioException
+  retry:
+    instances:
+      whatsapp:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - com.andinaseguros.notification.interfaceadapters.out.whatsapp.WhatsAppTransitorioException
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        # Listo = puede atender: MongoDB propio y RabbitMQ accesibles (seccion 6.4).
+        readiness:
+          include: readinessState,mongo,rabbit
+        liveness:
+          include: livenessState
+  health:
+    circuitbreakers:
+      enabled: false
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  metrics:
+    tags:
+      application: notification-service

@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/send/text"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "success": true,
+      "message": "Mensaje simulado (whatsapp-mock)",
+      "data": { "number": "{{jsonPath request.body '$.number'}}" }
+    }
+  }
+}
