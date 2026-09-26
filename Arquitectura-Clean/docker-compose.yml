@@ -5,30 +5,29 @@ services:
     image: mongo:8
     container_name: andina-clean-mongodb
     restart: unless-stopped
-    # Replica set de un nodo: habilita las transacciones que usa el Outbox (paso 0.7 de la ruta).
-    # Los datos existentes del volumen se conservan. Para conectarse desde el host (Compass):
-    # mongodb://localhost:27020/?directConnection=true
-    command: ["--replSet", "rs0", "--bind_ip_all"]
+    # Replica set de un nodo (transacciones del Outbox, paso 0.7) con autenticacion obligatoria
+    # (paso 0.6). infra/mongo/arranque.sh crea el keyFile y los usuarios; sirve tambien para el
+    # volumen con datos de antes. Sin puerto en el host: para inspeccionar usar
+    # docker-compose.debug.yml (ver DOCKER-EJECUCION.md).
+    entrypoint: ["bash", "/scripts/arranque.sh"]
     environment:
-      MONGO_INITDB_DATABASE: andina_seguros_clean
-    ports:
-      - "27020:27017"
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${BACKEND_MONGO_ROOT_PASSWORD:-backend-root-local}
+      MONGO_APP_USERS: andina:andina_seguros_clean:${BACKEND_DB_PASSWORD:-backend-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: mongodb:27017
     volumes:
       - clean_mongo_data:/data/db
+      - ../infra/mongo:/scripts:ro
     networks:
       - clean_network
     healthcheck:
       # Inicia el replica set la primera vez y solo da "sano" cuando el nodo ya es PRIMARY.
-      test:
-        - CMD
-        - mongosh
-        - --quiet
-        - --eval
-        - "try { rs.status() } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]}) }; quit(db.hello().isWritablePrimary ? 0 : 1)"
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
       interval: 5s
-      timeout: 10s
-      retries: 20
-      start_period: 10s
+      timeout: 15s
+      retries: 30
+      start_period: 20s
 
   backend:
     image: andina-seguros-clean:1.0.0
@@ -39,7 +38,7 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean?replicaSet=rs0
+      SPRING_DATA_MONGODB_URI: mongodb://andina:${BACKEND_DB_PASSWORD:-backend-local}@mongodb:27017/andina_seguros_clean?replicaSet=rs0&authSource=andina_seguros_clean
       # Fase 2: valida los tokens RS256 de identity-service con su clave publica.
       JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
       CORS_ALLOWED_ORIGINS: http://localhost:5173
@@ -53,8 +52,8 @@ services:
       # en .env, nunca en este archivo versionado.
       JSONPE_TOKEN: ${JSONPE_TOKEN:-}
       WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
-    ports:
-      - "8083:8080"
+    # Sin puerto en el host: al backend solo se llega por el gateway (regla "solo el gateway y el
+    # frontend exponen puertos"). Para depurar, docker-compose.debug.yml lo publica en 8083.
     networks:
       - clean_network
       - rabbitmq_network
@@ -71,7 +70,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-andina}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-andina-local}
-    ports: ["5672:5672", "15672:15672"]
+    # Sin puertos en el host (paso 0.6): la consola se abre con docker-compose.debug.yml.
     volumes: ["rabbitmq_data:/var/lib/rabbitmq"]
     networks: ["rabbitmq_network"]
     healthcheck:
