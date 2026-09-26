@@ -1,0 +1,4 @@
+name: Globales
+variables:
+  - name: token
+    value: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbiIsInJvbCI6IkFETUlOIiwiaWF0IjoxNzg3MzQyMjQ4LCJleHAiOjE3ODczNzEwNDh9.Q1kB9spZdkm0u97pqvHeGiWhDoPtWWQD7ge64vnmMFYQ1Rbxu7EhPNBcVJF74eTo

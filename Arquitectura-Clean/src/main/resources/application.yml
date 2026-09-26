@@ -1,0 +1,82 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:andina}
+    password: ${SPRING_RABBITMQ_PASSWORD:andina-local}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+  data:
+    mongodb:
+      uri: mongodb://mongodb:27017/andina_seguros
+      auto-index-creation: true
+app:
+  rabbitmq:
+    exchange: ${RABBITMQ_EXCHANGE:andina.insurance.events}
+    dead-letter-exchange: ${RABBITMQ_DLX:andina.insurance.events.dlx}
+    routing-key: ${RABBITMQ_ROUTING_KEY:policy.issued.v1}
+    notification-queue: ${RABBITMQ_NOTIFICATION_QUEUE:andina.policy.notification.queue}
+    notification-dead-letter-queue: ${RABBITMQ_NOTIFICATION_DLQ:andina.policy.notification.dlq}
+    audit-queue: ${RABBITMQ_AUDIT_QUEUE:andina.policy.audit.queue}
+  jwt:
+    secret: ${JWT_SECRET:andina-seguros-clave-secreta-superior-a-32-caracteres-2026}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:28800}
+  facebook:
+    app-id: ${FACEBOOK_APP_ID:}
+    app-secret: ${FACEBOOK_APP_SECRET:}
+    redirect-uri: ${FACEBOOK_REDIRECT_URI:}
+    authorization-uri: ${FACEBOOK_AUTHORIZATION_URI:https://www.facebook.com/v22.0/dialog/oauth}
+    token-uri: ${FACEBOOK_TOKEN_URI:https://graph.facebook.com/v22.0/oauth/access_token}
+    graph-base-url: ${FACEBOOK_GRAPH_BASE_URL:https://graph.facebook.com/v22.0}
+    scopes: ${FACEBOOK_SCOPES:public_profile,email}
+    oauth-state-ttl-seconds: ${FACEBOOK_OAUTH_STATE_TTL_SECONDS:300}
+    frontend-callback-url: ${FACEBOOK_FRONTEND_CALLBACK_URL:http://localhost:5173/login}
+    login-ticket-ttl-seconds: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:60}
+    token-encryption-key: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    issuer: https://accounts.google.com
+  mfa:
+    challenge-expiration-seconds: ${MFA_CHALLENGE_EXPIRATION_SECONDS:300}
+  notification:
+    adapter: whatsapp
+  whatsapp:
+    base-url: https://api.whatsapp.json.pe
+    token: ${WHATSAPP_TOKEN:}
+    timeout-seconds: 5
+  vehicle-information:
+    adapter: jsonpe
+  jsonpe:
+    base-url: https://api.json.pe
+    token: ${JSONPE_TOKEN:}
+    timeout-seconds: 5
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: andina-seguros-clean
+logging:
+  level:
+    com.andinaseguros.interfaceadapters.out.event: DEBUG
+    com.andinaseguros.interfaceadapters.out.external.jsonpe: INFO
+

@@ -1,0 +1,1 @@
+<script setup lang="ts">defineProps<{title:string;show:boolean}>();defineEmits<{close:[]}>();</script><template><div v-if="show" class="modal-backdrop" @click.self="$emit('close')"><div class="modal"><div class="modal-head"><h2>{{title}}</h2><button @click="$emit('close')">×</button></div><div class="modal-body"><slot/></div></div></div></template>

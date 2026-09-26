@@ -1,0 +1,64 @@
+# Requiere el Secret `rabbitmq-secrets` (ver 31-secret-rabbitmq.example.yaml) ya creado en el
+# namespace antes de aplicar este archivo.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: andina-seguros
+  labels: { app: rabbitmq }
+spec:
+  replicas: 1 # un solo nodo: clustering de RabbitMQ queda como evolucion futura (fase 7)
+  selector: { matchLabels: { app: rabbitmq } }
+  template:
+    metadata:
+      labels: { app: rabbitmq }
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management
+          ports:
+            - { name: amqp, containerPort: 5672 }
+            - { name: management, containerPort: 15672 }
+          envFrom:
+            - secretRef: { name: rabbitmq-secrets }
+          volumeMounts:
+            # Directorio propio en vez del overlay del contenedor: en algunos runtimes
+            # (verificado con kind/containerd) el entrypoint de la imagen oficial falla con
+            # "Error when reading /var/lib/rabbitmq/.erlang.cookie: eacces" al hacer chown
+            # sobre el overlay de solo-imagen. Un emptyDir montado ahi evita el problema.
+            - { name: rabbitmq-data, mountPath: /var/lib/rabbitmq }
+          # rabbitmq-diagnostics arranca su propio nodo Erlang de corta vida para preguntarle
+          # al principal: bajo carga (o en un host de desarrollo con CPU limitada) tarda mas
+          # de 1s, el timeout por defecto de Kubernetes. Sin timeoutSeconds explicito, el
+          # liveness probe mata al contenedor justo cuando termina de arrancar (verificado:
+          # "Liveness probe failed: command timed out... after 1s" con el valor por defecto).
+          startupProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            timeoutSeconds: 10
+            periodSeconds: 5
+            failureThreshold: 24 # hasta 120s para el primer arranque
+          readinessProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            timeoutSeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            timeoutSeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+      volumes:
+        - name: rabbitmq-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-service
+  namespace: andina-seguros
+spec:
+  selector: { app: rabbitmq }
+  ports:
+    - { name: amqp, port: 5672, targetPort: amqp }
+    - { name: management, port: 15672, targetPort: management } # solo accesible dentro del cluster (kubectl port-forward)

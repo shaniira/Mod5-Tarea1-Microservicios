@@ -1,0 +1,38 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: andina-notification-consumer
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27019/andina_seguros_hexagonal}
+      auto-index-creation: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:andina}
+    password: ${SPRING_RABBITMQ_PASSWORD:andina-local}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        default-requeue-rejected: false
+        prefetch: 10
+
+app:
+  rabbitmq:
+    exchange: ${RABBITMQ_EXCHANGE:andina.insurance.events}
+    dead-letter-exchange: ${RABBITMQ_DLX:andina.insurance.events.dlx}
+    routing-key: ${RABBITMQ_ROUTING_KEY:policy.issued.v1}
+    queue: ${RABBITMQ_QUEUE:andina.policy.notification.queue}
+    dead-letter-queue: ${RABBITMQ_DLQ:andina.policy.notification.dlq}
+  whatsapp:
+    base-url: ${WHATSAPP_BASE_URL:https://api.whatsapp.json.pe}
+    token: ${WHATSAPP_TOKEN:}
+    timeout-seconds: ${WHATSAPP_TIMEOUT_SECONDS:5}
+  idempotency:
+    consumer-name: ${IDEMPOTENCY_CONSUMER_NAME:notification-service}
+
+logging:
+  level:
+    com.andinaseguros: INFO

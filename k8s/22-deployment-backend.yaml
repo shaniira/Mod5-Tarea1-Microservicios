@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: andina-seguros
+  labels:
+    app: backend
+spec:
+  replicas: 1 # el backend todavia guarda estado efimero en memoria (OAuth state, tickets,
+  # desafios MFA): con mas de 1 replica fallarian de forma intermitente (riesgo A3,
+  # ver doc/5. Microservicios/b_ANALISIS-RIESGOS-ARQUITECTURA.md). Sube a 2+ solo despues
+  # de mover ese estado a Redis (fase 2 de la migracion).
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+        - name: backend
+          image: andina-seguros-clean:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef: { name: backend-config }
+            - secretRef: { name: backend-secrets }
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: { name: andina-jwt-secret, key: JWT_SECRET }
+          resources:
+            requests: { cpu: "500m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "768Mi" }
+          startupProbe:
+            httpGet: { path: /actuator/health, port: http }
+            timeoutSeconds: 5 # el 1s por defecto de Kubernetes se quedaba corto bajo CPU
+            # limitada (mismo problema real encontrado y corregido en rabbitmq/mongodb)
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            timeoutSeconds: 5
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            timeoutSeconds: 5
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+      terminationGracePeriodSeconds: 20

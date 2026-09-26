@@ -1,0 +1,41 @@
+# Requiere el NGINX Ingress Controller instalado en el cluster, p.ej.:
+#   helm upgrade --install ingress-nginx ingress-nginx \
+#     --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
+#
+# El Ingress SOLO enruta hacia el api-gateway-service (entrada HTTP/HTTPS, TLS y dominio).
+# Ninguna regla de negocio vive aqui: el enrutamiento por dominio de negocio (/api/auth,
+# /api/polizas, etc.) lo hace el propio Gateway (spring.cloud.gateway.routes).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: andina-seguros-ingress
+  namespace: andina-seguros
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
+    cert-manager.io/cluster-issuer: letsencrypt-prod # opcional; omitir si no se usa cert-manager
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: ["andina-seguros.example.com"]
+      secretName: andina-seguros-tls
+  rules:
+    - host: andina-seguros.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-service
+                port: { number: 8080 }
+          - path: /swagger-ui.html
+            pathType: Prefix
+            backend:
+              service: { name: api-gateway-service, port: { number: 8080 } }
+          - path: /v3/api-docs
+            pathType: Prefix
+            backend:
+              service: { name: api-gateway-service, port: { number: 8080 } }

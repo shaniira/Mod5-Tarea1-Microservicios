@@ -1,0 +1,10 @@
+<script setup lang="ts">
+import {onMounted,ref} from 'vue';import api,{errorMessage} from '@/services/api';import type{MfaSetup}from '@/types';
+const habilitado=ref(false),setup=ref<MfaSetup|null>(null),codigo=ref(''),error=ref(''),ok=ref('');
+async function estado(){habilitado.value=(await api.get('/mfa/estado')).data.habilitado}
+async function configurar(){error.value='';try{setup.value=(await api.post('/mfa/configurar')).data}catch(e){error.value=errorMessage(e)}}
+async function activar(){error.value='';try{await api.post('/mfa/activar',{codigo:codigo.value});setup.value=null;codigo.value='';ok.value='MFA habilitado correctamente.';await estado()}catch(e){error.value=errorMessage(e)}}
+async function desactivar(){error.value='';try{await api.delete('/mfa',{data:{codigo:codigo.value}});codigo.value='';ok.value='MFA desactivado.';await estado()}catch(e){error.value=errorMessage(e)}}
+onMounted(async()=>{try{await estado()}catch(e){error.value=errorMessage(e)}})
+</script>
+<template><div><div class="page-head"><div><span class="eyebrow">Seguridad</span><h2>Google Authenticator</h2><p>Protege el acceso local con un segundo factor.</p></div></div><div v-if="error" class="alert error">{{error}}</div><div v-if="ok" class="alert success">{{ok}}</div><div class="panel"><h3>Estado: {{habilitado?'Habilitado':'Deshabilitado'}}</h3><button v-if="!habilitado&&!setup" class="primary" @click="configurar">Activar MFA</button><template v-if="setup"><p>Escanea este QR y confirma el código actual.</p><img :src="setup.qrCodeDataUri" alt="QR de Google Authenticator" width="260" height="260"/><p><small>Clave manual: {{setup.secret}}</small></p><label>Código<input v-model="codigo" maxlength="6" inputmode="numeric"/></label><button class="primary" @click="activar">Confirmar activación</button></template><template v-if="habilitado"><label>Código actual<input v-model="codigo" maxlength="6" inputmode="numeric"/></label><button class="danger" @click="desactivar">Desactivar MFA</button></template></div></div></template>

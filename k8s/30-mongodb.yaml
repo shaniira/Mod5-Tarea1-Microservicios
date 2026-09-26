@@ -1,0 +1,68 @@
+# Mongo de un solo Pod para este entorno de practica/demo (no alta disponibilidad; un
+# ReplicaSet real con Operator queda fuera del alcance de esta fase). PVC para no perder datos
+# entre reinicios del Pod.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-data
+  namespace: andina-seguros
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: andina-seguros
+  labels: { app: mongodb }
+spec:
+  replicas: 1
+  strategy: { type: Recreate } # un solo volumen ReadWriteOnce: no puede haber 2 Pods a la vez
+  selector: { matchLabels: { app: mongodb } }
+  template:
+    metadata:
+      labels: { app: mongodb }
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:8
+          ports: [{ name: mongo, containerPort: 27017 }]
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: andina_seguros_clean
+          volumeMounts:
+            - { name: data, mountPath: /data/db }
+          # mongosh arranca un proceso Node.js nuevo en cada invocacion: puede superar el
+          # timeout por defecto de 1s de Kubernetes bajo CPU limitada (mismo problema real
+          # encontrado y corregido en rabbitmq, ver 31-rabbitmq.yaml).
+          startupProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
+            timeoutSeconds: 10
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
+            timeoutSeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
+            timeoutSeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: mongodb-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: andina-seguros
+spec:
+  selector: { app: mongodb }
+  ports: [{ name: mongo, port: 27017, targetPort: mongo }]
