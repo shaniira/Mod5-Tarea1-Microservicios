@@ -13,6 +13,8 @@ spring:
       uri: mongodb://mongodb:27017/andina_seguros
       auto-index-creation: true
 app:
+  demo-data:
+    enabled: ${APP_DEMO_DATA_ENABLED:false}
   rabbitmq:
     # Exchange heredado: policy.issued.v1 sigue saliendo aqui para no romper a sus consumidores.
     exchange: ${RABBITMQ_EXCHANGE:andina.insurance.events}
@@ -43,7 +45,11 @@ app:
     token: ${JSONPE_TOKEN:}
     timeout-seconds: 5
 springdoc:
+  # Paso 0.11: Swagger y el contrato OpenAPI solo en desarrollo (SWAGGER_ENABLED=true en Compose).
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
     path: /swagger-ui.html
 management:
   endpoints:

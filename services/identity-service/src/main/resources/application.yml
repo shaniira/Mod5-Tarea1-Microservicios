@@ -99,6 +99,14 @@ resilience4j:
         max-concurrent-calls: ${FACEBOOK_BULKHEAD_MAX_CALLS:10}
         max-wait-duration: 0
 
+springdoc:
+  # Paso 0.11: Swagger y el contrato OpenAPI solo en desarrollo (SWAGGER_ENABLED=true en Compose).
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+    path: /swagger-ui.html
+
 management:
   endpoints:
     web:

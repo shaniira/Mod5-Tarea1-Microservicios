@@ -3,7 +3,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { errorMessage } from '@/services/api';
 import { facebookLoginUrl } from '@/services/facebookAuth';
-const u = ref('admin'), p = ref('Admin123*'), loading = ref(false), error = ref('');
+const u = ref(''), p = ref(''), loading = ref(false), error = ref('');
 const a = useAuthStore(), r = useRouter(), ruta = useRoute();
 async function go() { loading.value = true; error.value = ''; try {
     const ok = await a.login(u.value.trim(), p.value);
