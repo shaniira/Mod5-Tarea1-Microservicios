@@ -78,7 +78,10 @@ mvn test   # también corren al construir la imagen
 
 Incluyen las reglas ArchUnit, la firma RS256, el `customerId`, el estado en Redis entre "réplicas", el circuit breaker y el bulkhead de Google.
 
-## Pendiente (heredado del monolito)
+## Registro, logout y usuarios desactivados
 
-- `POST /api/auth/register` sigue aceptando el rol desde el cliente (riesgo **S1** del análisis). Se mantuvo igual a propósito para que el servicio nuevo se comporte como el anterior; se corrige en el paso 0.2.
-- Un usuario desactivado conserva acceso hasta que su token vence (el backend ya no consulta `usuarios` en cada petición). Mitigación futura: tokens más cortos o lista de revocación en Redis.
+- `POST /api/auth/register` sin sesión crea solo cuentas CLIENTE; los roles de personal los crea un ADMIN autenticado (riesgo S1 corregido; un rol no permitido responde `403 ROL_NO_PERMITIDO`).
+- `POST /api/auth/logout` revoca el token con el que se llama (riesgo S8).
+- `PATCH /api/auth/usuarios/{username}/estado` (`{"activo": false}`, solo ADMIN) desactiva al usuario y corta al instante sus sesiones abiertas.
+
+Las revocaciones se guardan en Redis (`identity:revocado:*`) con un TTL igual a la vida del token; las consultan identity-service y el gateway en cada petición.

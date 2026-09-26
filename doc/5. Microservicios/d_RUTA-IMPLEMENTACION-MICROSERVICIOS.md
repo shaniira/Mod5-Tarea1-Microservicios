@@ -98,13 +98,15 @@ Nota técnica sobre Spring Cloud Gateway: es reactivo (WebFlux). Va en su propio
 
 ### 4.2 Criterios de salida de la fase 0
 
-- [ ] Un usuario sin sesión no puede crear cuentas con rol ADMIN.
-- [ ] Un CLIENTE no puede leer ni modificar recursos de otro cliente (prueba automatizada).
-- [ ] No queda ningún secreto en el repositorio; los tokens antiguos están revocados.
-- [ ] MongoDB y RabbitMQ exigen credenciales y no son accesibles desde fuera de Docker.
-- [ ] Apagar RabbitMQ durante una emisión de póliza **no pierde el evento**; se publica al volver.
-- [ ] Una petición se puede seguir en Grafana y Jaeger por su `correlationId`.
-- [ ] El frontend funciona a través del gateway.
+Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDIENTES.md).
+
+- [x] Un usuario sin sesión no puede crear cuentas con rol ADMIN.
+- [x] Un CLIENTE no puede leer ni modificar recursos de otro cliente (prueba automatizada).
+- [x] No queda ningún secreto en el repositorio. *Rotar en el panel de JSON.pe los tokens que estuvieron versionados es una acción manual del dueño de la cuenta.*
+- [x] MongoDB y RabbitMQ exigen credenciales y no son accesibles desde fuera de Docker.
+- [x] Apagar RabbitMQ durante una emisión de póliza **no pierde el evento**; se publica al volver.
+- [x] Una petición se puede seguir en Grafana y Jaeger por su `correlationId`.
+- [x] El frontend funciona a través del gateway.
 
 ---
 
