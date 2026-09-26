@@ -42,19 +42,7 @@ services:
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean?replicaSet=rs0
       # Fase 2: valida los tokens RS256 de identity-service con su clave publica.
       JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
-      # Ventana de transicion (paso 2.3): acepta tambien los HS256 antiguos.
-      JWT_LEGACY_HS256_ENABLED: "true"
-      JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
-      JWT_EXPIRATION_SECONDS: 28800
       CORS_ALLOWED_ORIGINS: http://localhost:5173
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
-      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
-      FACEBOOK_REDIRECT_URI: ${FACEBOOK_REDIRECT_URI:-}
-      FACEBOOK_SCOPES: ${FACEBOOK_SCOPES:-public_profile,email}
-      FACEBOOK_FRONTEND_CALLBACK_URL: ${FACEBOOK_FRONTEND_CALLBACK_URL:-http://localhost:5173/login}
-      FACEBOOK_LOGIN_TICKET_TTL_SECONDS: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:-60}
-      FACEBOOK_TOKEN_ENCRYPTION_KEY: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:-}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
@@ -248,9 +236,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
-      # Ventana de transicion (paso 2.3): acepta tambien los HS256 antiguos.
-      JWT_LEGACY_HS256_ENABLED: "true"
-      JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
       CORS_ALLOWED_ORIGINS: http://localhost:5173
     ports:
       - "8080:8080"
