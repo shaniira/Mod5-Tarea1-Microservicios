@@ -12,11 +12,14 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /** Datos reproducibles para demostraciones locales. No elimina información creada por el usuario. */
+// Paso 0.5: los datos demo solo se cargan en desarrollo (APP_DEMO_DATA_ENABLED=true en Compose).
 @Component
+@ConditionalOnProperty(name = "app.demo-data.enabled", havingValue = "true")
 public class MongoDemoDataInitializer implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(MongoDemoDataInitializer.class);
     private static final String CLIENTE_ANA = "10000000-0000-0000-0000-000000000001";
