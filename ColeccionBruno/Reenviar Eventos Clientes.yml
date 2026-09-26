@@ -1,0 +1,28 @@
+info:
+  name: Reenviar Eventos Clientes (backfill)
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:8080/api/clientes/eventos/reenvio
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Backfill aceptado", function () {
+          expect(res.getStatus()).to.equal(202);
+          expect(res.getBody().clientesPublicados).to.be.a("number");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

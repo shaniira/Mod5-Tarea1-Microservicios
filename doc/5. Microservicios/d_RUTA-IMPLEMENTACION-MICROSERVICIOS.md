@@ -124,11 +124,11 @@ Nota técnica sobre Spring Cloud Gateway: es reactivo (WebFlux). Va en su propio
 | 1.8 | **Plantilla de la sección 3** aplicada (salud, logs, métricas, trazas, imagen, Compose) y el consumo enlazado a **ambos exchanges** (`andina.insurance.events` y `andina.events`) | M |
 | 1.9 | **Quitar el acceso a la base del backend:** credenciales de `notification_db` solamente | S |
 
-**Criterios de salida**
-- [ ] Con MongoDB del backend inaccesible para notification-service, las notificaciones siguen funcionando.
-- [ ] Un cliente nuevo aparece en `customer_contacts` en segundos; un cliente existente aparece tras el backfill.
-- [ ] Con WhatsApp caído, los mensajes se retienen (no van a la DLQ) y se envían al recuperarse.
-- [ ] Un evento repetido no envía el WhatsApp dos veces.
+**Criterios de salida** (verificados el 2026-09-25; evidencias en [f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md](f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md#3-verificación-de-los-criterios-de-aceptación))
+- [x] Con MongoDB del backend inaccesible para notification-service, las notificaciones siguen funcionando.
+- [x] Un cliente nuevo aparece en `customer_contacts` en segundos; un cliente existente aparece tras el backfill.
+- [x] Con WhatsApp caído, los mensajes se retienen (no van a la DLQ) y se envían al recuperarse.
+- [x] Un evento repetido no envía el WhatsApp dos veces.
 
 **Reversa:** volver a la versión anterior del consumer (que lee `clientes`); no se ha borrado nada.
 

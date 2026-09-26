@@ -99,6 +99,7 @@ docker compose up -d --build
 Esto levanta:
 - La API en `http://localhost:8083` (Swagger en `http://localhost:8083/swagger-ui.html`).
 - MongoDB en el puerto `27020`.
+- El API Gateway en `http://localhost:8080`, RabbitMQ y el microservicio de notificaciones (`services/notification-service`). La lista completa de servicios y puertos está en [DOCKER-EJECUCION.md](DOCKER-EJECUCION.md).
 
 ### Frontend
 

@@ -1,8 +1,11 @@
-# Ejecución Docker — backend Clean + API Gateway
+# Ejecución Docker — backend Clean + API Gateway + notification-service
 
-Las arquitecturas Onion y Hexagonal se retiraron del compose (ver commit `chore(docker): elimina servicios Onion y Hexagonal del compose raíz`). Hoy el stack local es: **frontend, API Gateway, backend Clean, notification consumer, MongoDB, RabbitMQ y Redis**, definidos en [Arquitectura-Clean/docker-compose.yml](Arquitectura-Clean/docker-compose.yml).
+Las arquitecturas Onion y Hexagonal se retiraron del compose (ver commit `chore(docker): elimina servicios Onion y Hexagonal del compose raíz`). Hoy el stack local es: **frontend, API Gateway, backend Clean, notification-service, MongoDB (backend), MongoDB (notification), RabbitMQ y Redis**, definidos en [Arquitectura-Clean/docker-compose.yml](Arquitectura-Clean/docker-compose.yml).
 
-Detalle de la incorporación del Gateway (fase 0 de la migración a microservicios): [doc/5. Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md](doc/5.%20Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md).
+Detalle de cada fase de la migración a microservicios:
+
+- Fase 0, API Gateway: [doc/5. Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md](doc/5.%20Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md).
+- Fase 1, notification-service: [doc/5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md](doc/5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).
 
 ## Puertos publicados al host
 
@@ -11,11 +14,13 @@ Detalle de la incorporación del Gateway (fase 0 de la migración a microservici
 | **Frontend** | http://localhost:5173 | Único punto de entrada pensado para el usuario final |
 | **API Gateway** | http://localhost:8080/api | Único punto de entrada de la API (patrón Strangler Fig); el frontend ya apunta aquí |
 | Backend Clean (directo) | http://localhost:8083/api · Swagger en `/swagger-ui.html` | Se mantiene publicado por continuidad (pruebas manuales, colección Bruno) mientras se termina de migrar todo el tráfico al gateway; no debe usarse desde el frontend |
-| MongoDB | localhost:27020 | Base `andina_seguros_clean` |
+| MongoDB del backend | localhost:27020 | Base `andina_seguros_clean`. Es un replica set de un nodo (`rs0`): desde el host usar `mongodb://localhost:27020/?directConnection=true` |
 | RabbitMQ (AMQP / UI) | localhost:5672 / localhost:15672 | — |
+| notification-service | sin puerto en el host | Solo Actuator interno (`/actuator/health`, `/actuator/prometheus`) |
+| MongoDB de notification | sin puerto en el host | Base `notification_db`, usuario `notification` |
 | Redis | sin puerto en el host | Solo lo consume el gateway (rate limiting), dentro de `andina_gateway_network` |
 
-> Nota: el `docker-compose.yml` de la raíz del repositorio es un subconjunto reducido (solo `clean-mongodb` + `clean-backend`, sin gateway) pensado para levantar el backend a solas; para el stack completo usar siempre el de `Arquitectura-Clean/`.
+> Nota: el `docker-compose.yml` de la raíz del repositorio es un subconjunto reducido (solo `clean-mongodb` + `clean-backend`, sin gateway ni RabbitMQ) pensado para levantar el backend a solas; para el stack completo usar siempre el de `Arquitectura-Clean/`.
 
 ## Levantar el stack completo
 
@@ -28,7 +33,19 @@ docker compose ps
 Ver logs (incluye el gateway):
 
 ```bash
-docker compose logs -f gateway backend consumer
+docker compose logs -f gateway backend notification-service
+```
+
+Después de levantar el stack por primera vez con notification-service, poblar su proyección de contactos con los clientes que ya existen (backfill, requiere un usuario ADMIN):
+
+```bash
+curl -X POST http://localhost:8080/api/clientes/eventos/reenvio -H "Authorization: Bearer <token>"
+```
+
+Probar sin enviar WhatsApp reales (WhatsApp simulado con WireMock):
+
+```bash
+WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mock up -d
 ```
 
 Detener sin borrar datos:
@@ -39,9 +56,10 @@ docker compose down
 
 ## Aislamiento
 
-- Backend ↔ MongoDB: red `andina_clean_network`.
-- Backend/Consumer ↔ RabbitMQ: red `rabbitmq_network`.
+- Backend ↔ MongoDB del backend: red `andina_clean_network`.
+- notification-service ↔ su MongoDB: red `andina_notification_data_network`. notification-service **no** está en `andina_clean_network`: no puede llegar a la base del backend.
+- Backend / notification-service ↔ RabbitMQ: red `rabbitmq_network`.
 - Gateway ↔ Backend: `andina_clean_network`. Gateway ↔ Redis: `andina_gateway_network`.
-- Volúmenes: `andina_clean_mongo_data`, `rabbitmq_data`.
+- Volúmenes: `andina_clean_mongo_data`, `andina_notification_mongo_data`, `rabbitmq_data`.
 
 No ejecutar a la vez el Compose de la raíz y el de `Arquitectura-Clean/`: ambos usan el mismo nombre de red y de contenedor para Mongo y backend.

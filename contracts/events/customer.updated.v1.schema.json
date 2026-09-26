@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/customer.updated.v1.schema.json",
+  "title": "customer.updated.v1",
+  "description": "Cambiaron los datos de contacto de un cliente (PATCH /api/clientes/{id}/contacto). Lleva el estado completo del cliente despues del cambio (evento 'gordo'), no solo los campos modificados. Exchange: andina.events. Publica: backend (fase 3: customer-service). Consumen: notification-service.",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "CustomerUpdated" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "aggregateVersion": { "type": "integer", "minimum": 2 },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": { "$ref": "customer.registered.v1.schema.json#/$defs/customer" }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/policy.issued.v1.schema.json",
+  "title": "policy.issued.v1",
+  "description": "Se emitio una poliza. Sigue saliendo por el exchange heredado andina.insurance.events para no romper consumidores; notification-service escucha los dos exchanges. Publica: backend (fase 6: policy-service). Consumen: notification-service y la cola de auditoria.",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "PolicyIssued" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.policyId" },
+    "aggregateVersion": { "type": ["integer", "null"], "description": "Aun no se usa en polizas (null)" },
+    "correlationId": { "type": ["string", "null"], "description": "Agregado en la fase 1 (opcional)" },
+    "producer": { "type": ["string", "null"], "description": "Agregado en la fase 1 (opcional)" },
+    "data": {
+      "type": "object",
+      "required": ["policyId", "quoteId", "customerId", "policyNumber"],
+      "properties": {
+        "policyId": { "type": "string", "format": "uuid" },
+        "quoteId": { "type": "string", "format": "uuid" },
+        "customerId": { "type": "string", "format": "uuid" },
+        "policyNumber": { "type": "string" }
+      }
+    }
+  }
+}

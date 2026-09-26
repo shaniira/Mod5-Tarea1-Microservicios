@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/customer.registered.v1.schema.json",
+  "title": "customer.registered.v1",
+  "description": "Un cliente fue registrado. Tambien se publica como snapshot en el backfill (POST /api/clientes/eventos/reenvio), con la version actual del cliente. Exchange: andina.events. Publica: backend (fase 3: customer-service). Consumen: notification-service.",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Clave de idempotencia (inbox del consumidor)" },
+    "eventType": { "const": "CustomerRegistered" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.customerId" },
+    "aggregateVersion": { "type": "integer", "minimum": 1, "description": "Version del cliente; el consumidor descarta versiones iguales o menores a la que ya tiene" },
+    "correlationId": { "type": ["string", "null"], "description": "X-Correlation-Id de la peticion que origino el cambio" },
+    "producer": { "type": "string" },
+    "data": { "$ref": "#/$defs/customer" }
+  },
+  "$defs": {
+    "customer": {
+      "type": "object",
+      "required": ["customerId", "documentNumber", "fullName", "active"],
+      "properties": {
+        "customerId": { "type": "string", "format": "uuid" },
+        "documentType": { "type": ["string", "null"] },
+        "documentNumber": { "type": "string" },
+        "names": { "type": "string" },
+        "surnames": { "type": ["string", "null"] },
+        "fullName": { "type": "string" },
+        "email": { "type": ["string", "null"] },
+        "phone": { "type": ["string", "null"] },
+        "active": { "type": "boolean" }
+      }
+    }
+  }
+}

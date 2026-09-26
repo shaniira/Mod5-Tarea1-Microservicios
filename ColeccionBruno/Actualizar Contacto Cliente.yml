@@ -1,0 +1,28 @@
+info:
+  name: Actualizar Contacto Cliente
+  type: http
+  seq: 3
+
+http:
+  method: PATCH
+  url: http://localhost:8080/api/clientes/10000000-0000-0000-0000-000000000001/contacto
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{token}}
+  body:
+    type: json
+    data: |-
+      {
+        "correo": "ana.demo@andina.local",
+        "telefono": "921175206"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
