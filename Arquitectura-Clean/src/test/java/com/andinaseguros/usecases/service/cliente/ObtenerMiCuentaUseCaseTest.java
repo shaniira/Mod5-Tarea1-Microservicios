@@ -56,6 +56,18 @@ class ObtenerMiCuentaUseCaseTest {
     }
 
     @Test
+    void conCustomerIdEnElTokenBuscaAlClienteSinConsultarUsuarios() {
+        var clienteId = UUID.randomUUID();
+        when(clientes.buscarPorId(clienteId)).thenReturn(Optional.empty());
+
+        var respuesta = useCase.execute("facebook_123", clienteId);
+
+        assertThat(respuesta.cliente()).isNull();
+        verify(clientes).buscarPorId(clienteId);
+        verifyNoInteractions(usuarios);
+    }
+
+    @Test
     void devuelveLaPolizaDelClienteSinRenovaciones() {
         var clienteId = UUID.randomUUID();
         var usuario =

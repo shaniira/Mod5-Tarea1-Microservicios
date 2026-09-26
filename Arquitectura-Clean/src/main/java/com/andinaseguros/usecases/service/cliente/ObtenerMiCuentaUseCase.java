@@ -9,6 +9,9 @@ import com.andinaseguros.usecases.port.out.repository.ClienteRepository;
 import com.andinaseguros.usecases.port.out.repository.PolizaRepository;
 import com.andinaseguros.usecases.port.out.repository.RenovacionRepository;
 import com.andinaseguros.usecases.port.out.repository.UsuarioRepository;
+import com.andinaseguros.entities.model.Cliente;
+import java.util.Optional;
+import java.util.UUID;
 
 public class ObtenerMiCuentaUseCase {
     private final UsuarioRepository usuarios;
@@ -27,13 +30,28 @@ public class ObtenerMiCuentaUseCase {
         this.renovaciones = renovaciones;
     }
 
+    /**
+     * Fase 2: identity-service pone en el token el customerId del cliente; con él no hace falta
+     * consultar usuarios. Sin customerId (tokens antiguos de la ventana de transición) se usa la
+     * búsqueda por correo de siempre.
+     */
+    public MiCuentaResponse execute(String username, UUID customerId) {
+        if (customerId == null) {
+            return execute(username);
+        }
+        return responder(clientes.buscarPorId(customerId));
+    }
+
     public MiCuentaResponse execute(String username) {
         var correo =
                 usuarios.buscarPorUsername(username)
                         .map(usuario -> usuario.getEmail() != null ? usuario.getEmail() : usuario.getUsername())
                         .orElse(username);
 
-        var cliente = clientes.buscarPorCorreo(correo);
+        return responder(clientes.buscarPorCorreo(correo));
+    }
+
+    private MiCuentaResponse responder(Optional<Cliente> cliente) {
         if (cliente.isEmpty()) {
             return new MiCuentaResponse(null, java.util.List.of());
         }

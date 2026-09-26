@@ -1,6 +1,7 @@
 package com.andinaseguros.frameworksdrivers.configuration.spring;
 
-import com.andinaseguros.interfaceadapters.out.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,8 +15,12 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,9 +38,12 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    /**
+     * Fase 2: el monolito es resource server. Ya no consulta la colección usuarios en cada
+     * petición: el rol y el customerId salen del token firmado por identity-service.
+     */
     @Bean
-    SecurityFilterChain securityFilterChain(
-            HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         return http.cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
@@ -56,9 +64,33 @@ public class SecurityConfig {
                                         .permitAll()
                                         .anyRequest()
                                         .authenticated())
-                .addFilterBefore(
-                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .oauth2ResourceServer(
+                        oauth ->
+                                oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(SecurityConfig::convertir))
+                                        .authenticationEntryPoint(tokenInvalido()))
+                .exceptionHandling(e -> e.authenticationEntryPoint(tokenInvalido()))
                 .build();
+    }
+
+    /** Nombre = sub; rol = claim "rol" (ROLE_ADMIN, ...), igual que antes. */
+    static JwtAuthenticationToken convertir(Jwt jwt) {
+        String rol = jwt.getClaimAsString("rol");
+        List<SimpleGrantedAuthority> authorities =
+                rol == null ? List.of() : List.of(new SimpleGrantedAuthority("ROLE_" + rol));
+        return new JwtAuthenticationToken(jwt, authorities, jwt.getSubject());
+    }
+
+    /** Mismo cuerpo de error que devolvía el filtro JWT anterior. */
+    private static AuthenticationEntryPoint tokenInvalido() {
+        return (request, response, exception) -> {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter()
+                    .write(
+                            "{\"codigo\":\"TOKEN_INVALIDO\",\"message\":\"La sesión expiró o el"
+                                    + " token no es válido. Inicie sesión nuevamente.\"}");
+        };
     }
 
     @Bean
