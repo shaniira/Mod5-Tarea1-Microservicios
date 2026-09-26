@@ -1,50 +1,58 @@
+# identity-service (fase 2). Sin estado en memoria (state OAuth, tickets y desafios MFA viven en
+# Redis), por eso corre con 2 replicas desde el inicio (paso 2.10).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: identity-service
   namespace: andina-seguros
   labels:
-    app: backend
+    app: identity-service
 spec:
-  replicas: 1 # el estado en memoria (OAuth, tickets, MFA) se fue a identity-service en la fase
-  # 2, pero el relay del Outbox esta pensado para una sola replica (ver OutboxRelay). Subir a 2+
-  # cuando el relay reclame los eventos antes de enviarlos.
+  replicas: 2
   revisionHistoryLimit: 5
   strategy:
     type: RollingUpdate
     rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
   selector:
     matchLabels:
-      app: backend
+      app: identity-service
   template:
     metadata:
       labels:
-        app: backend
+        app: identity-service
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "8080"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001 # usuario "spring" de la imagen
+        fsGroup: 1001
       containers:
-        - name: backend
-          image: andina-seguros-clean:1.0.0
+        - name: identity-service
+          image: andina-identity-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
           envFrom:
-            - configMapRef: { name: backend-config }
-            - secretRef: { name: backend-secrets }
+            - configMapRef: { name: identity-config }
+            - secretRef: { name: identity-secrets }
+          volumeMounts:
+            - name: jwt-key
+              mountPath: /run/keys/identity
+              readOnly: true
           resources:
-            requests: { cpu: "500m", memory: "512Mi" }
-            limits: { cpu: "1", memory: "768Mi" }
+            requests: { cpu: "250m", memory: "384Mi" }
+            limits: { cpu: "1", memory: "640Mi" }
           startupProbe:
             httpGet: { path: /actuator/health, port: http }
-            timeoutSeconds: 5 # el 1s por defecto de Kubernetes se quedaba corto bajo CPU
-            # limitada (mismo problema real encontrado y corregido en rabbitmq/mongodb)
+            timeoutSeconds: 5
             failureThreshold: 30
             periodSeconds: 2
           readinessProbe:
+            # Depende de Mongo, Redis y RabbitMQ (ver application.yml del servicio).
             httpGet: { path: /actuator/health/readiness, port: http }
             timeoutSeconds: 5
             initialDelaySeconds: 5
@@ -56,4 +64,9 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 15
             failureThreshold: 3
+      volumes:
+        - name: jwt-key
+          secret:
+            secretName: identity-jwt-key
+            defaultMode: 0400
       terminationGracePeriodSeconds: 20

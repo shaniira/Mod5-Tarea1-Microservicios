@@ -35,12 +35,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: api-gateway-config
-          env:
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: andina-jwt-secret
-                  key: JWT_SECRET
           resources:
             requests:
               cpu: "250m"

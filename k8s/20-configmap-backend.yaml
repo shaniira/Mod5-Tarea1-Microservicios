@@ -8,11 +8,9 @@ data:
   SPRING_DATA_MONGODB_URI: "mongodb://mongodb-service.andina-seguros.svc.cluster.local:27017/andina_seguros_clean"
   SPRING_RABBITMQ_HOST: "rabbitmq-service.andina-seguros.svc.cluster.local"
   SPRING_RABBITMQ_PORT: "5672"
-  JWT_EXPIRATION_SECONDS: "28800"
   CORS_ALLOWED_ORIGINS: "https://andina-seguros.example.com"
-  FACEBOOK_REDIRECT_URI: "https://andina-seguros.example.com/api/auth/facebook/callback"
-  FACEBOOK_SCOPES: "public_profile,email"
-  FACEBOOK_FRONTEND_CALLBACK_URL: "https://andina-seguros.example.com/login"
-  FACEBOOK_LOGIN_TICKET_TTL_SECONDS: "60"
-  GOOGLE_CLIENT_ID: "" # no es secreto (viaja tambien en el bundle del frontend); completar por entorno
-  FACEBOOK_APP_ID: "" # tampoco es secreto; completar por entorno
+  # Fase 2: el backend ya no emite tokens ni tiene login; verifica los JWT RS256 de
+  # identity-service con su clave publica. La configuracion de Google y Facebook paso a
+  # 50-configmap-identity.yaml.
+  JWT_JWKS_URI: "http://identity-service.andina-seguros.svc.cluster.local:8080/.well-known/jwks.json"
+  JWT_ISSUER: "andina-identity"
