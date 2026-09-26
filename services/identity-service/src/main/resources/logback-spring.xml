@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logs JSON a la salida estándar (plantilla del microservicio, paso 7): cada línea lleva service,
+  correlationId, eventId, traceId y spanId (vienen del MDC). Con el perfil "local" se usa el formato
+  de texto de Spring Boot, más cómodo para leer en la consola.
+-->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <springProperty scope="context" name="service" source="spring.application.name"/>
+
+  <springProfile name="local">
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="!local">
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+      <!-- "service" sale de la propiedad de contexto de arriba (LogstashEncoder la incluye). -->
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <fieldNames>
+          <timestamp>timestamp</timestamp>
+          <version>[ignore]</version>
+          <levelValue>[ignore]</levelValue>
+        </fieldNames>
+      </encoder>
+    </appender>
+    <root level="INFO">
+      <appender-ref ref="JSON"/>
+    </root>
+  </springProfile>
+</configuration>
