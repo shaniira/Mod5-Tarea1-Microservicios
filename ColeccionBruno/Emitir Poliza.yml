@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: http://localhost:8082/api/polizas
+  url: http://localhost:8080/api/polizas
   headers:
     - name: Content-Type
       value: application/json

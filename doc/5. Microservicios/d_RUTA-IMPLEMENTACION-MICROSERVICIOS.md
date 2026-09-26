@@ -149,11 +149,11 @@ Nota técnica sobre Spring Cloud Gateway: es reactivo (WebFlux). Va en su propio
 | 2.9 | **Rutas en el gateway:** `/api/auth/**` y `/api/mfa/**` hacia identity-service; el gateway valida el JWT en el resto | S |
 | 2.10 | **Prueba con 2 réplicas** de identity-service: login con Facebook y MFA deben funcionar sin fallos intermitentes | S |
 
-**Criterios de salida**
-- [ ] Login por contraseña, Google, Facebook y MFA funcionan desde el servicio nuevo.
-- [ ] Con dos réplicas no hay fallos aleatorios de MFA ni de Facebook.
-- [ ] Los demás servicios validan tokens con la clave pública; la clave privada solo existe en identity.
-- [ ] HS256 retirado; el secreto simétrico ya no existe.
+**Criterios de salida** (verificados el 2026-09-25; evidencias en [g_IMPLEMENTACION-IDENTITY-SERVICE-FASE2.md](g_IMPLEMENTACION-IDENTITY-SERVICE-FASE2.md#3-verificación-de-los-criterios-de-aceptación))
+- [x] Login por contraseña, Google, Facebook y MFA funcionan desde el servicio nuevo.
+- [x] Con dos réplicas no hay fallos aleatorios de MFA ni de Facebook.
+- [x] Los demás servicios validan tokens con la clave pública; la clave privada solo existe en identity.
+- [x] HS256 retirado; el secreto simétrico ya no existe.
 
 **Reversa:** apuntar `/api/auth/**` de nuevo al monolito (los usuarios no se borran del monolito hasta el final de la fase).
 
