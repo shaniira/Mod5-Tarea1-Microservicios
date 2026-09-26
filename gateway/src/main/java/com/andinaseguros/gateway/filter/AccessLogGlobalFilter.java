@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Log de acceso de una linea por peticion, con el correlationId ya resuelto por
- * {@link CorrelationIdGlobalFilter}.
+ * {@link CorrelationIdWebFilter}.
  *
  * <p>Nota de diseno: en WebFlux el mismo request puede saltar entre varios hilos del event
  * loop, asi que el MDC de Logback (basado en ThreadLocal) no es fiable sin cableado adicional
@@ -35,7 +35,7 @@ public class AccessLogGlobalFilter implements GlobalFilter, Ordered {
                             long durationMs = System.currentTimeMillis() - start;
                             String correlationId =
                                     exchange.getAttribute(
-                                            CorrelationIdGlobalFilter.CORRELATION_ID_ATTRIBUTE);
+                                            CorrelationIdWebFilter.CORRELATION_ID_ATTRIBUTE);
                             var request = exchange.getRequest();
                             var response = exchange.getResponse();
                             log.info(

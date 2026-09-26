@@ -63,10 +63,11 @@
       <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
     </dependency>
 
-    <!-- Fase 2: validacion de los JWT RS256 de identity-service con su JWKS (reactivo). -->
+    <!-- Spring Security WebFlux como OAuth2 Resource Server: valida los JWT RS256 de
+         identity-service con su JWKS. -->
     <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-oauth2-jose</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
 
     <!-- Observabilidad: health checks (liveness/readiness) y metricas Prometheus -->

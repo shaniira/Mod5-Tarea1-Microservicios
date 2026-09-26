@@ -1,6 +1,6 @@
 package com.andinaseguros.gateway.web;
 
-import com.andinaseguros.gateway.filter.CorrelationIdGlobalFilter;
+import com.andinaseguros.gateway.filter.CorrelationIdWebFilter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +29,7 @@ public class FallbackController {
 
     private ResponseEntity<ErrorResponse> noDisponible(
             ServerWebExchange exchange, String servicio, String path) {
-        String correlationId = exchange.getAttribute(CorrelationIdGlobalFilter.CORRELATION_ID_ATTRIBUTE);
+        String correlationId = exchange.getAttribute(CorrelationIdWebFilter.CORRELATION_ID_ATTRIBUTE);
         ErrorResponse body =
                 ErrorResponse.of(
                         HttpStatus.SERVICE_UNAVAILABLE.value(),

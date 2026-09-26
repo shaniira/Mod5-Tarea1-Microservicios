@@ -1,6 +1,6 @@
 package com.andinaseguros.gateway.web;
 
-import com.andinaseguros.gateway.filter.CorrelationIdGlobalFilter;
+import com.andinaseguros.gateway.filter.CorrelationIdWebFilter;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,7 +31,7 @@ public class GatewayErrorAttributes extends DefaultErrorAttributes {
                 (String)
                         request.exchange()
                                 .getAttributes()
-                                .get(CorrelationIdGlobalFilter.CORRELATION_ID_ATTRIBUTE);
+                                .get(CorrelationIdWebFilter.CORRELATION_ID_ATTRIBUTE);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
