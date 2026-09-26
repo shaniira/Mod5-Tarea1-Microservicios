@@ -127,6 +127,10 @@ public class OutboxRelay {
         if (evento.correlationId != null) {
             properties.setHeader(CORRELATION_ID_HEADER, evento.correlationId);
         }
+        if (evento.traceparent != null) {
+            // Propagación W3C: notification-service e identity-service continúan esta traza.
+            properties.setHeader("traceparent", evento.traceparent);
+        }
         return new Message(evento.payload.getBytes(StandardCharsets.UTF_8), properties);
     }
 }

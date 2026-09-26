@@ -1,6 +1,9 @@
 server:
   port: ${SERVER_PORT:8080}
 spring:
+  application:
+    # Nombre del servicio en trazas (Jaeger) y logs (campo service).
+    name: andina-backend
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: ${SPRING_RABBITMQ_PORT:5672}
@@ -69,9 +72,13 @@ management:
   metrics:
     tags:
       application: andina-seguros-clean
+  # Trazas: se exportan por OTLP solo si se define MANAGEMENT_OTLP_TRACING_ENDPOINT (stack de
+  # observabilidad, infra/observability).
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
 logging:
-  pattern:
-    level: "%5p [correlationId=%X{correlationId:-}]"
+  # El formato JSON (con correlationId, traceId y spanId) lo define logback-spring.xml.
   level:
     com.andinaseguros.interfaceadapters.out.event: DEBUG
     com.andinaseguros.interfaceadapters.out.external.jsonpe: INFO

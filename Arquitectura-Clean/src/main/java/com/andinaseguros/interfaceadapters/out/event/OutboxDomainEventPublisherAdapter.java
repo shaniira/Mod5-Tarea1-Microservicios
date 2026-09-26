@@ -7,6 +7,7 @@ import com.andinaseguros.interfaceadapters.out.persistence.mongodb.repository.Sp
 import com.andinaseguros.usecases.port.out.event.DomainEventPublisherPort;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.function.Supplier;
 import org.slf4j.MDC;
 
 /**
@@ -20,14 +21,17 @@ public class OutboxDomainEventPublisherAdapter implements DomainEventPublisherPo
     private final SpringDataOutboxMongoRepository outbox;
     private final IntegrationEventMapper mapper;
     private final ObjectMapper objectMapper;
+    private final Supplier<String> traceparentActual;
 
     public OutboxDomainEventPublisherAdapter(
             SpringDataOutboxMongoRepository outbox,
             IntegrationEventMapper mapper,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            Supplier<String> traceparentActual) {
         this.outbox = outbox;
         this.mapper = mapper;
         this.objectMapper = objectMapper;
+        this.traceparentActual = traceparentActual;
     }
 
     @Override
@@ -43,6 +47,7 @@ public class OutboxDomainEventPublisherAdapter implements DomainEventPublisherPo
         document.aggregateId = message.aggregateId().toString();
         document.payload = toJson(message);
         document.correlationId = message.correlationId();
+        document.traceparent = traceparentActual.get();
         document.status = OutboxEventDocument.PENDING;
         document.attempts = 0;
         document.createdAt = event.occurredAt();
