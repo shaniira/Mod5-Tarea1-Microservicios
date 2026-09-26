@@ -21,7 +21,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.andinaseguros.identity.usecases.port.out.security.RevocacionPort;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -66,11 +71,21 @@ public class RsaKeyConfig {
 
     /** Valida los tokens propios (para /api/auth/me, /api/mfa/**) con la clave pública local. */
     @Bean
-    JwtDecoder jwtDecoder(RSAKey identityRsaKey, @Value("${app.jwt.issuer}") String issuer)
+    JwtDecoder jwtDecoder(
+            RSAKey identityRsaKey, @Value("${app.jwt.issuer}") String issuer, RevocacionPort revocaciones)
             throws JOSEException {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(identityRsaKey.toRSAPublicKey()).build();
+        // Además de firma, emisor y vigencia: el token no puede estar revocado (logout o usuario
+        // desactivado).
+        OAuth2TokenValidator<Jwt> noRevocado =
+                jwt ->
+                        revocaciones.estaRevocado(jwt.getSubject(), jwt.getId())
+                                ? OAuth2TokenValidatorResult.failure(
+                                        new OAuth2Error("invalid_token", "Token revocado", null))
+                                : OAuth2TokenValidatorResult.success();
         decoder.setJwtValidator(
-                new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer)));
+                new DelegatingOAuth2TokenValidator<>(
+                        JwtValidators.createDefaultWithIssuer(issuer), noRevocado));
         return decoder;
     }
 

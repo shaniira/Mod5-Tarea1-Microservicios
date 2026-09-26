@@ -14,6 +14,7 @@ import com.andinaseguros.identity.interfaceadapters.out.security.mfa.ZxingQrCode
 import com.andinaseguros.identity.interfaceadapters.out.security.redis.RedisLoginTicketAdapter;
 import com.andinaseguros.identity.interfaceadapters.out.security.redis.RedisMfaChallengeAdapter;
 import com.andinaseguros.identity.interfaceadapters.out.security.redis.RedisOAuthStateAdapter;
+import com.andinaseguros.identity.interfaceadapters.out.security.redis.RedisRevocacionAdapter;
 import com.andinaseguros.identity.interfaceadapters.out.time.SystemClockAdapter;
 import com.andinaseguros.identity.usecases.port.out.facebook.FacebookOAuthPort;
 import com.andinaseguros.identity.usecases.port.out.facebook.OAuthStatePort;
@@ -128,6 +129,19 @@ public class UseCaseConfig {
     LoginTicketPort loginTicketPort(
             StringRedisTemplate redis, ObjectMapper objectMapper, FacebookProperties properties) {
         return new RedisLoginTicketAdapter(redis, objectMapper, properties.loginTicketTtlSeconds());
+    }
+
+    @Bean
+    RevocacionPort revocacionPort(
+            StringRedisTemplate redis,
+            @Value("${app.jwt.expiration-seconds:3600}") long expiration,
+            Clock clock) {
+        return new RedisRevocacionAdapter(redis, Duration.ofSeconds(expiration), clock);
+    }
+
+    @Bean
+    GestionarSesionesUseCase gestionarSesiones(UsuarioRepository usuarios, RevocacionPort revocaciones) {
+        return new GestionarSesionesUseCase(usuarios, revocaciones);
     }
 
     // --- Proveedores externos con resiliencia (paso 2.8) --------------------------------------

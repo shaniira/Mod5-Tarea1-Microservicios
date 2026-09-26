@@ -196,6 +196,13 @@ public class Usuario {
                 scopes);
     }
 
+    public Usuario conActivo(boolean nuevoActivo) {
+        return new Usuario(
+                id, username, email, nombres, apellidos, passwordHash, googleSubject, rol, nuevoActivo,
+                mfaSecret, mfaHabilitado, provider, providerUserId, facebookAccessToken,
+                facebookAccessTokenExpiresAt, facebookScopes);
+    }
+
     public Usuario sinAutorizacionFacebook() {
         return new Usuario(
                 id, username, email, nombres, apellidos, passwordHash, googleSubject, rol, activo,
