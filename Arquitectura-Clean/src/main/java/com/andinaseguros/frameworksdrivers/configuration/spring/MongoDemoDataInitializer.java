@@ -1,11 +1,8 @@
 package com.andinaseguros.frameworksdrivers.configuration.spring;
 
 import com.andinaseguros.entities.enums.*;
-import com.andinaseguros.entities.model.Usuario;
-import com.andinaseguros.usecases.port.out.repository.UsuarioRepository;
 import com.andinaseguros.interfaceadapters.out.persistence.mongodb.document.*;
 import com.andinaseguros.interfaceadapters.out.persistence.mongodb.repository.*;
-import com.andinaseguros.usecases.port.out.security.PasswordEncoderPort;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -41,8 +38,6 @@ public class MongoDemoDataInitializer implements ApplicationRunner {
     private static final String POL_VENCIDA = "50000000-0000-0000-0000-000000000003";
     private static final String POL_RENOVADA = "50000000-0000-0000-0000-000000000004";
 
-    private final UsuarioRepository usuarios;
-    private final PasswordEncoderPort passwordEncoder;
     private final SpringDataClienteMongoRepository clientes;
     private final SpringDataVehiculoMongoRepository vehiculos;
     private final SpringDataTablaTarifariaMongoRepository tarifas;
@@ -51,16 +46,12 @@ public class MongoDemoDataInitializer implements ApplicationRunner {
     private final SpringDataRenovacionMongoRepository renovaciones;
 
     public MongoDemoDataInitializer(
-            UsuarioRepository usuarios,
-            PasswordEncoderPort passwordEncoder,
             SpringDataClienteMongoRepository clientes,
             SpringDataVehiculoMongoRepository vehiculos,
             SpringDataTablaTarifariaMongoRepository tarifas,
             SpringDataCotizacionMongoRepository cotizaciones,
             SpringDataPolizaMongoRepository polizas,
             SpringDataRenovacionMongoRepository renovaciones) {
-        this.usuarios = usuarios;
-        this.passwordEncoder = passwordEncoder;
         this.clientes = clientes;
         this.vehiculos = vehiculos;
         this.tarifas = tarifas;
@@ -71,7 +62,7 @@ public class MongoDemoDataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        seedAdmin();
+        // El usuario demo "admin" lo crea identity-service (fase 2).
         clientes.saveAll(
                 List.of(
                         cliente(
@@ -314,21 +305,6 @@ public class MongoDemoDataInitializer implements ApplicationRunner {
                 4);
     }
 
-    private void seedAdmin() {
-        if (usuarios.buscarPorUsername("admin").isEmpty()) {
-            usuarios.guardar(
-                    new Usuario(
-                            UUID.fromString("00000000-0000-0000-0000-000000000001"),
-                            "admin",
-                            null,
-                            passwordEncoder.codificar("Admin123*"),
-                            null,
-                            RolUsuario.ADMIN,
-                            true,
-                            null,
-                            false));
-        }
-    }
 
     private static ClienteDocument cliente(
             String id,

@@ -5,17 +5,14 @@ import static org.mockito.Mockito.*;
 
 import com.andinaseguros.entities.enums.EstadoPoliza;
 import com.andinaseguros.entities.enums.EstadoRenovacion;
-import com.andinaseguros.entities.enums.RolUsuario;
 import com.andinaseguros.entities.model.Cliente;
 import com.andinaseguros.entities.model.Poliza;
 import com.andinaseguros.entities.model.PropuestaRenovacion;
-import com.andinaseguros.entities.model.Usuario;
 import com.andinaseguros.entities.valueobject.Dinero;
 import com.andinaseguros.entities.valueobject.PeriodoVigencia;
 import com.andinaseguros.usecases.port.out.repository.ClienteRepository;
 import com.andinaseguros.usecases.port.out.repository.PolizaRepository;
 import com.andinaseguros.usecases.port.out.repository.RenovacionRepository;
-import com.andinaseguros.usecases.port.out.repository.UsuarioRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,30 +22,17 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ObtenerMiCuentaUseCaseTest {
-    private final UsuarioRepository usuarios = mock(UsuarioRepository.class);
     private final ClienteRepository clientes = mock(ClienteRepository.class);
     private final PolizaRepository polizas = mock(PolizaRepository.class);
     private final RenovacionRepository renovaciones = mock(RenovacionRepository.class);
     private final ObtenerMiCuentaUseCase useCase =
-            new ObtenerMiCuentaUseCase(usuarios, clientes, polizas, renovaciones);
+            new ObtenerMiCuentaUseCase(clientes, polizas, renovaciones);
 
     @Test
     void devuelveRespuestaVaciaCuandoElCorreoNoTieneClienteVinculado() {
-        var usuario =
-                new Usuario(
-                        UUID.randomUUID(),
-                        "a@x.com",
-                        "a@x.com",
-                        null,
-                        "sub-1",
-                        RolUsuario.CLIENTE,
-                        true,
-                        null,
-                        false);
-        when(usuarios.buscarPorUsername("a@x.com")).thenReturn(Optional.of(usuario));
         when(clientes.buscarPorCorreo("a@x.com")).thenReturn(Optional.empty());
 
-        var respuesta = useCase.execute("a@x.com");
+        var respuesta = useCase.execute("a@x.com", null);
 
         assertThat(respuesta.cliente()).isNull();
         assertThat(respuesta.polizas()).isEmpty();
@@ -56,7 +40,7 @@ class ObtenerMiCuentaUseCaseTest {
     }
 
     @Test
-    void conCustomerIdEnElTokenBuscaAlClienteSinConsultarUsuarios() {
+    void conCustomerIdEnElTokenBuscaAlClientePorId() {
         var clienteId = UUID.randomUUID();
         when(clientes.buscarPorId(clienteId)).thenReturn(Optional.empty());
 
@@ -64,23 +48,12 @@ class ObtenerMiCuentaUseCaseTest {
 
         assertThat(respuesta.cliente()).isNull();
         verify(clientes).buscarPorId(clienteId);
-        verifyNoInteractions(usuarios);
+        verify(clientes, never()).buscarPorCorreo(any());
     }
 
     @Test
     void devuelveLaPolizaDelClienteSinRenovaciones() {
         var clienteId = UUID.randomUUID();
-        var usuario =
-                new Usuario(
-                        UUID.randomUUID(),
-                        "a@x.com",
-                        "a@x.com",
-                        null,
-                        "sub-1",
-                        RolUsuario.CLIENTE,
-                        true,
-                        null,
-                        false);
         var cliente =
                 new Cliente(
                         clienteId,
@@ -103,12 +76,11 @@ class ObtenerMiCuentaUseCaseTest {
                         new PeriodoVigencia(LocalDate.now(), LocalDate.now().plusDays(180)),
                         EstadoPoliza.VIGENTE);
 
-        when(usuarios.buscarPorUsername("a@x.com")).thenReturn(Optional.of(usuario));
         when(clientes.buscarPorCorreo("a@x.com")).thenReturn(Optional.of(cliente));
         when(polizas.listarPorCliente(clienteId)).thenReturn(List.of(poliza));
         when(renovaciones.listarPorPoliza(poliza.getId())).thenReturn(List.of());
 
-        var respuesta = useCase.execute("a@x.com");
+        var respuesta = useCase.execute("a@x.com", null);
 
         assertThat(respuesta.cliente().correo()).isEqualTo("a@x.com");
         assertThat(respuesta.polizas()).hasSize(1);
@@ -119,17 +91,6 @@ class ObtenerMiCuentaUseCaseTest {
     @Test
     void incluyeLasRenovacionesDeCadaPoliza() {
         var clienteId = UUID.randomUUID();
-        var usuario =
-                new Usuario(
-                        UUID.randomUUID(),
-                        "a@x.com",
-                        "a@x.com",
-                        null,
-                        "sub-1",
-                        RolUsuario.CLIENTE,
-                        true,
-                        null,
-                        false);
         var cliente =
                 new Cliente(
                         clienteId,
@@ -166,12 +127,11 @@ class ObtenerMiCuentaUseCaseTest {
                         null,
                         null);
 
-        when(usuarios.buscarPorUsername("a@x.com")).thenReturn(Optional.of(usuario));
         when(clientes.buscarPorCorreo("a@x.com")).thenReturn(Optional.of(cliente));
         when(polizas.listarPorCliente(clienteId)).thenReturn(List.of(poliza));
         when(renovaciones.listarPorPoliza(poliza.getId())).thenReturn(List.of(renovacion));
 
-        var respuesta = useCase.execute("a@x.com");
+        var respuesta = useCase.execute("a@x.com", null);
 
         assertThat(respuesta.polizas().get(0).renovaciones()).hasSize(1);
         assertThat(respuesta.polizas().get(0).renovaciones().get(0).estado())

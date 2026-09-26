@@ -36,19 +36,7 @@ public final class RestRequestMapper {
         return new CrearFactorRequestModel(value.codigo(), value.nombre(), value.tipoVariable(), value.valorMinimo(), value.valorMaximo(), value.multiplicador(), value.orden());
     }
 
-    public static LoginRequestModel toCore(LoginRequest value) {
-        return new LoginRequestModel(value.username(), value.password());
-    }
 
-    public static CrearUsuarioRequestModel toCore(CrearUsuarioRequest value) {
-        return new CrearUsuarioRequestModel(value.username(), value.password(), value.rol());
-    }
 
-    public static GoogleLoginRequestModel toCore(GoogleLoginRequest value) {
-        return new GoogleLoginRequestModel(value.idToken());
-    }
 
-    public static MfaVerifyRequestModel toCore(MfaVerifyRequest value) {
-        return new MfaVerifyRequestModel(value.challengeToken(), value.codigo());
-    }
 }

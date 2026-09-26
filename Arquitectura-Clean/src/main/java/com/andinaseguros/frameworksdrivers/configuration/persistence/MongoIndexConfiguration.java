@@ -21,21 +21,7 @@ public class MongoIndexConfiguration implements ApplicationRunner {
         unique(VehiculoDocument.class, "placa");
         unique(CotizacionDocument.class, "numero");
         unique(PolizaDocument.class, "numero");
-        unique(UsuarioDocument.class, "username");
-        mongo.indexOps(UsuarioDocument.class)
-                .ensureIndex(
-                        new Index()
-                                .on("email", Sort.Direction.ASC)
-                                .named("email")
-                                .unique()
-                                .sparse());
-        mongo.indexOps(UsuarioDocument.class)
-                .ensureIndex(
-                        new Index()
-                                .on("googleSubject", Sort.Direction.ASC)
-                                .named("googleSubject")
-                                .unique()
-                                .sparse());
+        // Los índices de usuarios los crea identity-service en identity_db (fase 2).
     }
 
     private void unique(Class<?> type, String field) {
