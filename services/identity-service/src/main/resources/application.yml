@@ -1,0 +1,125 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: identity-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  data:
+    mongodb:
+      # Base propia identity_db con usuario propio (plantilla del microservicio, paso 3).
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/identity_db}
+      auto-index-creation: true
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # Base 1: la 0 la usa el rate limiter del gateway.
+      database: ${REDIS_DATABASE:1}
+      timeout: 2s
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:andina}
+    password: ${SPRING_RABBITMQ_PASSWORD:andina-local}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+
+app:
+  jwt:
+    # PEM PKCS#8. En Docker lo genera identity-keygen en un volumen que solo monta este servicio.
+    private-key-file: ${JWT_PRIVATE_KEY_FILE:/run/keys/identity/private.pem}
+    generate-if-missing: ${JWT_GENERATE_KEY_IF_MISSING:false}
+    issuer: ${JWT_ISSUER:andina-identity}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:28800}
+  rabbitmq:
+    events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
+    customer:
+      queue: ${RABBITMQ_CUSTOMER_QUEUE:identity.customer.events}
+      dead-letter-exchange: ${RABBITMQ_EVENTS_DLX:andina.events.dlx}
+      dead-letter-queue: ${RABBITMQ_CUSTOMER_DLQ:identity.customer.events.dlq}
+  demo-data:
+    enabled: ${APP_DEMO_DATA_ENABLED:false}
+  mfa:
+    challenge-expiration-seconds: ${MFA_CHALLENGE_EXPIRATION_SECONDS:300}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    issuer: ${GOOGLE_ISSUER:https://accounts.google.com}
+    jwk-set-uri: ${GOOGLE_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
+    timeout-seconds: 3
+  facebook:
+    app-id: ${FACEBOOK_APP_ID:}
+    app-secret: ${FACEBOOK_APP_SECRET:}
+    redirect-uri: ${FACEBOOK_REDIRECT_URI:}
+    authorization-uri: ${FACEBOOK_AUTHORIZATION_URI:https://www.facebook.com/v22.0/dialog/oauth}
+    token-uri: ${FACEBOOK_TOKEN_URI:https://graph.facebook.com/v22.0/oauth/access_token}
+    graph-base-url: ${FACEBOOK_GRAPH_BASE_URL:https://graph.facebook.com/v22.0}
+    scopes: ${FACEBOOK_SCOPES:public_profile,email}
+    oauth-state-ttl-seconds: ${FACEBOOK_OAUTH_STATE_TTL_SECONDS:300}
+    frontend-callback-url: ${FACEBOOK_FRONTEND_CALLBACK_URL:http://localhost:5173/login}
+    login-ticket-ttl-seconds: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:60}
+    token-encryption-key: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:}
+    timeout-seconds: 5
+
+# Paso 2.8: circuit breaker hacia Google (claves publicas) y Facebook (canje del codigo). Solo
+# cuentan las caidas del proveedor; un token o codigo invalido no abre el circuito.
+resilience4j:
+  circuitbreaker:
+    instances:
+      google:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${GOOGLE_CB_WAIT_OPEN:30s}
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.andinaseguros.identity.interfaceadapters.out.security.google.GoogleIdentityVerifierAdapter$GoogleSinRespuesta
+      facebook:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${FACEBOOK_CB_WAIT_OPEN:30s}
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.andinaseguros.identity.interfaceadapters.out.external.facebook.FacebookOAuthAdapter$FacebookSinRespuesta
+  # Bulkhead (seccion 6.1): limita las llamadas simultaneas a cada proveedor. Si Google o Facebook
+  # se vuelven lentos, solo se ocupan estos cupos y el resto del servicio (login por contrasena,
+  # MFA) sigue atendiendo. Sin espera: si no hay cupo, se responde "no disponible" al instante.
+  bulkhead:
+    instances:
+      google:
+        max-concurrent-calls: ${GOOGLE_BULKHEAD_MAX_CALLS:20}
+        max-wait-duration: 0
+      facebook:
+        max-concurrent-calls: ${FACEBOOK_BULKHEAD_MAX_CALLS:10}
+        max-wait-duration: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        readiness:
+          include: readinessState,mongo,redis,rabbit
+        liveness:
+          include: livenessState
+  health:
+    circuitbreakers:
+      enabled: false
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  metrics:
+    tags:
+      application: identity-service
