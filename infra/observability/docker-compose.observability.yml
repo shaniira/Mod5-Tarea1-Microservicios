@@ -1,0 +1,105 @@
+# Stack de observabilidad (sección 7.2 de la propuesta): logs con correlationId (Promtail + Loki),
+# métricas (Prometheus) y trazas (OpenTelemetry Collector + Jaeger), todo consultable en Grafana.
+#
+# Se levanta junto al stack normal, desde Arquitectura-Clean/:
+#   docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d
+#
+# Puertos solo en local: Grafana 3000, Jaeger UI 16686, Prometheus 9090. Loki y el Collector
+# quedan en la red interna "observability".
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector:0.108.0
+    container_name: andina-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yml"]
+    volumes:
+      - ../infra/observability/otel-collector.yml:/etc/otelcol/config.yml:ro
+    networks: [observability_network]
+    depends_on: [jaeger]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: andina-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports: ["16686:16686"]
+    networks: [observability_network]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: andina-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ../infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../infra/observability/prometheus/alertas.yml:/etc/prometheus/alertas.yml:ro
+      - prometheus_data:/prometheus
+    ports: ["9090:9090"]
+    networks: [observability_network]
+
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: andina-loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - loki_data:/loki
+    networks: [observability_network]
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: andina-promtail
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes:
+      - ../infra/observability/promtail.yml:/etc/promtail/config.yml:ro
+      # Solo lectura: Promtail descubre los contenedores y lee sus logs.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [observability_network]
+    depends_on: [loki]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: andina-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-grafana-local}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ../infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports: ["3000:3000"]
+    networks: [observability_network]
+    depends_on: [prometheus, loki, jaeger]
+
+  # Los servicios se suman a la red de observabilidad y exportan sus trazas al Collector.
+  gateway:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  backend:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  identity-service:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  notification-service:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+
+volumes:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+
+networks:
+  observability_network:
+    name: andina_observability_network

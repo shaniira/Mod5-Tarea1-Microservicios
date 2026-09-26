@@ -1,0 +1,40 @@
+# Promtail: lee los logs de los contenedores del proyecto andina-clean y los envía a Loki. Los logs
+# de los servicios son JSON: se extraen level, correlationId y traceId para poder buscar por ellos.
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=andina-clean"]
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+    pipeline_stages:
+      # Los servicios escriben JSON (logstash-logback-encoder); si una línea no es JSON se
+      # guarda tal cual.
+      - json:
+          expressions:
+            level: level
+            correlationId: correlationId
+            traceId: traceId
+      - labels:
+          level:
+      # correlationId y traceId no van como etiqueta (serían demasiados valores distintos): se
+      # guardan como metadatos estructurados y se buscan con | json en LogQL.
+      - structured_metadata:
+          correlationId:
+          traceId:
