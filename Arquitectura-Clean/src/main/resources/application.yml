@@ -25,6 +25,11 @@ app:
     batch-size: ${OUTBOX_BATCH_SIZE:100}
     confirm-timeout-ms: ${OUTBOX_CONFIRM_TIMEOUT_MS:5000}
   jwt:
+    # Fase 2: los tokens los firma identity-service (RS256); aqui solo se verifican con su JWKS.
+    jwks-uri: ${JWT_JWKS_URI:http://identity-service:8080/.well-known/jwks.json}
+    issuer: ${JWT_ISSUER:andina-identity}
+    # Ventana de transicion (paso 2.3): acepta tambien los HS256 que emitia el monolito.
+    legacy-hs256-enabled: ${JWT_LEGACY_HS256_ENABLED:false}
     secret: ${JWT_SECRET:andina-seguros-clave-secreta-superior-a-32-caracteres-2026}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:28800}
   facebook:
