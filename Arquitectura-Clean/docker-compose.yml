@@ -40,6 +40,10 @@ services:
     environment:
       SERVER_PORT: 8080
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean?replicaSet=rs0
+      # Fase 2: valida los tokens RS256 de identity-service con su clave publica.
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      # Ventana de transicion (paso 2.3): acepta tambien los HS256 antiguos.
+      JWT_LEGACY_HS256_ENABLED: "true"
       JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
       JWT_EXPIRATION_SECONDS: 28800
       CORS_ALLOWED_ORIGINS: http://localhost:5173
@@ -63,6 +67,7 @@ services:
     networks:
       - clean_network
       - rabbitmq_network
+      - services_network
     depends_on:
       mongodb:
         condition: service_healthy
@@ -144,14 +149,90 @@ services:
     container_name: andina-clean-redis
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
-    networks: ["gateway_network"]
+    # gateway_network: rate limiter del gateway (base 0). identity_data_network: estado efimero de
+    # identity-service (base 1): state OAuth, tickets de login y desafios MFA (paso 2.5).
+    networks: ["gateway_network", "identity_data_network"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 15
-    # Sin puerto publicado al host: solo el gateway lo consume (regla "no exponer mas puertos
-    # que el gateway y el frontend").
+    # Sin puerto publicado al host (regla "no exponer mas puertos que el gateway y el frontend").
+
+  # --- Fase 2: identity-service ------------------------------------------------------------------
+  # Genera una sola vez el par de claves RS256 en un volumen que solo monta identity-service. La
+  # clave privada nunca esta en el repositorio ni en variables de entorno de otros servicios.
+  identity-keygen:
+    image: eclipse-temurin:21-jre-alpine
+    user: root
+    restart: "no"
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        if [ ! -s /keys/private.pem ]; then
+        openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /keys/private.pem
+        && echo 'Clave RS256 generada'; else echo 'La clave RS256 ya existe'; fi;
+        chown 1001:1001 /keys/private.pem && chmod 400 /keys/private.pem
+    volumes:
+      - identity_keys:/keys
+    network_mode: none
+
+  identity-mongodb:
+    image: mongo:8
+    container_name: andina-identity-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${IDENTITY_MONGO_ROOT_PASSWORD:-identity-root-local}
+      MONGO_INITDB_DATABASE: identity_db
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-identity-local}
+    volumes:
+      - identity_mongo_data:/data/db
+      - ../services/identity-service/mongo-init:/docker-entrypoint-initdb.d:ro
+    networks: ["identity_data_network"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  # Sin container_name: se puede escalar ("docker compose up --scale identity-service=2", paso
+  # 2.10). El gateway y el backend lo encuentran por el DNS de Docker.
+  identity-service:
+    image: andina-identity-service:1.0.0
+    build:
+      context: ../services/identity-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://identity:${IDENTITY_DB_PASSWORD:-identity-local}@identity-mongodb:27017/identity_db?authSource=identity_db
+      REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_PRIVATE_KEY_FILE: /run/keys/identity/private.pem
+      JWT_EXPIRATION_SECONDS: 28800
+      APP_DEMO_DATA_ENABLED: "true"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_JWK_SET_URI: ${GOOGLE_JWK_SET_URI:-https://www.googleapis.com/oauth2/v3/certs}
+      GOOGLE_ISSUER: ${GOOGLE_ISSUER:-https://accounts.google.com}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      FACEBOOK_REDIRECT_URI: ${FACEBOOK_REDIRECT_URI:-}
+      FACEBOOK_SCOPES: ${FACEBOOK_SCOPES:-public_profile,email}
+      FACEBOOK_FRONTEND_CALLBACK_URL: ${FACEBOOK_FRONTEND_CALLBACK_URL:-http://localhost:5173/login}
+      FACEBOOK_LOGIN_TICKET_TTL_SECONDS: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:-60}
+      FACEBOOK_TOKEN_ENCRYPTION_KEY: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:-}
+      FACEBOOK_TOKEN_URI: ${FACEBOOK_TOKEN_URI:-https://graph.facebook.com/v22.0/oauth/access_token}
+      FACEBOOK_GRAPH_BASE_URL: ${FACEBOOK_GRAPH_BASE_URL:-https://graph.facebook.com/v22.0}
+    volumes:
+      - identity_keys:/run/keys/identity:ro
+    networks: [services_network, identity_data_network, rabbitmq_network]
+    depends_on:
+      identity-keygen: { condition: service_completed_successfully }
+      identity-mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
 
   gateway:
     image: andina-api-gateway:1.0.0
@@ -163,8 +244,12 @@ services:
     environment:
       SERVER_PORT: 8080
       BACKEND_SERVICE_URL: http://backend:8080
+      IDENTITY_SERVICE_URL: http://identity-service:8080
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      # Ventana de transicion (paso 2.3): acepta tambien los HS256 antiguos.
+      JWT_LEGACY_HS256_ENABLED: "true"
       JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
       CORS_ALLOWED_ORIGINS: http://localhost:5173
     ports:
@@ -172,8 +257,10 @@ services:
     networks:
       - clean_network
       - gateway_network
+      - services_network
     depends_on:
       backend: { condition: service_started }
+      identity-service: { condition: service_started }
       redis: { condition: service_healthy }
 
   frontend:
@@ -193,6 +280,12 @@ volumes:
   rabbitmq_data:
   notification_mongo_data:
     name: andina_notification_mongo_data
+  identity_mongo_data:
+    name: andina_identity_mongo_data
+  # Clave privada RS256 de identity-service. Borrar este volumen rota la clave e invalida todos
+  # los tokens emitidos.
+  identity_keys:
+    name: andina_identity_keys
 
 networks:
   clean_network:
@@ -202,4 +295,9 @@ networks:
     name: andina_notification_data_network
   gateway_network:
     name: andina_gateway_network
+  # Gateway, backend e identity-service (rutas y descarga del JWKS).
+  services_network:
+    name: andina_services_network
+  identity_data_network:
+    name: andina_identity_data_network
 
