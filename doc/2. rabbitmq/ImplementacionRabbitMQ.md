@@ -1,6 +1,8 @@
 # Implementacion de RabbitMQ y consumidor independiente de WhatsApp
 
 > Estado: publicación implementada en Clean, Hexagonal y Onion; envío local eliminado y WhatsApp exclusivo de `andina-notification-consumer`. Véase el inventario final y código impactado en [`IMPLEMENTACION-BACKENDS-RABBITMQ.md`](../IMPLEMENTACION-BACKENDS-RABBITMQ.md).
+>
+> **Actualización (fase 1 de la migración a microservicios):** `andina-notification-consumer` pasó a ser `services/notification-service`, con base propia y sin leer la colección `clientes` del backend. Este documento se conserva como historia; el diseño vigente está en [`../5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md`](../5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).
 
 ## 1. Alcance y conclusion
 
