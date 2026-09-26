@@ -1,5 +1,7 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.usecases.dto.Responses.*;
 import com.andinaseguros.usecases.service.renovacion.*;
 import java.util.*;
@@ -35,36 +37,43 @@ public class RenovacionController {
     }
 
     @GetMapping
+    @PreAuthorize(Roles.PERSONAL)
     public List<RenovacionResponse> listar() {
         return listarRenovacionesUseCase.execute();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(Roles.PERSONAL)
     public RenovacionResponse obtener(@PathVariable UUID id) {
         return obtenerRenovacionUseCase.execute(id);
     }
 
     @GetMapping("/poliza/{id}/historial")
+    @PreAuthorize(Roles.PERSONAL + " or @acceso.esDuenoDePoliza(#id)")
     public List<RenovacionResponse> historial(@PathVariable UUID id) {
         return listarHistorialUseCase.execute(id);
     }
 
     @PostMapping("/poliza/{id}/evaluar")
+    @PreAuthorize(Roles.OPERACION)
     public ResponseEntity<RenovacionResponse> evaluar(@PathVariable UUID id) {
         return ResponseEntity.status(201).body(evaluarRenovacionUseCase.execute(id));
     }
 
     @PatchMapping("/{id}/aprobar")
+    @PreAuthorize(Roles.OPERACION)
     public RenovacionResponse aprobar(@PathVariable UUID id) {
         return aprobarRenovacionUseCase.execute(id);
     }
 
     @PatchMapping("/{id}/rechazar")
+    @PreAuthorize(Roles.OPERACION)
     public RenovacionResponse rechazar(@PathVariable UUID id) {
         return rechazarRenovacionUseCase.execute(id);
     }
 
     @PostMapping("/{id}/generar-poliza")
+    @PreAuthorize(Roles.OPERACION)
     public ResponseEntity<PolizaResponse> generar(@PathVariable UUID id) {
         return ResponseEntity.status(201).body(generarPolizaRenovadaUseCase.execute(id));
     }

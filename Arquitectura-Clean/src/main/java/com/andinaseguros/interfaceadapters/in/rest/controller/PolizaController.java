@@ -1,5 +1,7 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.interfaceadapters.in.rest.request.EmitirPolizaRequest;
 import static com.andinaseguros.interfaceadapters.in.rest.mapper.RestRequestMapper.toCore;
 import com.andinaseguros.usecases.dto.Responses.PolizaResponse;
@@ -27,17 +29,20 @@ public class PolizaController {
     }
 
     @PostMapping
+    @PreAuthorize(Roles.OPERACION)
     public ResponseEntity<PolizaResponse> emitir(@Valid @RequestBody EmitirPolizaRequest solicitud) {
         return ResponseEntity.status(201).body(emitirPolizaUseCase.execute(toCore(solicitud)));
     }
 
     @GetMapping
+    @PreAuthorize(Roles.PERSONAL)
     public List<PolizaResponse> listar(
             @RequestParam(required = false) com.andinaseguros.entities.enums.EstadoPoliza estado) {
         return listarPolizasUseCase.execute(estado);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(Roles.PERSONAL + " or @acceso.esDuenoDePoliza(#id)")
     public PolizaResponse obtener(@PathVariable UUID id) {
         return obtenerPolizaUseCase.execute(id);
     }

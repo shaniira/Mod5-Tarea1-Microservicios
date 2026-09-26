@@ -1,5 +1,6 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.interfaceadapters.in.rest.request.*;
 import com.andinaseguros.interfaceadapters.in.rest.response.ReenvioEventosClientesResponse;
 import static com.andinaseguros.interfaceadapters.in.rest.mapper.RestRequestMapper.toCore;
@@ -44,13 +45,13 @@ public class ClienteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','AGENTE')")
+    @PreAuthorize(Roles.OPERACION)
     ResponseEntity<ClienteResponse> crear(@Valid @RequestBody CrearClienteRequest solicitud) {
         return ResponseEntity.status(201).body(crearClienteUseCase.execute(toCore(solicitud)));
     }
 
     @PatchMapping("/{id}/contacto")
-    @PreAuthorize("hasAnyRole('ADMIN','AGENTE')")
+    @PreAuthorize(Roles.OPERACION)
     ClienteResponse actualizarContacto(
             @PathVariable UUID id, @Valid @RequestBody ActualizarContactoClienteRequest solicitud) {
         return actualizarContacto.execute(
@@ -63,24 +64,26 @@ public class ClienteController {
      * (o reconstruir) la proyección customer_contacts de notification-service.
      */
     @PostMapping("/eventos/reenvio")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize(Roles.ADMIN)
     ResponseEntity<ReenvioEventosClientesResponse> reenviarEventos() {
         return ResponseEntity.accepted()
                 .body(new ReenvioEventosClientesResponse(publicarClientesExistentes.execute()));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','AGENTE')")
+    @PreAuthorize(Roles.PERSONAL)
     List<ClienteResponse> listar() {
         return listarClientesUseCase.execute();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(Roles.PERSONAL + " or @acceso.esCliente(#id)")
     ClienteResponse obtener(@PathVariable UUID id) {
         return obtenerClienteUseCase.execute(id);
     }
 
     @PostMapping("/{id}/vehiculos")
+    @PreAuthorize(Roles.OPERACION)
     ResponseEntity<VehiculoResponse> vehiculo(
             @PathVariable UUID id, @Valid @RequestBody CrearVehiculoRequest solicitud) {
         return ResponseEntity.status(201)
@@ -98,6 +101,7 @@ public class ClienteController {
     }
 
     @GetMapping("/{id}/vehiculos")
+    @PreAuthorize(Roles.PERSONAL + " or @acceso.esCliente(#id)")
     List<VehiculoResponse> vehiculos(@PathVariable UUID id) {
         return listarVehiculos.execute(id);
     }

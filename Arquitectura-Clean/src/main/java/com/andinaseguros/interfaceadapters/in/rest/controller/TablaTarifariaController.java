@@ -1,5 +1,6 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.interfaceadapters.in.rest.request.CrearTablaRequest;
 import static com.andinaseguros.interfaceadapters.in.rest.mapper.RestRequestMapper.toCore;
 import com.andinaseguros.usecases.dto.Responses.*;
@@ -27,17 +28,19 @@ public class TablaTarifariaController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ACTUARIO')")
+    @PreAuthorize(Roles.TARIFAS)
     public ResponseEntity<TablaResponse> crear(@Valid @RequestBody CrearTablaRequest solicitud) {
         return ResponseEntity.status(201).body(crearTablaUseCase.execute(toCore(solicitud)));
     }
 
     @GetMapping
+    @PreAuthorize(Roles.PERSONAL)
     public List<TablaResponse> listar() {
         return listarTablasUseCase.execute();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(Roles.PERSONAL)
     public TablaDetalleResponse obtener(@PathVariable UUID id) {
         return obtenerTablaUseCase.execute(id);
     }

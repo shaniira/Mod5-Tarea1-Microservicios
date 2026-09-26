@@ -1,5 +1,7 @@
 package com.andinaseguros.interfaceadapters.in.rest.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.andinaseguros.interfaceadapters.in.rest.security.Roles;
 import com.andinaseguros.usecases.dto.Responses.MiCuentaResponse;
 import com.andinaseguros.usecases.service.cliente.ObtenerMiCuentaUseCase;
 import java.util.UUID;
@@ -19,6 +21,7 @@ public class MiCuentaController {
     }
 
     @GetMapping
+    @PreAuthorize(Roles.CLIENTE)
     public MiCuentaResponse miCuenta(Authentication authentication) {
         return obtenerMiCuenta.execute(authentication.getName(), customerId(authentication));
     }
