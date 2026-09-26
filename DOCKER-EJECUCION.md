@@ -10,18 +10,16 @@ Detalle de cada fase de la migración a microservicios:
 
 ## Puertos publicados al host
 
+Solo el frontend y el gateway exponen puertos (paso 0.6 de la ruta). Todo lo demás vive en redes internas de Docker.
+
 | Servicio | URL | Notas |
 |---|---|---|
 | **Frontend** | http://localhost:5173 | Único punto de entrada pensado para el usuario final |
-| **API Gateway** | http://localhost:8080/api | Único punto de entrada de la API (patrón Strangler Fig); el frontend ya apunta aquí |
-| Backend Clean (directo) | http://localhost:8083/api · Swagger en `/swagger-ui.html` | Se mantiene publicado por continuidad (pruebas manuales) mientras se termina de migrar todo el tráfico al gateway. Desde la fase 2 ya no tiene login: los tokens se piden por el gateway (`/api/auth/login`) |
-| MongoDB del backend | localhost:27020 | Base `andina_seguros_clean`. Es un replica set de un nodo (`rs0`): desde el host usar `mongodb://localhost:27020/?directConnection=true` |
-| RabbitMQ (AMQP / UI) | localhost:5672 / localhost:15672 | — |
-| notification-service | sin puerto en el host | Solo Actuator interno (`/actuator/health`, `/actuator/prometheus`) |
-| MongoDB de notification | sin puerto en el host | Base `notification_db`, usuario `notification` |
-| identity-service | sin puerto en el host | Detrás del gateway (`/api/auth/**`, `/api/mfa/**`). Escalable: `docker compose up -d --scale identity-service=2` |
-| MongoDB de identity | sin puerto en el host | Base `identity_db`, usuario `identity` |
-| Redis | sin puerto en el host | Rate limiting del gateway (base 0) y estado efímero de identity-service (base 1) |
+| **API Gateway** | http://localhost:8080/api | Único punto de entrada de la API. Swagger del backend en `http://localhost:8080/swagger-ui.html` (solo en local) |
+| Backend, MongoDB, RabbitMQ, identity-service, notification-service, Redis | sin puerto en el host | Para depurar, ver "Abrir puertos internos" más abajo |
+| Grafana / Jaeger / Prometheus | http://localhost:3000 · http://localhost:16686 · http://localhost:9090 | Solo con el stack de observabilidad (ver abajo) |
+
+Cada servicio tiene su propia base con su propio usuario (`readWrite` solo sobre ella): `andina_seguros_clean` (usuario `andina`, replica set `rs0`), `identity_db` (`identity`) y `notification_db` (`notification`). Las claves por defecto sirven solo en local; se cambian en `Arquitectura-Clean/.env` (ver `.env.example`).
 
 > Nota: el `docker-compose.yml` de la raíz del repositorio es un subconjunto reducido (solo `clean-mongodb` + `clean-backend`, sin gateway ni RabbitMQ) pensado para levantar el backend a solas; para el stack completo usar siempre el de `Arquitectura-Clean/`.
 
@@ -56,6 +54,24 @@ Probar sin enviar WhatsApp reales (WhatsApp simulado con WireMock):
 ```bash
 WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mock up -d
 ```
+
+### Abrir puertos internos (solo para depurar)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
+# MongoDB del backend: mongodb://root:<BACKEND_MONGO_ROOT_PASSWORD>@localhost:27020/?directConnection=true
+# RabbitMQ: http://localhost:15672 · Backend directo: http://localhost:8083
+```
+
+### Observabilidad (Grafana, Prometheus, Loki, Jaeger)
+
+```bash
+docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d
+```
+
+- **Grafana** (http://localhost:3000, usuario `admin`, clave `GRAFANA_ADMIN_PASSWORD` o `grafana-local`): tablero "Andina Seguros — Resumen" y, en Explore, los logs de todos los servicios. Para seguir una petición: `{service=~".+"} |= "<X-Correlation-Id>"`; desde cada log, el `traceId` abre la traza en Jaeger.
+- **Jaeger** (http://localhost:16686): una sola traza recorre gateway → backend → RabbitMQ → identity-service / notification-service.
+- **Prometheus** (http://localhost:9090): métricas y alertas (circuito abierto, DLQ con mensajes, Outbox atrasado, 5xx, servicio caído, notificaciones pausadas).
 
 Detener sin borrar datos:
 

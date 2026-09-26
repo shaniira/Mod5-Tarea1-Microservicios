@@ -66,11 +66,11 @@ Pruebas adicionales:
 
 | Punto | Detalle |
 |---|---|
-| **Usuario desactivado** | El backend ya no consulta `usuarios`, así que un usuario desactivado conserva acceso hasta que vence su token (8 h). Mitigación futura: tokens más cortos con renovación, o una lista de revocación en Redis que consulte el gateway |
-| **Registro con rol (S1)** | `POST /api/auth/register` sigue aceptando el rol desde el cliente, igual que antes. Se corrige en el paso 0.2 |
+| **Usuario desactivado** | ✅ Resuelto después (ver [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDIENTES.md)): desactivar a un usuario revoca sus tokens al instante |
+| **Registro con rol (S1)** | ✅ Resuelto después: el registro público solo crea CLIENTE |
 | **Rotación de claves** | El JWKS publica una sola clave. Para rotar hay que publicar la nueva junto a la anterior hasta que venzan los tokens firmados con ella; no está automatizado |
-| **MongoDB en Kubernetes** | identity usa `identity_db` en el MongoDB compartido del clúster, que aún no exige autenticación (paso 0.6). En Docker Compose sí tiene instancia y usuario propios |
-| **Observabilidad** | Métricas, logs JSON y trazas se generan, pero el stack (Prometheus, Grafana, Loki, Jaeger) sigue pendiente (paso 0.9) |
+| **MongoDB en Kubernetes** | ✅ Resuelto después: replica set con autenticación y un usuario por servicio |
+| **Observabilidad** | ✅ Resuelto después: stack completo en `infra/observability` |
 
 ## 5. Commits de la fase
 
