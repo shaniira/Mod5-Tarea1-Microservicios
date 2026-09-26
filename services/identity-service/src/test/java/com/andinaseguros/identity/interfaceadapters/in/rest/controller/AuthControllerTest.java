@@ -51,10 +51,10 @@ class AuthControllerTest {
         var tokenGoogle = new TokenResponse("jwt-google", "Bearer", 3600);
         when(autenticacionGoogle.execute(googleCore)).thenReturn(tokenGoogle);
 
-        assertThat(controller.register(crear).getStatusCode().value()).isEqualTo(201);
+        assertThat(controller.register(crear, null).getStatusCode().value()).isEqualTo(201);
         assertThat(controller.login(login)).isEqualTo(resultado);
         assertThat(controller.google(google)).isEqualTo(tokenGoogle);
-        verify(registro).execute(crearCore);
+        verify(registro).execute(crearCore, false);
         verify(autenticacion).execute(loginCore);
         verify(autenticacionGoogle).execute(googleCore);
     }

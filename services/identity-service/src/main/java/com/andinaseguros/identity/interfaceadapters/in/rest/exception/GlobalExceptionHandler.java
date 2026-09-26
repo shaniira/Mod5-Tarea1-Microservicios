@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
                             "GOOGLE_TOKEN_INVALIDO",
                             "GOOGLE_EMAIL_NO_VERIFICADO",
                             "USUARIO_INACTIVO" -> HttpStatus.UNAUTHORIZED;
-                    case "CLIENTE_NO_REGISTRADO" -> HttpStatus.FORBIDDEN;
+                    case "CLIENTE_NO_REGISTRADO", "ROL_NO_PERMITIDO" -> HttpStatus.FORBIDDEN;
                     case "FACEBOOK_CALLBACK_INVALIDO",
                             "FACEBOOK_IDENTIDAD_INVALIDA",
                             "FACEBOOK_AUTORIZACION_RECHAZADA",
