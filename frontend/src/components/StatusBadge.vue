@@ -1,0 +1,1 @@
+<script setup lang="ts">defineProps<{value:string}>();</script><template><span :class="['badge',value.toLowerCase().replaceAll('_','-')]">{{value.replaceAll('_',' ')}}</span></template>

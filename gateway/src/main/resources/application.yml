@@ -1,0 +1,166 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: api-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+  cloud:
+    gateway:
+      # No metadata de negocio aqui: solo routing, resiliencia y CORS (edge service).
+      httpclient:
+        connect-timeout: 3000 # ms
+        response-timeout: 5s
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          "[/**]":
+            allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+            allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowed-headers:
+              - Authorization
+              - Content-Type
+              - Accept
+              - X-Requested-With
+              - Idempotency-Key
+              - X-Correlation-Id
+            exposed-headers: [Authorization, X-Correlation-Id]
+            allow-credentials: true
+            max-age: 3600
+      routes:
+        # --- Rutas con rate limiting estricto (S9: fuerza bruta sobre login/MFA) ---
+        - id: auth-login
+          uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/auth/login
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: backendCB
+                fallbackUri: forward:/fallback/backend
+
+        - id: auth-mfa-verify
+          uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/auth/mfa/verificar
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: backendCB
+                fallbackUri: forward:/fallback/backend
+
+        # --- Resto del API del backend (catch-all de la fase 0) ---
+        - id: backend
+          uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: backendCB
+                fallbackUri: forward:/fallback/backend
+            # Retry SOLO en GET (lecturas idempotentes). Nunca en POST/PATCH de negocio
+            # (emitir poliza, registrar siniestro, etc.) sin una estrategia de idempotencia.
+            - name: Retry
+              args:
+                retries: 1
+                series: [SERVER_ERROR]
+                methods: [GET]
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 500ms
+                  factor: 2
+                  basedOnPreviousValue: false
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      backendCB:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        slowCallRateThreshold: 80
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  timelimiter:
+    instances:
+      backendCB:
+        timeoutDuration: 3s
+
+app:
+  security:
+    # Debe superar 32 caracteres (HS256). El Gateway no arranca sin este valor (ver JwtValidator).
+    jwt-secret: ${JWT_SECRET:}
+    correlation-id-header: X-Correlation-Id
+    # Mismas rutas publicas que Arquitectura-Clean/SecurityConfig.java: /api/auth/** (login,
+    # register, google, facebook, mfa/verificar), swagger y el health del propio Gateway.
+    public-paths:
+      - /api/auth/**
+      - /v3/api-docs/**
+      - /swagger-ui/**
+      - /swagger-ui.html
+      - /actuator/**
+      - /fallback/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+    redis:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [${spring.application.name}] %logger{36} - %msg%n"
+  level:
+    org.springframework.cloud.gateway: INFO
+    gateway.access: INFO

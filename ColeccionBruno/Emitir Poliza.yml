@@ -1,0 +1,28 @@
+info:
+  name: Emitir Poliza
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:8082/api/polizas
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{token}}
+  body:
+    type: json
+    data: |-
+      {
+        "cotizacionId": "40000000-0000-0000-0000-000000000014",
+        "inicioVigencia": "2026-08-22"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

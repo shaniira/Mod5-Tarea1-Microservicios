@@ -1,0 +1,37 @@
+# Configuración local de asistentes
+.claude/
+
+# Dependencias del frontend
+frontend/node_modules/
+
+# Compilados Java / Maven
+target/
+*.class
+*.jar
+*.war
+
+# Compilados Java / Gradle
+.gradle/
+build/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Variables locales y secretos (en cualquier carpeta)
+.env
+.env.*
+*.env
+!.env.example
+
+# Secretos reales de Kubernetes (las plantillas *.example.yaml si se versionan)
+k8s/**/*secret*.yaml
+!k8s/**/*.example.yaml

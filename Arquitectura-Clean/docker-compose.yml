@@ -1,0 +1,150 @@
+name: andina-clean
+
+services:
+  mongodb:
+    image: mongo:8
+    container_name: andina-clean-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: andina_seguros_clean
+    ports:
+      - "27020:27017"
+    volumes:
+      - clean_mongo_data:/data/db
+    networks:
+      - clean_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  backend:
+    image: andina-seguros-clean:1.0.0
+    container_name: andina-clean-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean
+      JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
+      JWT_EXPIRATION_SECONDS: 28800
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      FACEBOOK_REDIRECT_URI: ${FACEBOOK_REDIRECT_URI:-}
+      FACEBOOK_SCOPES: ${FACEBOOK_SCOPES:-public_profile,email}
+      FACEBOOK_FRONTEND_CALLBACK_URL: ${FACEBOOK_FRONTEND_CALLBACK_URL:-http://localhost:5173/login}
+      FACEBOOK_LOGIN_TICKET_TTL_SECONDS: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:-60}
+      FACEBOOK_TOKEN_ENCRYPTION_KEY: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:-}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      # Antes iban escritos en application.yml (riesgo S3, ver doc/5. Microservicios). Definir
+      # en .env, nunca en este archivo versionado.
+      JSONPE_TOKEN: ${JSONPE_TOKEN:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+    ports:
+      - "8083:8080"
+    networks:
+      - clean_network
+      - rabbitmq_network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-andina}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+    ports: ["5672:5672", "15672:15672"]
+    volumes: ["rabbitmq_data:/var/lib/rabbitmq"]
+    networks: ["rabbitmq_network"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  consumer:
+    build:
+      context: ../andina-notification-consumer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/andina_seguros_clean
+    networks: [clean_network, rabbitmq_network]
+    depends_on:
+      mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  redis:
+    image: redis:7-alpine
+    container_name: andina-clean-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks: ["gateway_network"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    # Sin puerto publicado al host: solo el gateway lo consume (regla "no exponer mas puertos
+    # que el gateway y el frontend").
+
+  gateway:
+    image: andina-api-gateway:1.0.0
+    container_name: andina-api-gateway
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      BACKEND_SERVICE_URL: http://backend:8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: cambia-esta-clave-en-produccion-debe-superar-32-caracteres
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "8080:8080"
+    networks:
+      - clean_network
+      - gateway_network
+    depends_on:
+      backend: { condition: service_started }
+      redis: { condition: service_healthy }
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # Fase 0: el frontend deja de llamar directo al backend (:8083) y pasa por el
+        # gateway (:8080), unico punto de entrada de la API (patron Strangler Fig).
+        VITE_API_URL: http://localhost:8080/api
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports: ["5173:80"]
+    restart: unless-stopped
+volumes:
+  clean_mongo_data:
+    name: andina_clean_mongo_data
+  rabbitmq_data:
+
+networks:
+  clean_network:
+    name: andina_clean_network
+  rabbitmq_network:
+  gateway_network:
+    name: andina_gateway_network
+
