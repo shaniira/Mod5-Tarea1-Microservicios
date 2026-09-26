@@ -36,10 +36,14 @@ spring:
             exposed-headers: [Authorization, X-Correlation-Id]
             allow-credentials: true
             max-age: 3600
+      # Los servicios detras del gateway (el backend todavia) tambien responden cabeceras CORS: sin
+      # esto la respuesta llevaba Access-Control-Allow-Origin dos veces y el navegador la rechaza.
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary, RETAIN_FIRST
       routes:
         # --- Rutas con rate limiting estricto (S9: fuerza bruta sobre login/MFA) ---
         - id: auth-login
-          uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/auth/login
             - Method=POST
@@ -52,11 +56,11 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
             - name: CircuitBreaker
               args:
-                name: backendCB
-                fallbackUri: forward:/fallback/backend
+                name: identityCB
+                fallbackUri: forward:/fallback/identity
 
         - id: auth-mfa-verify
-          uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/auth/mfa/verificar
             - Method=POST
@@ -69,8 +73,28 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
             - name: CircuitBreaker
               args:
-                name: backendCB
-                fallbackUri: forward:/fallback/backend
+                name: identityCB
+                fallbackUri: forward:/fallback/identity
+
+        # --- Fase 2: identidad (login, Google, Facebook, MFA, perfil) en identity-service ---
+        # Reversa: apuntar IDENTITY_SERVICE_URL de nuevo al backend.
+        - id: identity
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/auth/**,/api/mfa/**
+          metadata:
+            response-timeout: 12000 # ms; ver identityCB
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: identityCB
+                fallbackUri: forward:/fallback/identity
 
         # --- Resto del API del backend (catch-all de la fase 0) ---
         - id: backend
@@ -114,14 +138,31 @@ resilience4j:
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
+      identityCB:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 8s
+        slowCallRateThreshold: 80
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
   timelimiter:
     instances:
       backendCB:
         timeoutDuration: 3s
+      # Mas amplio: el callback de Facebook hace hasta 3 llamadas a Facebook (5 s cada una).
+      identityCB:
+        timeoutDuration: 12s
 
 app:
   security:
-    # Debe superar 32 caracteres (HS256). El Gateway no arranca sin este valor (ver JwtValidator).
+    # Fase 2: claves publicas de identity-service. El gateway ya no necesita un secreto para validar.
+    jwks-uri: ${JWT_JWKS_URI:http://localhost:8084/.well-known/jwks.json}
+    issuer: ${JWT_ISSUER:andina-identity}
+    # Ventana de transicion (paso 2.3): acepta tambien los tokens HS256 antiguos del monolito.
+    legacy-hs256-enabled: ${JWT_LEGACY_HS256_ENABLED:false}
     jwt-secret: ${JWT_SECRET:}
     correlation-id-header: X-Correlation-Id
     # Mismas rutas publicas que Arquitectura-Clean/SecurityConfig.java: /api/auth/** (login,

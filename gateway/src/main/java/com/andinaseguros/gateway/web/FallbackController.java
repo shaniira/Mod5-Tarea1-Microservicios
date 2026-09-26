@@ -19,14 +19,24 @@ public class FallbackController {
 
     @RequestMapping("/fallback/backend")
     public ResponseEntity<ErrorResponse> backendUnavailable(ServerWebExchange exchange) {
+        return noDisponible(exchange, "El backend", "/fallback/backend");
+    }
+
+    @RequestMapping("/fallback/identity")
+    public ResponseEntity<ErrorResponse> identityUnavailable(ServerWebExchange exchange) {
+        return noDisponible(exchange, "El servicio de identidad", "/fallback/identity");
+    }
+
+    private ResponseEntity<ErrorResponse> noDisponible(
+            ServerWebExchange exchange, String servicio, String path) {
         String correlationId = exchange.getAttribute(CorrelationIdGlobalFilter.CORRELATION_ID_ATTRIBUTE);
         ErrorResponse body =
                 ErrorResponse.of(
                         HttpStatus.SERVICE_UNAVAILABLE.value(),
                         "SERVICE_UNAVAILABLE",
-                        "El backend no esta respondiendo ahora mismo. Intenta de nuevo en unos"
+                        servicio + " no esta respondiendo ahora mismo. Intenta de nuevo en unos"
                                 + " segundos.",
-                        "/fallback/backend",
+                        path,
                         correlationId);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .header(HttpHeaders.RETRY_AFTER, "10")
