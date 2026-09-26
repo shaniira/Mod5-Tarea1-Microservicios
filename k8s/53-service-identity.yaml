@@ -1,0 +1,10 @@
+# ClusterIP: solo lo alcanzan el gateway (rutas /api/auth/** y /api/mfa/**) y el backend
+# (descarga del JWKS). No se expone por el Ingress directamente.
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: andina-seguros
+spec:
+  selector: { app: identity-service }
+  ports: [{ name: http, port: 8080, targetPort: http }]

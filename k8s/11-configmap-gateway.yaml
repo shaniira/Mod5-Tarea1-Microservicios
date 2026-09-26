@@ -11,3 +11,8 @@ data:
   REDIS_HOST: "redis-service.andina-seguros.svc.cluster.local"
   REDIS_PORT: "6379"
   CORS_ALLOWED_ORIGINS: "https://andina-seguros.example.com"
+  # Fase 2: autenticacion en identity-service; el gateway valida los JWT con su clave publica
+  # (no necesita ningun secreto).
+  IDENTITY_SERVICE_URL: "http://identity-service.andina-seguros.svc.cluster.local:8080"
+  JWT_JWKS_URI: "http://identity-service.andina-seguros.svc.cluster.local:8080/.well-known/jwks.json"
+  JWT_ISSUER: "andina-identity"

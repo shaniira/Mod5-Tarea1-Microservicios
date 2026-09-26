@@ -77,11 +77,13 @@ kind delete cluster --name andina-seguros      # borrar todo el clúster de prue
 ```bash
 kubectl apply -f k8s/00-namespace.yaml
 
-# Secretos reales primero (nunca los *.example.yaml tal cual). Ejemplo con el JWT:
-kubectl create secret generic andina-jwt-secret --namespace andina-seguros \
-  --from-literal=JWT_SECRET="$(openssl rand -base64 48)"
-# repetir el patrón con backend-secrets (21-secret-backend.example.yaml) y
-# rabbitmq-secrets (31-secret-rabbitmq.example.yaml)
+# Secretos reales primero (nunca los *.example.yaml tal cual). Fase 2: la clave privada RS256
+# de los JWT solo la monta identity-service; gateway y backend usan la clave publica (JWKS).
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
+kubectl create secret generic identity-jwt-key --namespace andina-seguros \
+  --from-file=private.pem=private.pem && rm private.pem
+# repetir el patrón con identity-secrets (51-secret-identity.example.yaml), backend-secrets
+# (21-secret-backend.example.yaml) y rabbitmq-secrets (31-secret-rabbitmq.example.yaml)
 
 kubectl apply -f k8s/11-configmap-gateway.yaml
 kubectl apply -f k8s/12-deployment-gateway.yaml
@@ -95,6 +97,11 @@ kubectl apply -f k8s/23-service-backend.yaml
 kubectl apply -f k8s/30-mongodb.yaml
 kubectl apply -f k8s/31-rabbitmq.yaml
 kubectl apply -f k8s/32-redis.yaml
+
+# Fase 2: identity-service (2 réplicas)
+kubectl apply -f k8s/50-configmap-identity.yaml
+kubectl apply -f k8s/52-deployment-identity.yaml
+kubectl apply -f k8s/53-service-identity.yaml
 
 kubectl apply -f k8s/40-ingress.yaml
 ```
@@ -110,10 +117,11 @@ kubectl logs -n andina-seguros deploy/api-gateway -f
 
 | Punto | Decisión | Por qué |
 |---|---|---|
-| **backend sin HPA** | No se define `HorizontalPodAutoscaler` para `backend` y su `Deployment` queda en `replicas: 1` | El backend todavía guarda estado efímero en memoria (OAuth state de Facebook, tickets de login, desafíos MFA — riesgo A3). Con 2+ réplicas, ese estado no se comparte y fallan intermitentemente Facebook y MFA. Se habilita el escalado cuando ese estado se mueva a Redis (fase 2, identity-service). Escalar el backend hoy con un HPA sería mentir sobre una capacidad que el código no soporta. |
+| **backend sin HPA** | No se define `HorizontalPodAutoscaler` para `backend` y su `Deployment` queda en `replicas: 1` | Desde la fase 2 el estado efímero (OAuth, tickets, MFA) está en Redis dentro de identity-service, pero el relay del Outbox del backend está pensado para una sola réplica. Se habilita el escalado cuando el relay reclame cada evento antes de enviarlo. |
+| **identity-service con 2 réplicas** | `replicas: 2`, sin HPA todavía | No guarda estado en memoria (Redis), así que escala sin fallos de MFA ni Facebook (probado en Docker Compose, paso 2.10). Usa la base `identity_db` del MongoDB compartido, que en el clúster aún no exige autenticación (paso 0.6). |
 | **api-gateway con HPA y 2 réplicas mínimo** | `minReplicas: 2`, CPU 70% / memoria 80% | El Gateway no guarda estado propio (el rate limiter vive en Redis), así que sí es seguro escalarlo horizontalmente desde ya. Cumple la regla "API Gateway: mínimo 2 réplicas en ambientes no locales". |
 | **MongoDB y RabbitMQ de un solo Pod** | `replicas: 1`, sin clustering | Igual que hoy en Docker Compose: son infraestructura compartida de la fase 0, no el foco de esta entrega. Alta disponibilidad de datos queda para la fase 7 (endurecimiento) del plan de migración. |
-| **JWT compartido (HS256)** | Un único `Secret` (`andina-jwt-secret`) leído tanto por `api-gateway` como por `backend` | Ver `gateway/src/main/java/com/andinaseguros/gateway/security/JwtValidator.java`: hasta que exista `identity-service` con JWKS (RS256, fase 2), ambos deben validar el mismo secreto simétrico. |
+| **JWT RS256 con JWKS (fase 2)** | Solo `identity-service` monta el `Secret` `identity-jwt-key`; `api-gateway` y `backend` descargan la clave pública de `/.well-known/jwks.json` | Se retiró el secreto simétrico compartido (`andina-jwt-secret`): robar el gateway o el backend ya no permite firmar tokens. |
 | **Sin TLS real configurado** | El `Ingress` referencia `andina-seguros-tls` y `letsencrypt-prod`, pero ninguno existe todavía | Son placeholders de ejemplo; instalar cert-manager (o cargar un certificado propio) es un paso de entorno, no de este repositorio. |
 | **Sin Eureka / service discovery adicional** | Se usa el DNS interno de Kubernetes (`<service>.<namespace>.svc.cluster.local`) | Cumple la regla "no introducir Eureka salvo necesidad real"; el DNS de Kubernetes ya resuelve el problema. |
 
