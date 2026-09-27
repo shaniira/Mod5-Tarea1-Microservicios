@@ -173,10 +173,12 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 3.6 | **Rutas en el gateway:** `/api/clientes/**` y `/api/vehiculos/**` | S |
 | 3.7 | **"Mi cuenta"** pasa al gateway como composición (identity + customer + policy + renovaciones) con respuesta parcial si un servicio no responde. Mientras policy siga en el monolito, se compone con este | M |
 
+**Estado (2026-09-27):** fase cerrada con el corte conjunto de las fases 3 a 6, sin modificar el código del monolito ([m, sección 7](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md#7-corte-de-las-fases-3-a-6-2026-09-27)). "Mi cuenta" (3.7) la compone el gateway. Detalle y evidencias en [i_IMPLEMENTACION-CUSTOMER-SERVICE-FASE3.md](i_IMPLEMENTACION-CUSTOMER-SERVICE-FASE3.md).
+
 **Criterios de salida**
-- [ ] Ningún servicio consulta `clientes` ni `vehiculos` fuera de customer-service.
-- [ ] Con JSON.pe caído, se puede registrar un vehículo de forma manual y las placas ya consultadas siguen respondiendo desde la caché.
-- [ ] Las proyecciones de notification e identity coinciden con los conteos de `customer_db`.
+- [x] Ningún servicio consulta `clientes` ni `vehiculos` fuera de customer-service. *(El monolito conserva su código, pero ya no recibe tráfico.)*
+- [x] Con JSON.pe caído, se puede registrar un vehículo de forma manual y las placas ya consultadas siguen respondiendo desde la caché.
+- [x] Las proyecciones de notification e identity coinciden con los conteos de `customer_db`. *(15 = 15 = 15.)*
 
 **Reversa:** ruta del gateway de vuelta al monolito y reactivar la publicación de eventos desde él.
 
@@ -195,10 +197,12 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 4.7 | **Rutas en el gateway.** La ruta `/api/polizas/{id}/siniestros/**` debe declararse **antes** que `/api/polizas/**` | S |
 | 4.8 | **El monolito consume `claim.*`** para bloquear renovaciones con siniestros pendientes (mantiene un contador de abiertos por póliza) | M |
 
+**Estado (2026-09-27):** fase cerrada con el corte conjunto de las fases 3 a 6. 4.1 y 4.8 los resolvió policy-service (publica `policy.*` y consume `claim.*`), sin cambiar el monolito. Detalle y evidencias en [j_IMPLEMENTACION-CLAIMS-SERVICE-FASE4.md](j_IMPLEMENTACION-CLAIMS-SERVICE-FASE4.md).
+
 **Criterios de salida**
-- [ ] Registrar y cambiar el estado de un siniestro funciona sin acceso a la base de pólizas.
-- [ ] Una renovación se bloquea si hay siniestros abiertos, usando el contador actualizado por eventos.
-- [ ] Con claims-service caído, la emisión y renovación de pólizas siguen funcionando.
+- [x] Registrar y cambiar el estado de un siniestro funciona sin acceso a la base de pólizas.
+- [x] Una renovación se bloquea si hay siniestros abiertos, usando el contador actualizado por eventos. *(policy-service, proyección `claim_ref`.)*
+- [x] Con claims-service caído, la emisión y renovación de pólizas siguen funcionando.
 
 ---
 
@@ -214,10 +218,12 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 5.6 | **Rutas en el gateway:** `/api/tablas-tarifarias/**` y `/api/cotizaciones/**` | S |
 | 5.7 | **Pruebas del motor de tarificación** portadas y ejecutadas contra las mismas entradas que en el monolito (resultado idéntico) | M |
 
+**Estado (2026-09-27):** fase cerrada con el corte conjunto de las fases 3 a 6. Detalle y evidencias en [l_IMPLEMENTACION-QUOTATION-SERVICE-FASE5.md](l_IMPLEMENTACION-QUOTATION-SERVICE-FASE5.md).
+
 **Criterios de salida**
-- [ ] Se puede cotizar con customer-service caído si el cliente y el vehículo ya están en las proyecciones.
-- [ ] El resultado de la tarificación es idéntico al del monolito para un conjunto de casos de referencia.
-- [ ] Aceptar una cotización genera `quote.accepted.v1` en el Outbox.
+- [x] Se puede cotizar con customer-service caído si el cliente y el vehículo ya están en las proyecciones.
+- [x] El resultado de la tarificación es idéntico al del monolito para un conjunto de casos de referencia. *(39 de 39.)*
+- [x] Aceptar una cotización genera `quote.accepted.v1` en el Outbox.
 
 ---
 
@@ -237,11 +243,13 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 6.10 | **Apagar el monolito:** retirar `Arquitectura-Clean` del Compose, conservar su repositorio archivado y su base **respaldada** durante un periodo de seguridad antes de borrarla | S |
 | 6.11 | **Retirar el exchange antiguo** `andina.insurance.events` y los enlaces dobles | S |
 
+**Estado (2026-09-27):** policy-service implementado y corte de las fases 3 a 6 hecho: el gateway envía todo el negocio a los microservicios y el monolito quedó sin tráfico, con su código sin modificar. Pendientes: retirar el monolito del Compose (6.10), el exchange heredado (6.11) y la observabilidad de los servicios nuevos. Detalle en [m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md).
+
 **Criterios de salida**
-- [ ] Emitir y renovar pólizas funciona solo con eventos y proyecciones.
-- [ ] Emitir la misma cotización dos veces en paralelo genera una sola póliza.
-- [ ] El flujo completo cotizar → aceptar → emitir → notificar por WhatsApp funciona de extremo a extremo con un solo `correlationId` visible en Grafana y Jaeger.
-- [ ] El monolito ya no está en el Compose.
+- [x] Emitir y renovar pólizas funciona solo con eventos y proyecciones.
+- [x] Emitir la misma cotización dos veces en paralelo genera una sola póliza. *(5 rondas de 3 solicitudes simultáneas.)*
+- [ ] El flujo completo cotizar → aceptar → emitir → notificar por WhatsApp funciona de extremo a extremo con un solo `correlationId` visible en Grafana y Jaeger. *(Funciona por el gateway y el `correlationId` se sigue en los logs de 6 servicios; falta sumar los servicios nuevos a Grafana y Jaeger.)*
+- [ ] El monolito ya no está en el Compose. *(Sin tráfico de negocio desde el corte; retirarlo es el paso 6.10.)*
 
 ---
 
