@@ -141,7 +141,8 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     # gateway_network: rate limiter del gateway (base 0). identity_data_network: estado efimero de
     # identity-service (base 1): state OAuth, tickets de login y desafios MFA (paso 2.5).
-    networks: ["gateway_network", "identity_data_network"]
+    # customer_data_network: cache de placas de customer-service (base 2, paso 3.2).
+    networks: ["gateway_network", "identity_data_network", "customer_data_network"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -225,6 +226,214 @@ services:
       redis: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
 
+  # --- Fase 3: customer-service --------------------------------------------------------------------
+  # Clientes, vehiculos y consulta de placas con base propia. Desde el corte el gateway le envia
+  # /api/clientes y /api/vehiculos y publica customer.*. Datos iniciales: services/customer-service/
+  # migracion/migrar-clientes.sh. Ver doc/5. Microservicios/i_IMPLEMENTACION-CUSTOMER-SERVICE-FASE3.md.
+  customer-mongodb:
+    image: mongo:8
+    container_name: customer-mongodb
+    restart: unless-stopped
+    # Replica set de un nodo con autenticacion (mismo arranque que el MongoDB del backend): el
+    # cliente y su evento del Outbox se guardan en una sola transaccion.
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${CUSTOMER_MONGO_ROOT_PASSWORD:-customer-root-local}
+      MONGO_APP_USERS: customer:customer_db:${CUSTOMER_DB_PASSWORD:-customer-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: customer-mongodb:27017
+    volumes:
+      - customer_mongo_data:/data/db
+      - ../infra/mongo:/scripts:ro
+    networks: ["customer_data_network"]
+    healthcheck:
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 20s
+
+  customer-service:
+    image: customer-service:1.0.0
+    container_name: customer-service
+    build:
+      context: ../services/customer-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://customer:${CUSTOMER_DB_PASSWORD:-customer-local}@customer-mongodb:27017/customer_db?replicaSet=rs0&authSource=customer_db
+      REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      JSONPE_TOKEN: ${JSONPE_TOKEN:-}
+      JSONPE_BASE_URL: ${JSONPE_BASE_URL:-https://api.json.pe}
+      # Paso 3.5: fuente de customer.* desde el corte (false = reversa al monolito).
+      CUSTOMER_EVENTS_PUBLISH_ENABLED: ${CUSTOMER_EVENTS_PUBLISH_ENABLED:-true}
+      # Los datos vienen de la migracion desde el monolito (que ya tiene los clientes demo).
+      APP_DEMO_DATA_ENABLED: "false"
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, customer_data_network, rabbitmq_network]
+    depends_on:
+      customer-mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # JSON.pe simulado para probar placas sin token real. Se levanta con "--profile jsonpe-mock" y
+  # JSONPE_BASE_URL=http://jsonpe-mock:8080; detenerlo simula la caida del proveedor.
+  jsonpe-mock:
+    image: wiremock/wiremock:3.9.1
+    container_name: jsonpe-mock
+    profiles: ["jsonpe-mock"]
+    command: ["--global-response-templating", "--disable-banner"]
+    volumes:
+      - ../services/customer-service/jsonpe-mock:/home/wiremock/mappings:ro
+    networks: [customer_data_network]
+
+  # --- Fase 4: claims-service ----------------------------------------------------------------------
+  # Siniestros con base propia y proyeccion policy_ref (policy.*). Desde el corte el gateway le envia
+  # /api/polizas/{id}/siniestros. Ver doc/5. Microservicios/j_IMPLEMENTACION-CLAIMS-SERVICE-FASE4.md.
+  claims-mongodb:
+    image: mongo:8
+    container_name: claims-mongodb
+    restart: unless-stopped
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${CLAIMS_MONGO_ROOT_PASSWORD:-claims-root-local}
+      MONGO_APP_USERS: claims:claims_db:${CLAIMS_DB_PASSWORD:-claims-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: claims-mongodb:27017
+    volumes:
+      - claims_mongo_data:/data/db
+      - ../infra/mongo:/scripts:ro
+    networks: ["claims_data_network"]
+    healthcheck:
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 20s
+
+  claims-service:
+    image: claims-service:1.0.0
+    container_name: claims-service
+    build:
+      context: ../services/claims-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://claims:${CLAIMS_DB_PASSWORD:-claims-local}@claims-mongodb:27017/claims_db?replicaSet=rs0&authSource=claims_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      # Paso 4.5: publica claim.* desde el corte.
+      CLAIMS_EVENTS_PUBLISH_ENABLED: ${CLAIMS_EVENTS_PUBLISH_ENABLED:-true}
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, claims_data_network, rabbitmq_network]
+    depends_on:
+      claims-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # --- Fase 5: quotation-service -------------------------------------------------------------------
+  # Tarifas, motor de tarificacion y cotizaciones con base propia y proyecciones customer_ref y
+  # vehicle_ref (lectura de refuerzo a customer-service). Desde el corte el gateway le envia
+  # /api/cotizaciones y /api/tablas-tarifarias. Ver doc/5. Microservicios/l_IMPLEMENTACION-QUOTATION-SERVICE-FASE5.md.
+  quotation-mongodb:
+    image: mongo:8
+    container_name: quotation-mongodb
+    restart: unless-stopped
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${QUOTATION_MONGO_ROOT_PASSWORD:-quotation-root-local}
+      MONGO_APP_USERS: quotation:quotation_db:${QUOTATION_DB_PASSWORD:-quotation-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: quotation-mongodb:27017
+    volumes:
+      - quotation_mongo_data:/data/db
+      - ../infra/mongo:/scripts:ro
+    networks: ["quotation_data_network"]
+    healthcheck:
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 20s
+
+  quotation-service:
+    image: quotation-service:1.0.0
+    container_name: quotation-service
+    build:
+      context: ../services/quotation-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://quotation:${QUOTATION_DB_PASSWORD:-quotation-local}@quotation-mongodb:27017/quotation_db?replicaSet=rs0&authSource=quotation_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      CUSTOMER_SERVICE_URL: http://customer-service:8080
+      # Paso 5.4: publica quote.accepted.v1 desde el corte.
+      QUOTATION_EVENTS_PUBLISH_ENABLED: ${QUOTATION_EVENTS_PUBLISH_ENABLED:-true}
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, quotation_data_network, rabbitmq_network]
+    depends_on:
+      quotation-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # --- Fase 6: policy-service ----------------------------------------------------------------------
+  # Polizas, saga de emision y renovaciones con base propia y proyecciones accepted_quotes y
+  # claim_ref. Desde el corte el gateway le envia /api/polizas y /api/renovaciones. El monolito
+  # (backend) queda sin trafico de negocio; retirarlo es el paso 6.10. Ver
+  # doc/5. Microservicios/m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md.
+  policy-mongodb:
+    image: mongo:8
+    container_name: policy-mongodb
+    restart: unless-stopped
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${POLICY_MONGO_ROOT_PASSWORD:-policy-root-local}
+      MONGO_APP_USERS: policy:policy_db:${POLICY_DB_PASSWORD:-policy-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: policy-mongodb:27017
+    volumes:
+      - policy_mongo_data:/data/db
+      - ../infra/mongo:/scripts:ro
+    networks: ["policy_data_network"]
+    healthcheck:
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 20s
+
+  policy-service:
+    image: policy-service:1.0.0
+    container_name: policy-service
+    build:
+      context: ../services/policy-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://policy:${POLICY_DB_PASSWORD:-policy-local}@policy-mongodb:27017/policy_db?replicaSet=rs0&authSource=policy_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      # Pasos 6.6 y 6.7: fuente de policy.* desde el corte.
+      POLICY_EVENTS_PUBLISH_ENABLED: ${POLICY_EVENTS_PUBLISH_ENABLED:-true}
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, policy_data_network, rabbitmq_network]
+    depends_on:
+      policy-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
   gateway:
     image: andina-api-gateway:1.0.0
     container_name: andina-api-gateway
@@ -236,6 +445,11 @@ services:
       SERVER_PORT: 8080
       BACKEND_SERVICE_URL: http://backend:8080
       IDENTITY_SERVICE_URL: http://identity-service:8080
+      # Corte de las fases 3 a 6. Reversa: apuntar cualquiera de estas URL a http://backend:8080.
+      CUSTOMER_SERVICE_URL: ${CUSTOMER_SERVICE_URL:-http://customer-service:8080}
+      CLAIMS_SERVICE_URL: ${CLAIMS_SERVICE_URL:-http://claims-service:8080}
+      QUOTATION_SERVICE_URL: ${QUOTATION_SERVICE_URL:-http://quotation-service:8080}
+      POLICY_SERVICE_URL: ${POLICY_SERVICE_URL:-http://policy-service:8080}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
@@ -274,6 +488,14 @@ volumes:
   # los tokens emitidos.
   identity_keys:
     name: andina_identity_keys
+  customer_mongo_data:
+    name: customer_mongo_data
+  claims_mongo_data:
+    name: claims_mongo_data
+  quotation_mongo_data:
+    name: quotation_mongo_data
+  policy_mongo_data:
+    name: policy_mongo_data
 
 networks:
   clean_network:
@@ -288,4 +510,12 @@ networks:
     name: andina_services_network
   identity_data_network:
     name: andina_identity_data_network
+  customer_data_network:
+    name: customer_data_network
+  claims_data_network:
+    name: claims_data_network
+  quotation_data_network:
+    name: quotation_data_network
+  policy_data_network:
+    name: policy_data_network
 
