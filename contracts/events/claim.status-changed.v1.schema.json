@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/claim.status-changed.v1.schema.json",
+  "title": "claim.status-changed.v1",
+  "description": "Cambio el estado de un siniestro (PATCH /api/polizas/{polizaId}/siniestros/{id}/estado). Exchange: andina.events. Publica: claims-service (fase 4). Consumen: policy-service (fase 6, open_claims_by_policy) y notification-service (a futuro).",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "ClaimStatusChanged" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.claimId" },
+    "aggregateVersion": { "type": "integer", "minimum": 2 },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["claimId", "policyId", "previousStatus", "newStatus", "insuredResponsible"],
+      "properties": {
+        "claimId": { "type": "string", "format": "uuid" },
+        "policyId": { "type": "string", "format": "uuid" },
+        "previousStatus": { "enum": ["REPORTADO", "EN_EVALUACION", "APROBADO", "RECHAZADO", "LIQUIDADO"] },
+        "newStatus": { "enum": ["REPORTADO", "EN_EVALUACION", "APROBADO", "RECHAZADO", "LIQUIDADO"] },
+        "open": { "type": "boolean", "description": "true si newStatus no es LIQUIDADO ni RECHAZADO" },
+        "insuredResponsible": { "type": "boolean" }
+      }
+    }
+  }
+}

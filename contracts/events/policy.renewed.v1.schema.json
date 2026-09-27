@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/policy.renewed.v1.schema.json",
+  "title": "policy.renewed.v1",
+  "description": "Se genero la poliza renovada de una propuesta aprobada (POST /api/renovaciones/{id}/generar-poliza): la poliza nueva queda VIGENTE y la anterior RENOVADA. Exchange: andina.events. Publica: policy-service (fase 6). Consumen: claims-service (policy_ref) y notification-service (a futuro).",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "PolicyRenewed" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.previousPolicyId" },
+    "aggregateVersion": { "type": "integer", "minimum": 2, "description": "Version de la poliza anterior despues de pasar a RENOVADA" },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["newPolicyId", "previousPolicyId", "customerId", "newPolicyNumber", "startDate", "endDate"],
+      "properties": {
+        "newPolicyId": { "type": "string", "format": "uuid" },
+        "previousPolicyId": { "type": "string", "format": "uuid" },
+        "renewalId": { "type": "string", "format": "uuid" },
+        "customerId": { "type": "string", "format": "uuid" },
+        "vehicleId": { "type": ["string", "null"], "format": "uuid" },
+        "newPolicyNumber": { "type": "string" },
+        "premium": { "type": "number" },
+        "currency": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" }
+      }
+    }
+  }
+}

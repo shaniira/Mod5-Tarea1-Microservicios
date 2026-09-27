@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://andinaseguros.example/contracts/events/customer.registered.v1.schema.json",
   "title": "customer.registered.v1",
-  "description": "Un cliente fue registrado. Tambien se publica como snapshot en el backfill (POST /api/clientes/eventos/reenvio), con la version actual del cliente. Exchange: andina.events. Publica: backend (fase 3: customer-service). Consumen: notification-service.",
+  "description": "Un cliente fue registrado. Tambien se publica como snapshot en el backfill (POST /api/clientes/eventos/reenvio), con la version actual del cliente. Exchange: andina.events. Publica: customer-service (hasta la fase 2 lo publicaba el backend). Consumen: notification-service, identity-service y el backend (proyeccion customer_ref, fase 3).",
   "type": "object",
   "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
   "properties": {
@@ -29,7 +29,8 @@
         "fullName": { "type": "string" },
         "email": { "type": ["string", "null"] },
         "phone": { "type": ["string", "null"] },
-        "active": { "type": "boolean" }
+        "active": { "type": "boolean" },
+        "birthDate": { "type": ["string", "null"], "format": "date", "description": "Opcional (agregado en la fase 3): lo usa la tarificacion para la edad del conductor. Los eventos publicados por el backend antes de la fase 3 no lo traen" }
       }
     }
   }

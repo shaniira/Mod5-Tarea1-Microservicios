@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/claim.registered.v1.schema.json",
+  "title": "claim.registered.v1",
+  "description": "Se registro un siniestro sobre una poliza (POST /api/polizas/{polizaId}/siniestros). Tambien se publica como snapshot en el backfill (POST /api/siniestros/eventos/reenvio), con el estado y la version actuales. Lleva lo que necesita la renovacion: el estado (abierto o cerrado) y si el asegurado fue responsable. Exchange: andina.events. Publica: claims-service (fase 4). Consumen: policy-service (fase 6, open_claims_by_policy).",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Clave de idempotencia" },
+    "eventType": { "const": "ClaimRegistered" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.claimId" },
+    "aggregateVersion": { "type": "integer", "minimum": 1, "description": "Version del siniestro: 1 al registrarse, sube en cada cambio de estado. El consumidor descarta versiones iguales o menores" },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["claimId", "policyId", "status", "insuredResponsible"],
+      "properties": {
+        "claimId": { "type": "string", "format": "uuid" },
+        "policyId": { "type": "string", "format": "uuid" },
+        "customerId": { "type": ["string", "null"], "format": "uuid", "description": "Cliente de la poliza segun policy_ref (null si la proyeccion aun no lo tenia)" },
+        "status": { "enum": ["REPORTADO", "EN_EVALUACION", "APROBADO", "RECHAZADO", "LIQUIDADO"] },
+        "open": { "type": "boolean", "description": "true si el estado no es LIQUIDADO ni RECHAZADO (bloquea la renovacion)" },
+        "date": { "type": "string", "format": "date" },
+        "type": { "type": "string" },
+        "estimatedAmount": { "type": "number" },
+        "currency": { "type": "string" },
+        "insuredResponsible": { "type": "boolean" },
+        "severity": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

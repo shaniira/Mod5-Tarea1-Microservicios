@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/vehicle.registered.v1.schema.json",
+  "title": "vehicle.registered.v1",
+  "description": "Un vehiculo fue registrado para un cliente (POST /api/clientes/{id}/vehiculos). Tambien se publica como snapshot en el backfill (POST /api/clientes/eventos/reenvio). Lleva lo que necesita la tarificacion (tipo, uso y anio). Exchange: andina.events. Publica: customer-service (fase 3). Consumen: el backend (proyeccion vehicle_ref, mientras cotiza) y quotation-service (fase 5).",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Clave de idempotencia" },
+    "eventType": { "const": "VehicleRegistered" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.vehicleId" },
+    "aggregateVersion": { "type": "integer", "minimum": 1, "description": "Version del vehiculo. Hoy un vehiculo no cambia despues de registrarse, asi que siempre es 1; el campo existe para que una futura modificacion no rompa el contrato" },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["vehicleId", "customerId", "plate", "manufactureYear", "vehicleType", "usage"],
+      "properties": {
+        "vehicleId": { "type": "string", "format": "uuid" },
+        "customerId": { "type": "string", "format": "uuid" },
+        "plate": { "type": "string", "pattern": "^[A-Z0-9-]{5,8}$" },
+        "brand": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "manufactureYear": { "type": "integer" },
+        "vehicleType": { "enum": ["AUTO", "CAMIONETA", "MOTO"] },
+        "usage": { "enum": ["PARTICULAR", "TAXI", "CARGA"] },
+        "circulationZone": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

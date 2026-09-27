@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/policy.issuance-rejected.v1.schema.json",
+  "title": "policy.issuance-rejected.v1",
+  "description": "Compensacion de la saga de emision (paso 6.4): policy-service rechazo emitir la poliza de una cotizacion aceptada porque ya no es valida (vencida o ya emitida). quotation-service la deja ACEPTADA y registra el motivo. Exchange: andina.events. Publica: policy-service. Consume: quotation-service.",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "PolicyIssuanceRejected" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.quoteId" },
+    "aggregateVersion": { "type": ["integer", "null"] },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["quoteId", "reasonCode", "reason"],
+      "properties": {
+        "quoteId": { "type": "string", "format": "uuid" },
+        "reasonCode": { "enum": ["COTIZACION_VENCIDA", "COTIZACION_YA_EMITIDA"] },
+        "reason": { "type": "string" },
+        "existingPolicyId": { "type": ["string", "null"], "format": "uuid", "description": "Si ya estaba emitida, la poliza existente" }
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andinaseguros.example/contracts/events/quote.accepted.v1.schema.json",
+  "title": "quote.accepted.v1",
+  "description": "El cliente acepto una cotizacion (PATCH /api/cotizaciones/{id}/aceptar). Lleva todo lo que policy-service necesita para emitir la poliza sin consultar a quotation: cliente, vehiculo, prima, validez de la cotizacion y tarifa aplicada con su desglose. Exchange: andina.events. Publica: quotation-service (fase 5). Consumen: policy-service (fase 6, proyeccion accepted_quotes; indice unico por quoteId contra la doble emision).",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "aggregateVersion", "producer", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Clave de idempotencia" },
+    "eventType": { "const": "QuoteAccepted" },
+    "eventVersion": { "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.quoteId" },
+    "aggregateVersion": { "type": "integer", "minimum": 1, "description": "Una cotizacion se acepta una sola vez: siempre 1" },
+    "correlationId": { "type": ["string", "null"] },
+    "producer": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["quoteId", "quoteNumber", "customerId", "vehicleId", "premium", "currency", "tariffTableId", "expiresAt"],
+      "properties": {
+        "quoteId": { "type": "string", "format": "uuid" },
+        "quoteNumber": { "type": "string" },
+        "customerId": { "type": "string", "format": "uuid" },
+        "vehicleId": { "type": "string", "format": "uuid" },
+        "premium": { "type": "number", "description": "Prima comercial" },
+        "currency": { "type": "string" },
+        "tariffTableId": { "type": "string", "format": "uuid" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Hasta cuando es valida la cotizacion; policy-service rechaza la emision despues de esta fecha (policy.issuance-rejected.v1)" },
+        "breakdown": {
+          "type": ["object", "null"],
+          "description": "Desglose de la tarificacion (primaBase, primaRiesgo, gastos, recargos, descuentos, primaComercial y factores aplicados), igual al de la respuesta de la API"
+        }
+      }
+    }
+  }
+}

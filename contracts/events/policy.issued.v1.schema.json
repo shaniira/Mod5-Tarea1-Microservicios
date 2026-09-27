@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://andinaseguros.example/contracts/events/policy.issued.v1.schema.json",
   "title": "policy.issued.v1",
-  "description": "Se emitio una poliza. Sigue saliendo por el exchange heredado andina.insurance.events para no romper consumidores; notification-service escucha los dos exchanges. Publica: backend (fase 6: policy-service). Consumen: notification-service y la cola de auditoria.",
+  "description": "Se emitio una poliza. El backend lo publica en el exchange heredado andina.insurance.events; policy-service (fase 6) lo publica en andina.events. Los consumidores escuchan los dos exchanges durante la transicion. Consumen: notification-service, claims-service (policy_ref), quotation-service (marca la cotizacion EMITIDA) y la cola de auditoria.",
   "type": "object",
   "required": ["eventId", "eventType", "eventVersion", "occurredAt", "aggregateId", "data"],
   "properties": {
@@ -11,7 +11,7 @@
     "eventVersion": { "const": 1 },
     "occurredAt": { "type": "string", "format": "date-time" },
     "aggregateId": { "type": "string", "format": "uuid", "description": "Igual a data.policyId" },
-    "aggregateVersion": { "type": ["integer", "null"], "description": "Aun no se usa en polizas (null)" },
+    "aggregateVersion": { "type": ["integer", "null"], "description": "null cuando lo publica el backend; 1 cuando lo publica policy-service (la version de la poliza sube en cada cambio de estado)" },
     "correlationId": { "type": ["string", "null"], "description": "Agregado en la fase 1 (opcional)" },
     "producer": { "type": ["string", "null"], "description": "Agregado en la fase 1 (opcional)" },
     "data": {
@@ -21,7 +21,13 @@
         "policyId": { "type": "string", "format": "uuid" },
         "quoteId": { "type": "string", "format": "uuid" },
         "customerId": { "type": "string", "format": "uuid" },
-        "policyNumber": { "type": "string" }
+        "policyNumber": { "type": "string" },
+        "vehicleId": { "type": ["string", "null"], "format": "uuid", "description": "Opcional (fase 6)" },
+        "premium": { "type": ["number", "null"], "description": "Opcional (fase 6)" },
+        "currency": { "type": ["string", "null"], "description": "Opcional (fase 6)" },
+        "startDate": { "type": ["string", "null"], "format": "date", "description": "Opcional (fase 6): inicio de vigencia" },
+        "endDate": { "type": ["string", "null"], "format": "date", "description": "Opcional (fase 6): fin de vigencia" },
+        "status": { "type": ["string", "null"], "description": "Opcional (fase 6): estado de la poliza al emitirse (VIGENTE)" }
       }
     }
   }
