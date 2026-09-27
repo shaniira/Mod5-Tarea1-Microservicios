@@ -27,6 +27,26 @@ public class FallbackController {
         return noDisponible(exchange, "El servicio de identidad", "/fallback/identity");
     }
 
+    @RequestMapping("/fallback/customer")
+    public ResponseEntity<ErrorResponse> customerUnavailable(ServerWebExchange exchange) {
+        return noDisponible(exchange, "El servicio de clientes", "/fallback/customer");
+    }
+
+    @RequestMapping("/fallback/claims")
+    public ResponseEntity<ErrorResponse> claimsUnavailable(ServerWebExchange exchange) {
+        return noDisponible(exchange, "El servicio de siniestros", "/fallback/claims");
+    }
+
+    @RequestMapping("/fallback/quotation")
+    public ResponseEntity<ErrorResponse> quotationUnavailable(ServerWebExchange exchange) {
+        return noDisponible(exchange, "El servicio de cotizaciones", "/fallback/quotation");
+    }
+
+    @RequestMapping("/fallback/policy")
+    public ResponseEntity<ErrorResponse> policyUnavailable(ServerWebExchange exchange) {
+        return noDisponible(exchange, "El servicio de pólizas", "/fallback/policy");
+    }
+
     private ResponseEntity<ErrorResponse> noDisponible(
             ServerWebExchange exchange, String servicio, String path) {
         String correlationId = exchange.getAttribute(CorrelationIdWebFilter.CORRELATION_ID_ATTRIBUTE);

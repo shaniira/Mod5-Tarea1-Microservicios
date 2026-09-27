@@ -101,7 +101,106 @@ spring:
                 name: identityCB
                 fallbackUri: forward:/fallback/identity
 
+        # --- Corte de las fases 3 a 6: el negocio va a los microservicios ---
+        # Reversa: apuntar la URL de cada servicio al backend (por ejemplo
+        # CUSTOMER_SERVICE_URL=http://backend:8080) devuelve esa ruta al monolito.
+        # Los siniestros cuelgan de /api/polizas: su ruta va ANTES que la de policy (paso 4.7).
+        - id: claims
+          uri: ${CLAIMS_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/polizas/*/siniestros,/api/polizas/*/siniestros/**,/api/siniestros/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: claimsCB
+                fallbackUri: forward:/fallback/claims
+            - name: Retry
+              args:
+                retries: 1
+                series: [SERVER_ERROR]
+                methods: [GET]
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 500ms
+                  factor: 2
+                  basedOnPreviousValue: false
+
+        - id: customer
+          uri: ${CUSTOMER_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/clientes/**,/api/vehiculos/**
+          metadata:
+            response-timeout: 12000 # ms; la consulta de placas puede tardar dos intentos de 5 s
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: customerCB
+                fallbackUri: forward:/fallback/customer
+            - name: Retry
+              args:
+                retries: 1
+                series: [SERVER_ERROR]
+                methods: [GET]
+
+        - id: quotation
+          uri: ${QUOTATION_SERVICE_URL:http://localhost:8087}
+          predicates:
+            - Path=/api/cotizaciones/**,/api/tablas-tarifarias/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: quotationCB
+                fallbackUri: forward:/fallback/quotation
+            - name: Retry
+              args:
+                retries: 1
+                series: [SERVER_ERROR]
+                methods: [GET]
+
+        - id: policy
+          uri: ${POLICY_SERVICE_URL:http://localhost:8088}
+          predicates:
+            - Path=/api/polizas,/api/polizas/**,/api/renovaciones/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+            - name: CircuitBreaker
+              args:
+                name: policyCB
+                fallbackUri: forward:/fallback/policy
+            - name: Retry
+              args:
+                retries: 1
+                series: [SERVER_ERROR]
+                methods: [GET]
+
+        # /api/mi-cuenta no es una ruta: lo compone MiCuentaController (customer + policy).
+
         # --- Resto del API del backend (catch-all de la fase 0) ---
+        # Tras el corte ya no recibe el negocio; queda como reserva mientras el monolito siga en el
+        # Compose (paso 6.10).
         - id: backend
           uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
           predicates:
@@ -153,15 +252,44 @@ resilience4j:
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
+      # Fases 3 a 6: un circuito por servicio (tabla 6.2 de la propuesta).
+      customerCB: &circuitoServicio
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        slowCallRateThreshold: 80
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+      claimsCB: *circuitoServicio
+      quotationCB: *circuitoServicio
+      policyCB: *circuitoServicio
   timelimiter:
     instances:
       backendCB:
         timeoutDuration: 3s
+      # La consulta de placas llama a JSON.pe con timeout de 5 s y un reintento.
+      customerCB:
+        timeoutDuration: 12s
+      claimsCB:
+        timeoutDuration: 3s
+      # Cotizar puede pedir el cliente y el vehículo a customer-service (2 s, un reintento).
+      quotationCB:
+        timeoutDuration: 6s
+      # Emitir puede reintentar un conflicto de escritura hasta ~1,5 s.
+      policyCB:
+        timeoutDuration: 5s
       # Mas amplio: el callback de Facebook hace hasta 3 llamadas a Facebook (5 s cada una).
       identityCB:
         timeoutDuration: 12s
 
 app:
+  # "Mi cuenta" (MiCuentaController) compone estos dos servicios.
+  services:
+    customer-url: ${CUSTOMER_SERVICE_URL:http://localhost:8085}
+    policy-url: ${POLICY_SERVICE_URL:http://localhost:8088}
   security:
     # Fase 2: claves publicas de identity-service. El gateway ya no necesita un secreto para validar.
     jwks-uri: ${JWT_JWKS_URI:http://localhost:8084/.well-known/jwks.json}
