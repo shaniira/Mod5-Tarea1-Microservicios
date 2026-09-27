@@ -1,0 +1,120 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: customer-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  data:
+    mongodb:
+      # Base propia customer_db con usuario propio (plantilla del microservicio, paso 3). Replica set
+      # para que el cambio y su evento del Outbox se guarden en una sola transacción.
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/customer_db}
+      auto-index-creation: true
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # Base 2: la 0 es del rate limiter del gateway y la 1 de identity-service.
+      database: ${REDIS_DATABASE:2}
+      timeout: 2s
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:andina}
+    password: ${SPRING_RABBITMQ_PASSWORD:andina-local}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+
+app:
+  demo-data:
+    enabled: ${APP_DEMO_DATA_ENABLED:false}
+  rabbitmq:
+    events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
+  outbox:
+    # Paso 3.5: false mientras el monolito siga siendo la fuente de customer.* (ver OutboxConfig).
+    publish-enabled: ${CUSTOMER_EVENTS_PUBLISH_ENABLED:true}
+    relay-interval-ms: ${OUTBOX_RELAY_INTERVAL_MS:1000}
+    batch-size: ${OUTBOX_BATCH_SIZE:100}
+    confirm-timeout-ms: ${OUTBOX_CONFIRM_TIMEOUT_MS:5000}
+  jwt:
+    jwks-uri: ${JWT_JWKS_URI:http://identity-service:8080/.well-known/jwks.json}
+    issuer: ${JWT_ISSUER:andina-identity}
+  jsonpe:
+    # JSONPE_BASE_URL permite apuntar a un simulador para probar la caída del proveedor.
+    base-url: ${JSONPE_BASE_URL:https://api.json.pe}
+    token: ${JSONPE_TOKEN:}
+    timeout-seconds: ${JSONPE_TIMEOUT_SECONDS:5}
+  placas:
+    # Paso 3.2: una placa consultada se sirve desde Redis durante 24 h.
+    cache-ttl: ${PLACAS_CACHE_TTL:24h}
+
+# Paso 3.2 (tabla 6.2 de la propuesta): JSON.pe con circuit breaker, un reintento con espera
+# aleatoria y bulkhead. Solo cuentan (y se reintentan) las caidas del proveedor; un token o una
+# placa invalida no.
+resilience4j:
+  circuitbreaker:
+    instances:
+      jsonpe:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 4s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: ${JSONPE_CB_WAIT_OPEN:30s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.andinaseguros.customer.usecases.exception.VehicleProviderUnavailableException
+          - com.andinaseguros.customer.usecases.exception.VehicleProviderTimeoutException
+  retry:
+    instances:
+      jsonpe:
+        max-attempts: 2
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        enable-randomized-wait: true
+        retry-exceptions:
+          - com.andinaseguros.customer.usecases.exception.VehicleProviderUnavailableException
+          - com.andinaseguros.customer.usecases.exception.VehicleProviderTimeoutException
+  bulkhead:
+    instances:
+      jsonpe:
+        max-concurrent-calls: ${JSONPE_BULKHEAD_MAX_CALLS:10}
+        max-wait-duration: 0
+
+springdoc:
+  # Swagger y el contrato OpenAPI solo en desarrollo (SWAGGER_ENABLED=true en Compose).
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        readiness:
+          include: readinessState,mongo,rabbit
+        liveness:
+          include: livenessState
+  health:
+    circuitbreakers:
+      enabled: false
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  metrics:
+    tags:
+      application: customer-service
