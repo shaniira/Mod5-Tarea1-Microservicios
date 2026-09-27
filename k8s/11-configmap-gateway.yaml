@@ -16,3 +16,9 @@ data:
   IDENTITY_SERVICE_URL: "http://identity-service.andina-seguros.svc.cluster.local:8080"
   JWT_JWKS_URI: "http://identity-service.andina-seguros.svc.cluster.local:8080/.well-known/jwks.json"
   JWT_ISSUER: "andina-identity"
+  # Corte de las fases 3 a 6: el negocio va a los microservicios. Reversa: apuntar cualquiera de
+  # estas URL al backend. "Mi cuenta" compone customer-service y policy-service.
+  CUSTOMER_SERVICE_URL: "http://customer-service.andina-seguros.svc.cluster.local:8080"
+  CLAIMS_SERVICE_URL: "http://claims-service.andina-seguros.svc.cluster.local:8080"
+  QUOTATION_SERVICE_URL: "http://quotation-service.andina-seguros.svc.cluster.local:8080"
+  POLICY_SERVICE_URL: "http://policy-service.andina-seguros.svc.cluster.local:8080"

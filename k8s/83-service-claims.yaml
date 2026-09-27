@@ -1,0 +1,9 @@
+# ClusterIP: solo lo alcanza el gateway. No se expone por el Ingress directamente.
+apiVersion: v1
+kind: Service
+metadata:
+  name: claims-service
+  namespace: andina-seguros
+spec:
+  selector: { app: claims-service }
+  ports: [{ name: http, port: 8080, targetPort: http }]

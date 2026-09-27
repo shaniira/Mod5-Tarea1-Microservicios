@@ -67,7 +67,8 @@ kind delete cluster --name andina-seguros      # borrar todo el clúster de prue
 ## Requisitos previos
 
 - Un clúster con **NGINX Ingress Controller** instalado (ver comentario en `40-ingress.yaml`).
-- Las imágenes `andina-api-gateway:1.0.0` y `andina-seguros-clean:1.0.0` construidas y
+- Las imágenes `andina-api-gateway:1.0.0`, `andina-seguros-clean:1.0.0`, `customer-service:1.0.0`,
+  `claims-service:1.0.0`, `quotation-service:1.0.0` y `policy-service:1.0.0` construidas y
   disponibles para el clúster (`docker build` + push a un registro, o `kind load docker-image` /
   `minikube image load` en un clúster local).
 - `kubectl` apuntando al clúster correcto.
@@ -108,6 +109,15 @@ kubectl apply -f k8s/53-service-identity.yaml
 # Fase 1: notification-service (sin Service: solo consume RabbitMQ)
 kubectl apply -f k8s/60-configmap-notification.yaml
 kubectl apply -f k8s/62-deployment-notification.yaml
+
+# Fases 3 a 6: customer, claims, quotation y policy (antes, sus Secrets: 71, 81, 91 y 96).
+# El gateway (11) ya apunta a ellos; el backend queda sin tráfico de negocio.
+for s in 70-configmap-customer 72-deployment-customer 73-service-customer \
+         80-configmap-claims 82-deployment-claims 83-service-claims \
+         90-configmap-quotation 92-deployment-quotation 93-service-quotation \
+         95-configmap-policy 97-deployment-policy 98-service-policy; do
+  kubectl apply -f "k8s/$s.yaml"
+done
 
 kubectl apply -f k8s/40-ingress.yaml
 ```

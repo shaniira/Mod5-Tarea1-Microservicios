@@ -1,0 +1,62 @@
+# quotation-service (fase 5). Una replica: el relay del Outbox esta pensado para una sola instancia.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quotation-service
+  namespace: andina-seguros
+  labels:
+    app: quotation-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels:
+      app: quotation-service
+  template:
+    metadata:
+      labels:
+        app: quotation-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001 # usuario "spring" de la imagen
+        fsGroup: 1001
+      containers:
+        - name: quotation-service
+          image: quotation-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef: { name: quotation-config }
+            - secretRef: { name: quotation-secrets }
+          resources:
+            requests: { cpu: "250m", memory: "384Mi" }
+            limits: { cpu: "1", memory: "640Mi" }
+          startupProbe:
+            httpGet: { path: /actuator/health, port: http }
+            timeoutSeconds: 5
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            # Depende de Mongo y RabbitMQ.
+            httpGet: { path: /actuator/health/readiness, port: http }
+            timeoutSeconds: 5
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            timeoutSeconds: 5
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+      terminationGracePeriodSeconds: 20
