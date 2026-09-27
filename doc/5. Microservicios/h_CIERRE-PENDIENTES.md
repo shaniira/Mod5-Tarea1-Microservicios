@@ -56,7 +56,20 @@ Este documento registra el cierre de los pendientes que habían quedado después
 | Resiliencia (circuit breaker, retry con backoff, timeout, bulkhead, health checks, idempotencia) | ✅ |
 | Observabilidad (OpenTelemetry, Prometheus, Grafana, Loki, Jaeger, correlation ID, logs centralizados, métricas, trazas) | ✅ en Docker Compose · En Kubernetes los Pods ya exponen métricas (anotaciones) y aceptan `MANAGEMENT_OTLP_TRACING_ENDPOINT`; desplegar el stack en el clúster queda para la fase 7 |
 
-## 4. Lo que no depende del código
+## 4. Impacto en el monolito
+
+Detalle por commit en [k_IMPACTO-EN-EL-MONOLITO.md](k_IMPACTO-EN-EL-MONOLITO.md#2-fase-0--preparación-y-seguridad).
+
+| Commit | Cambio en `Arquitectura-Clean` |
+|---|---|
+| `07d884f` | Reglas por rol en todos los controladores (`Roles.java`) y control de propietario (`AccesoRecursos`) |
+| `08f6660` | Datos demo y Swagger solo en desarrollo; el login ya no sugiere la contraseña demo |
+| `7257098` | Solo Compose: MongoDB con usuario propio, keyFile y replica set; sin puertos en el host |
+| `cc2024a` | Trazas OTLP, logs JSON y `traceparent` guardado en el Outbox |
+
+Ninguno de estos commits sacó funcionalidad del monolito: son cambios de seguridad, configuración y observabilidad.
+
+## 5. Lo que no depende del código
 
 - **Tokens de JSON.pe que estuvieron versionados:** hay que rotarlos en el panel de JSON.pe (solo puede hacerlo el dueño de la cuenta).
 - **Alertas por correo o chat:** las reglas están en Prometheus y se ven en Grafana; para enviar avisos falta configurar un Alertmanager con el canal del equipo.

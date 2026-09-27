@@ -85,6 +85,17 @@ Pruebas adicionales:
 | `71d50c1` chore(docker) | Retiro de `JWT_SECRET` |
 | `a09ba2f` feat(k8s) | Manifiestos de identity-service y retiro del secreto compartido |
 
-## 6. Próximo paso sugerido
+## 6. Impacto en el monolito
+
+Detalle por commit en [k_IMPACTO-EN-EL-MONOLITO.md](k_IMPACTO-EN-EL-MONOLITO.md#4-fase-2--identity-service).
+
+| Qué | Commit | Cambio en `Arquitectura-Clean` |
+|---|---|---|
+| Se cambió | `8e2c927` | El monolito pasa a *resource server*: valida RS256 con el JWKS de identity (`JwtDecoderConfig`), toma el rol del token y deja de consultar `usuarios` en cada petición; "Mi cuenta" usa el `customerId` del token |
+| Se desacopló | `a74da8c`, `71a66ac` | Se eliminaron el filtro JWT propio, login (contraseña, Google, Facebook), MFA, `Usuario`, la colección `usuarios` (código), los adaptadores TOTP/QR/BCrypt/AES-GCM/`InMemory*`, la firma HS256 y las dependencias jjwt y zxing (78 archivos, 35 pruebas movidas a identity-service) |
+| Infraestructura | `f1363fc`, `71d50c1` | El backend entra a la red de servicios (JWKS); se eliminó `JWT_SECRET` de su configuración |
+| Se conservó | — | La colección `usuarios` en la base del backend (datos), como plan de reversa |
+
+## 7. Próximo paso sugerido
 
 Fase 3 (`customer-service`): clientes, vehículos y consulta de placas. identity-service y notification-service ya consumen `customer.*`, así que solo cambia quién publica esos eventos.

@@ -50,7 +50,7 @@ Pruebas hechas el 2026-09-25 contra el stack de `Arquitectura-Clean/docker-compo
 | 2 | Un cliente nuevo aparece en `customer_contacts` en segundos; un cliente existente aparece tras el backfill | Cliente creado por la API: en la proyección en ~1 s (versión 1); tras `PATCH /contacto`, versión 2 con el teléfono nuevo. Backfill: `202 {"clientesPublicados":4}` y los 4 clientes existentes en la proyección | ✅ Cumple |
 | 3 | Con WhatsApp caído, los mensajes se retienen (no van a la DLQ) y se envían al recuperarse | Mock respondiendo 503 y 4 pólizas emitidas: circuito `open`, `notification_listener_paused=1`, cola con **4 mensajes y 0 consumidores**, DLQ en **0**. Al restaurar el mock, el circuito pasó a semiabierto, el listener se reanudó y se enviaron las 4 notificaciones; circuito `closed`, DLQ en 0 | ✅ Cumple |
 | 4 | Un evento repetido no envía el WhatsApp dos veces | Se republicó en RabbitMQ el `policy.issued.v1` exacto (mismo `eventId`) de una póliza ya notificada: log `DUPLICADO`, el mock siguió con el mismo número de envíos (11 → 11) | ✅ Cumple |
-| — | Reversa (volver al consumer anterior) | La versión anterior está en el historial de git (`andina-notification-consumer`); no se borró ningún dato de la base del backend | ✅ Disponible |
+| — | Reversa (volver al consumer anterior) | La versión anterior está en el historial de git (`notification-consumer`); no se borró ningún dato de la base del backend | ✅ Disponible |
 
 Pruebas adicionales:
 
@@ -86,6 +86,16 @@ Pruebas adicionales:
 | Infraestructura | `Arquitectura-Clean/docker-compose.yml` (replica set, `notification-mongodb`, `notification-service`, `whatsapp-mock`) |
 | Contratos | `contracts/events/*.schema.json` |
 
-## 6. Próximo paso sugerido
+## 6. Impacto en el monolito
+
+Detalle por commit en [k_IMPACTO-EN-EL-MONOLITO.md](k_IMPACTO-EN-EL-MONOLITO.md#3-fase-1--notification-service).
+
+| Qué | Commit | Cambio en `Arquitectura-Clean` |
+|---|---|---|
+| Se agregó | `f7ad09c` | Outbox transaccional (colección `outbox`, relay con publisher confirms, `TransaccionPort`); eventos `customer.registered/updated.v1` con la versión del cliente; `PATCH /api/clientes/{id}/contacto`; backfill `POST /api/clientes/eventos/reenvio`; `CorrelationIdFilter`. `EmitirPolizaUseCase` pasa a guardar póliza y evento en una transacción |
+| Se desacopló | `f7ad09c` | El backend dejó de declarar las colas de notificación y su DLQ (son de notification-service). notification-service dejó de leer la colección `clientes` |
+| Infraestructura | `f7d3b94` | MongoDB del backend como replica set de un nodo; el consumer salió de la red del backend |
+
+## 7. Próximo paso sugerido
 
 Fase 2 (`identity-service`). Antes conviene cerrar lo que quedó de la fase 0 y es barato: control de acceso completo (S1, S2), datos demo solo en `dev`, y autenticación en el MongoDB del backend.
