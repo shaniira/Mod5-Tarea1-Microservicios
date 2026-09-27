@@ -1,0 +1,75 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: claims-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  data:
+    mongodb:
+      # Base propia claims_db con usuario propio. Replica set para que el siniestro y su evento del
+      # Outbox se guarden en una sola transaccion.
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/claims_db}
+      auto-index-creation: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:andina}
+    password: ${SPRING_RABBITMQ_PASSWORD:andina-local}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+
+app:
+  rabbitmq:
+    events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
+    # Exchange heredado: el backend sigue publicando policy.issued.v1 aqui.
+    insurance-exchange: ${RABBITMQ_EXCHANGE:andina.insurance.events}
+    policy:
+      queue: ${RABBITMQ_POLICY_QUEUE:claims.policy.events}
+      dead-letter-exchange: ${RABBITMQ_EVENTS_DLX:andina.events.dlx}
+      dead-letter-queue: ${RABBITMQ_POLICY_DLQ:claims.policy.events.dlq}
+  outbox:
+    # Paso 4.5: false mientras los siniestros sigan en el monolito (ver OutboxConfig).
+    publish-enabled: ${CLAIMS_EVENTS_PUBLISH_ENABLED:true}
+    relay-interval-ms: ${OUTBOX_RELAY_INTERVAL_MS:1000}
+    batch-size: ${OUTBOX_BATCH_SIZE:100}
+    confirm-timeout-ms: ${OUTBOX_CONFIRM_TIMEOUT_MS:5000}
+  jwt:
+    jwks-uri: ${JWT_JWKS_URI:http://identity-service:8080/.well-known/jwks.json}
+    issuer: ${JWT_ISSUER:andina-identity}
+
+springdoc:
+  # Swagger y el contrato OpenAPI solo en desarrollo (SWAGGER_ENABLED=true en Compose).
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        readiness:
+          include: readinessState,mongo,rabbit
+        liveness:
+          include: livenessState
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  metrics:
+    tags:
+      application: claims-service
