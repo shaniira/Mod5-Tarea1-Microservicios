@@ -1,0 +1,32 @@
+# CI de policy-service (plantilla del microservicio, paso 16): compila, corre las pruebas y
+# las reglas ArchUnit, y construye la imagen. Solo se ejecuta si cambia el servicio o sus contratos.
+name: policy-service
+
+on:
+  push:
+    paths:
+      - "services/policy-service/**"
+      - "contracts/**"
+      - ".github/workflows/policy-service.yml"
+  pull_request:
+    paths:
+      - "services/policy-service/**"
+      - "contracts/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/policy-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Pruebas y ArchUnit
+        run: mvn -B --no-transfer-progress verify
+      - name: Imagen Docker
+        run: docker build -t policy-service:${{ github.sha }} .

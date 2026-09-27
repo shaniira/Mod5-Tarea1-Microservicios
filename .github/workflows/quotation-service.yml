@@ -1,0 +1,32 @@
+# CI de quotation-service (plantilla del microservicio, paso 16): compila, corre las pruebas y
+# las reglas ArchUnit, y construye la imagen. Solo se ejecuta si cambia el servicio o sus contratos.
+name: quotation-service
+
+on:
+  push:
+    paths:
+      - "services/quotation-service/**"
+      - "contracts/**"
+      - ".github/workflows/quotation-service.yml"
+  pull_request:
+    paths:
+      - "services/quotation-service/**"
+      - "contracts/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/quotation-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Pruebas y ArchUnit
+        run: mvn -B --no-transfer-progress verify
+      - name: Imagen Docker
+        run: docker build -t quotation-service:${{ github.sha }} .
