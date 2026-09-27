@@ -73,7 +73,7 @@ Además siguen: **frontend** (Nginx) y la infraestructura compartida (RabbitMQ, 
 | `tarifa/*`, `cotizacion/*`; `MotorDeTarificacion`, `FactorRiesgo`, `TablaTarifaria`, `ResultadoTarificacion` | quotation-service |
 | `poliza/*`, `renovacion/*`; `EvaluadorRenovacion`, `CalculadorPrimaRenovacion`, `PoliticaVariacionPrima`, `PropuestaRenovacion` | policy-service |
 | `siniestro/*`, `Siniestro` | claims-service |
-| `andina-notification-consumer` | notification-service (evoluciona) |
+| `notification-consumer` | notification-service (evoluciona) |
 | `cliente/ObtenerMiCuenta` | api-gateway (composición de respuestas) |
 
 Cada servicio conserva la **misma organización Clean Architecture** (`entities`, `usecases`, `interfaceadapters`, `frameworksdrivers`) y su propia prueba ArchUnit. Los enums y value objects que necesiten dos servicios (por ejemplo `Dinero`, `Placa`) **se duplican a propósito**: compartir una librería de dominio recrearía el acoplamiento del monolito. Lo único compartido será el módulo de contratos (sección 8).

@@ -12,7 +12,7 @@ Sistema de seguros vehiculares con **3 aplicaciones desplegables** (Frontend, Ba
 |---|---|---|---|---|---|
 | 1 | **Frontend** | SPA estática servida por Nginx | Vue 3.5, TypeScript, Vite 6, Pinia, Vue Router, Axios | `frontend` (nginx:1.27-alpine) | `5173 → 80` |
 | 2 | **Backend** (`andina-seguros-clean`) | API REST | Java 21, Spring Boot, Spring Security, Spring Data MongoDB, Spring AMQP | `andina-clean-backend` | `8083 → 8080` |
-| 3 | **Notification Consumer** (`andina-notification-consumer`) | Worker sin HTTP | Java 21, Spring Boot, Spring AMQP, Spring Data MongoDB | `consumer` | ninguno (no expone puerto) |
+| 3 | **Notification Consumer** (`notification-consumer`) | Worker sin HTTP | Java 21, Spring Boot, Spring AMQP, Spring Data MongoDB | `consumer` | ninguno (no expone puerto) |
 | 4 | **MongoDB** | Base de datos | `mongo:8`, base `andina_seguros_clean` | `andina-clean-mongodb` | `27020 → 27017` |
 | 5 | **RabbitMQ** | Message broker | `rabbitmq:3.13-management` | `rabbitmq` | `5672 → 5672` (AMQP), `15672 → 15672` (UI) |
 

@@ -1,12 +1,12 @@
 # Implementacion de RabbitMQ y consumidor independiente de WhatsApp
 
-> Estado: publicación implementada en Clean, Hexagonal y Onion; envío local eliminado y WhatsApp exclusivo de `andina-notification-consumer`. Véase el inventario final y código impactado en [`IMPLEMENTACION-BACKENDS-RABBITMQ.md`](../IMPLEMENTACION-BACKENDS-RABBITMQ.md).
+> Estado: publicación implementada en Clean, Hexagonal y Onion; envío local eliminado y WhatsApp exclusivo de `notification-consumer`. Véase el inventario final y código impactado en [`IMPLEMENTACION-BACKENDS-RABBITMQ.md`](../IMPLEMENTACION-BACKENDS-RABBITMQ.md).
 >
-> **Actualización (fase 1 de la migración a microservicios):** `andina-notification-consumer` pasó a ser `services/notification-service`, con base propia y sin leer la colección `clientes` del backend. Este documento se conserva como historia; el diseño vigente está en [`../5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md`](../5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).
+> **Actualización (fase 1 de la migración a microservicios):** `notification-consumer` pasó a ser `services/notification-service`, con base propia y sin leer la colección `clientes` del backend. Este documento se conserva como historia; el diseño vigente está en [`../5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md`](../5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).
 
 ## 1. Alcance y conclusion
 
-Los tres proyectos pueden incorporar RabbitMQ sin romper las reglas de su arquitectura. Las APIs publican eventos y un sistema separado, `andina-notification-consumer`, consume los mensajes y envia WhatsApp. Los tres proyectos ya tienen un contrato para publicar eventos de dominio y mantienen la implementacion fuera del nucleo:
+Los tres proyectos pueden incorporar RabbitMQ sin romper las reglas de su arquitectura. Las APIs publican eventos y un sistema separado, `notification-consumer`, consume los mensajes y envia WhatsApp. Los tres proyectos ya tienen un contrato para publicar eventos de dominio y mantienen la implementacion fuera del nucleo:
 
 | Proyecto  | Contrato existente                                     | Implementacion externa actual         | Ubicacion del adaptador RabbitMQ |
 | --------- | ------------------------------------------------------ | ------------------------------------- | -------------------------------- |
@@ -47,7 +47,7 @@ API de polizas
   -> Exchange
   -> Binding con routing key
   -> andina.policy.notification.queue
-  -> andina-notification-consumer
+  -> notification-consumer
   -> ClienteContactPort / MongoDB
   -> NotificationPort
   -> WhatsAppNotificationAdapter
@@ -66,7 +66,7 @@ Para `PolizaEmitida` se propone:
 | Tipo de exchange    | `topic`                                  | Enrutar por patrones de routing key                         |
 | Routing key         | `policy.issued.v1`                       | Identificar el tipo y version del evento                    |
 | Cola                | `andina.notifications.policy-issued`     | Entregar eventos al consumidor de notificaciones            |
-| Servicio consumidor | `andina-notification-consumer`           | Proceso independiente que consume la cola de notificaciones |
+| Servicio consumidor | `notification-consumer`           | Proceso independiente que consume la cola de notificaciones |
 | DLX                 | `andina.events.dlx`                      | Recibir mensajes rechazados o agotados                      |
 | DLQ                 | `andina.notifications.policy-issued.dlq` | Almacenar mensajes no procesables                           |
 
@@ -373,7 +373,7 @@ La politica exacta de requeue debe evitar loops infinitos. En produccion es pref
 | `Arquitectura-Clean/src/main/resources/application.yml`                                                        | Configurar conexion, exchange, colas, reintentos y nombres.                                       |
 | `Arquitectura-Clean/src/main/java/com/andinaseguros/frameworksdrivers/configuration/spring/UseCaseConfig.java` | Registrar RabbitMQ y seleccionar el adaptador como implementacion de`DomainEventPublisherPort`. |
 | `Arquitectura-Clean/src/main/java/com/andinaseguros/interfaceadapters/out/event/`                              | Agregar publicador RabbitMQ, DTO de integracion y mapper.                                         |
-| `andina-notification-consumer`                                                                                 | Crear consumidor, idempotencia y adaptador de WhatsApp.                                           |
+| `notification-consumer`                                                                                 | Crear consumidor, idempotencia y adaptador de WhatsApp.                                           |
 | `Arquitectura-Clean/src/test/java/com/andinaseguros/interfaceadapters/out/event/`                              | Probar publicador y mapper.                                                                       |
 | `Arquitectura-Clean/src/test/java/com/andinaseguros/architecture/CleanArchitectureTest.java`                   | Solo si las reglas necesitan reconocer las nuevas clases externas.                                |
 | `docker-compose.yml` y Compose individual                                                                      | Agregar RabbitMQ, red, credenciales y dependencia de salud.                                       |
@@ -407,7 +407,7 @@ EmitirPolizaUseCase
     -> RabbitTemplate
     -> andina.events
     -> andina.notifications.policy-issued
-    -> andina-notification-consumer
+    -> notification-consumer
     -> NotificationPort
     -> WhatsAppNotificationAdapter
 ```
@@ -422,7 +422,7 @@ EmitirPolizaUseCase
 | `Arquitectura-Hexagonal/src/main/resources/application.yml`                                          | Configurar RabbitMQ y las propiedades de mensajeria.                          |
 | `Arquitectura-Hexagonal/src/main/java/com/andinaseguros/bootstrap/UseCaseConfiguration.java`         | Ensamblar el adaptador RabbitMQ y declarar la configuracion AMQP.             |
 | `Arquitectura-Hexagonal/src/main/java/com/andinaseguros/adapters/outbound/event/`                    | Agregar adaptador publicador, mapper y DTO.                                   |
-| `andina-notification-consumer`                                                                       | Crear consumidor, idempotencia y adaptador de WhatsApp.                       |
+| `notification-consumer`                                                                       | Crear consumidor, idempotencia y adaptador de WhatsApp.                       |
 | `Arquitectura-Hexagonal/src/test/java/com/andinaseguros/adapters/outbound/event/`                    | Agregar pruebas del adaptador y mapper.                                       |
 | `Arquitectura-Hexagonal/src/test/java/com/andinaseguros/architecture/HexagonalArchitectureTest.java` | Verificar que las implementaciones de puertos siguen viviendo en`adapters`. |
 | `docker-compose.yml` y Compose individual                                                            | Agregar servicio RabbitMQ y conexion de red.                                  |
@@ -477,7 +477,7 @@ RabbitMQ inbound adapter
 | `Arquitectura-Onion/src/main/resources/application.yml`                                       | Configurar RabbitMQ y las propiedades de mensajeria.    |
 | `Arquitectura-Onion/src/main/java/com/andinaseguros/infrastructure/config/UseCaseConfig.java` | Registrar beans de RabbitMQ y seleccionar el gateway.   |
 | `Arquitectura-Onion/src/main/java/com/andinaseguros/infrastructure/event/`                    | Agregar publicador RabbitMQ, mapper y DTO.              |
-| `andina-notification-consumer`                                                                | Crear consumidor, idempotencia y adaptador de WhatsApp. |
+| `notification-consumer`                                                                | Crear consumidor, idempotencia y adaptador de WhatsApp. |
 | `Arquitectura-Onion/src/test/java/com/andinaseguros/infrastructure/event/`                    | Probar la infraestructura AMQP.                         |
 | `Arquitectura-Onion/src/test/java/com/andinaseguros/architecture/OnionArchitectureTest.java`  | Confirmar que AMQP solo aparece en infraestructura.     |
 | `docker-compose.yml` y Compose individual                                                     | Agregar RabbitMQ, volumen, red y credenciales.          |

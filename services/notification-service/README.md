@@ -1,6 +1,6 @@
 # notification-service
 
-Primer microservicio de la migración (fase 1). Envía por WhatsApp (JSON.pe) el aviso de póliza emitida. Antes se llamaba `andina-notification-consumer` y leía el teléfono directamente de la colección `clientes` del backend; ahora tiene **su propia base** y una **copia local de los contactos** que mantiene con eventos.
+Primer microservicio de la migración (fase 1). Envía por WhatsApp (JSON.pe) el aviso de póliza emitida. Antes se llamaba `notification-consumer` y leía el teléfono directamente de la colección `clientes` del backend; ahora tiene **su propia base** y una **copia local de los contactos** que mantiene con eventos.
 
 Diseño completo, decisiones y pruebas realizadas: [doc/5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md](../../doc/5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).
 
