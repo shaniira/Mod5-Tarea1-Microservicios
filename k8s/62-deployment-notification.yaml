@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: notification-service
-  namespace: andina-seguros
+  namespace: backend-seguros
   labels:
     app: notification-service
 spec:
@@ -30,7 +30,7 @@ spec:
         runAsUser: 1001 # usuario "spring" de la imagen
       containers:
         - name: notification-service
-          image: andina-notification-service:1.1.0
+          image: notification-service:1.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

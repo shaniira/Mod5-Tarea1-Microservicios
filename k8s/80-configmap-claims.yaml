@@ -2,12 +2,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: claims-config
-  namespace: andina-seguros
+  namespace: backend-seguros
 data:
   SERVER_PORT: "8080"
-  SPRING_RABBITMQ_HOST: "rabbitmq-service.andina-seguros.svc.cluster.local"
+  SPRING_RABBITMQ_HOST: "rabbitmq-service.backend-seguros.svc.cluster.local"
   SPRING_RABBITMQ_PORT: "5672"
-  JWT_JWKS_URI: "http://identity-service.andina-seguros.svc.cluster.local:8080/.well-known/jwks.json"
+  JWT_JWKS_URI: "http://identity-service.backend-seguros.svc.cluster.local:8080/.well-known/jwks.json"
   JWT_ISSUER: "andina-identity"
   # Paso 4.5: el servicio es la fuente de sus eventos desde el corte.
   CLAIMS_EVENTS_PUBLISH_ENABLED: "true"

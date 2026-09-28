@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-gateway
-  namespace: andina-seguros
+  namespace: backend-seguros
   labels:
     app: api-gateway
 spec:
@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: andina-api-gateway:1.0.0
+          image: api-gateway:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

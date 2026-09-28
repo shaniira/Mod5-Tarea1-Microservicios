@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: identity-service
-  namespace: andina-seguros
+  namespace: backend-seguros
   labels:
     app: identity-service
 spec:
@@ -31,7 +31,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: identity-service
-          image: andina-identity-service:1.0.0
+          image: identity-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

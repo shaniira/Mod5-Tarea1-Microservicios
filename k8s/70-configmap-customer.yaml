@@ -2,15 +2,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: customer-config
-  namespace: andina-seguros
+  namespace: backend-seguros
 data:
   SERVER_PORT: "8080"
-  REDIS_HOST: "redis-service.andina-seguros.svc.cluster.local"
+  REDIS_HOST: "redis-service.backend-seguros.svc.cluster.local"
   REDIS_PORT: "6379"
   REDIS_DATABASE: "2" # 0: rate limiter del gateway, 1: identity-service
-  SPRING_RABBITMQ_HOST: "rabbitmq-service.andina-seguros.svc.cluster.local"
+  SPRING_RABBITMQ_HOST: "rabbitmq-service.backend-seguros.svc.cluster.local"
   SPRING_RABBITMQ_PORT: "5672"
-  JWT_JWKS_URI: "http://identity-service.andina-seguros.svc.cluster.local:8080/.well-known/jwks.json"
+  JWT_JWKS_URI: "http://identity-service.backend-seguros.svc.cluster.local:8080/.well-known/jwks.json"
   JWT_ISSUER: "andina-identity"
   JSONPE_BASE_URL: "https://api.json.pe"
   # Paso 3.5: customer-service es la fuente de customer.* desde el corte.

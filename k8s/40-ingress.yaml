@@ -8,8 +8,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: andina-seguros-ingress
-  namespace: andina-seguros
+  name: backend-seguros-ingress
+  namespace: backend-seguros
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "5m"
@@ -19,10 +19,10 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-    - hosts: ["andina-seguros.example.com"]
-      secretName: andina-seguros-tls
+    - hosts: ["backend-seguros.example.com"]
+      secretName: backend-seguros-tls
   rules:
-    - host: andina-seguros.example.com
+    - host: backend-seguros.example.com
       http:
         paths:
           - path: /api

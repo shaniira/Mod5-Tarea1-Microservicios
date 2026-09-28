@@ -9,7 +9,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: rabbitmq-plugins
-  namespace: andina-seguros
+  namespace: backend-seguros
 data:
   # shovel: reproceso de DLQ (infra/rabbitmq/reprocesar-dlq.sh); prometheus: métricas por cola.
   enabled_plugins: "[rabbitmq_management,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_shovel_management]."
@@ -18,7 +18,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: rabbitmq
-  namespace: andina-seguros
+  namespace: backend-seguros
   labels: { app: rabbitmq }
 spec:
   serviceName: rabbitmq-service
@@ -77,7 +77,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: rabbitmq-service
-  namespace: andina-seguros
+  namespace: backend-seguros
 spec:
   selector: { app: rabbitmq }
   ports:

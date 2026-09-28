@@ -2,20 +2,20 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: identity-config
-  namespace: andina-seguros
+  namespace: backend-seguros
 data:
   SERVER_PORT: "8080"
-  REDIS_HOST: "redis-service.andina-seguros.svc.cluster.local"
+  REDIS_HOST: "redis-service.backend-seguros.svc.cluster.local"
   REDIS_PORT: "6379"
   REDIS_DATABASE: "1" # la 0 es del rate limiter del gateway
-  SPRING_RABBITMQ_HOST: "rabbitmq-service.andina-seguros.svc.cluster.local"
+  SPRING_RABBITMQ_HOST: "rabbitmq-service.backend-seguros.svc.cluster.local"
   SPRING_RABBITMQ_PORT: "5672"
   JWT_PRIVATE_KEY_FILE: "/run/keys/identity/private.pem"
   JWT_ISSUER: "andina-identity"
   JWT_EXPIRATION_SECONDS: "28800"
   GOOGLE_CLIENT_ID: "" # no es secreto (viaja tambien en el bundle del frontend); completar por entorno
   FACEBOOK_APP_ID: "" # tampoco es secreto; completar por entorno
-  FACEBOOK_REDIRECT_URI: "https://andina-seguros.example.com/api/auth/facebook/callback"
+  FACEBOOK_REDIRECT_URI: "https://backend-seguros.example.com/api/auth/facebook/callback"
   FACEBOOK_SCOPES: "public_profile,email"
-  FACEBOOK_FRONTEND_CALLBACK_URL: "https://andina-seguros.example.com/login"
+  FACEBOOK_FRONTEND_CALLBACK_URL: "https://backend-seguros.example.com/login"
   FACEBOOK_LOGIN_TICKET_TTL_SECONDS: "60"

@@ -4,13 +4,13 @@
 # para la fase 7.
 #
 # Usa los mismos scripts que Docker Compose (infra/mongo). Crear el ConfigMap antes de aplicar:
-#   kubectl create configmap mongodb-scripts -n andina-seguros --from-file=infra/mongo/
+#   kubectl create configmap mongodb-scripts -n backend-seguros --from-file=infra/mongo/
 # y el Secret con las claves (ver 33-secret-mongodb.example.yaml).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mongodb-data
-  namespace: andina-seguros
+  namespace: backend-seguros
 spec:
   accessModes: ["ReadWriteOnce"]
   resources:
@@ -21,7 +21,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
-  namespace: andina-seguros
+  namespace: backend-seguros
   labels: { app: mongodb }
 spec:
   replicas: 1
@@ -44,7 +44,7 @@ spec:
             - { name: MONGO_REPLICA_SET, value: rs0 }
             # Nombre con el que los clientes llegan a este nodo. El Service es headless, asi el
             # nombre resuelve a la IP del Pod y mongod se reconoce en la configuracion.
-            - { name: MONGO_REPLICA_HOST, value: "mongodb-service.andina-seguros.svc.cluster.local:27017" }
+            - { name: MONGO_REPLICA_HOST, value: "mongodb-service.backend-seguros.svc.cluster.local:27017" }
           volumeMounts:
             - { name: data, mountPath: /data/db }
             - { name: scripts, mountPath: /scripts, readOnly: true }
@@ -76,7 +76,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mongodb-service
-  namespace: andina-seguros
+  namespace: backend-seguros
 spec:
   clusterIP: None # headless: el nombre resuelve a la IP del Pod (necesario para el replica set)
   # El nombre debe existir antes de que el Pod este listo: rs.initiate lo necesita para arrancar.
