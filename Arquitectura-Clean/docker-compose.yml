@@ -83,7 +83,10 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-andina}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-andina-local}
     # Sin puertos en el host (paso 0.6): la consola se abre con docker-compose.debug.yml.
-    volumes: ["rabbitmq_data:/var/lib/rabbitmq"]
+    # Fase 7: plugins fijos, incluido shovel para reprocesar DLQ (infra/rabbitmq/reprocesar-dlq.sh).
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ../infra/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     networks: ["rabbitmq_network"]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]

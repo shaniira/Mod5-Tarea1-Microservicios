@@ -11,7 +11,7 @@ customer-service / policy-service ──(Outbox)──► RabbitMQ (andina.event
    customer.registered.v1 / customer.updated.v1  (customer-service)
         └─► notification.customer.events ─► CustomerEventsListener ─► customer_contacts (notification_db)
    policy.issued.v1  (policy-service; el exchange heredado andina.insurance.events se retiró en el paso 6.11)
-        └─► andina.policy.notification.queue ─► PolicyIssuedListener
+        └─► notification.policy.events ─► PolicyIssuedListener
                 ─► teléfono desde customer_contacts ─► WhatsApp (timeout + retry + circuit breaker)
 ```
 
@@ -107,19 +107,16 @@ docker exec andina-notification-service wget -qO- http://localhost:8080/actuator
 
 Cuando `notification_dlq_messages` es mayor que 0 (también aparece un `WARN` "La DLQ ... tiene N mensaje(s)" en el log):
 
-1. **Ver la causa.** En el log está el motivo de cada mensaje (`Mensaje <id> enviado a la DLQ: <causa>`). En la consola de RabbitMQ (http://localhost:15672, cola `andina.policy.notification.dlq` o `notification.customer.events.dlq`, "Get messages") se ve el contenido.
+1. **Ver la causa.** En el log está el motivo de cada mensaje (`Mensaje <id> enviado a la DLQ: <causa>`). En la consola de RabbitMQ (http://localhost:15672, cola `notification.policy.events.dlq` o `notification.customer.events.dlq`, "Get messages") se ve el contenido.
 2. **Corregir la causa.** Ejemplos: si falta el contacto, ejecutar el backfill (arriba); si el token de WhatsApp era incorrecto, corregir `WHATSAPP_TOKEN` y reiniciar el servicio.
-3. **Mover los mensajes de vuelta a la cola principal** con un shovel que se borra solo al vaciar la DLQ:
+3. **Mover los mensajes de vuelta a la cola principal** con el script común (un shovel que se borra solo al vaciar la DLQ; el plugin ya viene activo desde la fase 7):
 
    ```bash
-   docker exec andina-clean-rabbitmq-1 rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management
-   docker exec andina-clean-rabbitmq-1 rabbitmqctl set_parameter shovel reproceso-dlq-polizas \
-     '{"src-protocol":"amqp091","src-uri":"amqp://","src-queue":"andina.policy.notification.dlq",
-       "dest-protocol":"amqp091","dest-uri":"amqp://","dest-queue":"andina.policy.notification.queue",
-       "src-delete-after":"queue-length"}'
+   sh infra/rabbitmq/reprocesar-dlq.sh notification.policy.events.dlq
+   sh infra/rabbitmq/reprocesar-dlq.sh notification.customer.events.dlq
    ```
 
-   Para la DLQ de clientes, lo mismo con `notification.customer.events.dlq` → `notification.customer.events`. Con el plugin activo también se puede usar "Move messages" en la consola.
+   También se puede usar "Move messages" en la consola de RabbitMQ.
 4. **Comprobar** que la DLQ quedó en 0. Los mensajes que ya se habían enviado no se repiten (`inbox`).
 
 Si un mensaje no tiene arreglo (por ejemplo, una póliza de prueba), se descarta con `rabbitmqctl purge_queue <dlq>`.
