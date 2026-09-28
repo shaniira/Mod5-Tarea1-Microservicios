@@ -1,13 +1,28 @@
 # Requiere el Secret `rabbitmq-secrets` (ver 31-secret-rabbitmq.example.yaml) ya creado en el
 # namespace antes de aplicar este archivo.
+#
+# Fase 7: StatefulSet con volumen persistente (antes Deployment con emptyDir). RabbitMQ guarda su
+# estado en /var/lib/rabbitmq/mnesia/rabbit@<hostname>: con un StatefulSet el Pod se llama siempre
+# rabbitmq-0, así que el nodo conserva colas y mensajes al reiniciarse (con emptyDir y un nombre de
+# Pod aleatorio se perdían). Mismo defecto que se corrigió en Compose con "hostname: rabbitmq".
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-plugins
+  namespace: andina-seguros
+data:
+  # shovel: reproceso de DLQ (infra/rabbitmq/reprocesar-dlq.sh); prometheus: métricas por cola.
+  enabled_plugins: "[rabbitmq_management,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_shovel_management]."
+---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: rabbitmq
   namespace: andina-seguros
   labels: { app: rabbitmq }
 spec:
-  replicas: 1 # un solo nodo: clustering de RabbitMQ queda como evolucion futura (fase 7)
+  serviceName: rabbitmq-service
+  replicas: 1 # un solo nodo: el clúster de RabbitMQ (quorum queues) queda documentado como evolución
   selector: { matchLabels: { app: rabbitmq } }
   template:
     metadata:
@@ -19,14 +34,12 @@ spec:
           ports:
             - { name: amqp, containerPort: 5672 }
             - { name: management, containerPort: 15672 }
+            - { name: prometheus, containerPort: 15692 }
           envFrom:
             - secretRef: { name: rabbitmq-secrets }
           volumeMounts:
-            # Directorio propio en vez del overlay del contenedor: en algunos runtimes
-            # (verificado con kind/containerd) el entrypoint de la imagen oficial falla con
-            # "Error when reading /var/lib/rabbitmq/.erlang.cookie: eacces" al hacer chown
-            # sobre el overlay de solo-imagen. Un emptyDir montado ahi evita el problema.
             - { name: rabbitmq-data, mountPath: /var/lib/rabbitmq }
+            - { name: plugins, mountPath: /etc/rabbitmq/enabled_plugins, subPath: enabled_plugins }
           # rabbitmq-diagnostics arranca su propio nodo Erlang de corta vida para preguntarle
           # al principal: bajo carga (o en un host de desarrollo con CPU limitada) tarda mas
           # de 1s, el timeout por defecto de Kubernetes. Sin timeoutSeconds explicito, el
@@ -49,8 +62,16 @@ spec:
             requests: { cpu: "250m", memory: "512Mi" }
             limits: { cpu: "1", memory: "1Gi" }
       volumes:
-        - name: rabbitmq-data
-          emptyDir: {}
+        - name: plugins
+          configMap: { name: rabbitmq-plugins }
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
@@ -62,3 +83,4 @@ spec:
   ports:
     - { name: amqp, port: 5672, targetPort: amqp }
     - { name: management, port: 15672, targetPort: management } # solo accesible dentro del cluster (kubectl port-forward)
+    - { name: prometheus, port: 15692, targetPort: prometheus }
