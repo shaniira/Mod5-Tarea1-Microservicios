@@ -66,6 +66,11 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management
+    # Nombre de host fijo: RabbitMQ guarda su estado en /var/lib/rabbitmq/mnesia/rabbit@<host>. Sin
+    # esto, cada vez que se recrea el contenedor arranca un nodo nuevo y vacío (colas y mensajes
+    # pendientes quedan en el directorio del nodo anterior). Visto el 2026-09-27 al sumarlo a la
+    # red de observabilidad.
+    hostname: rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-andina}
@@ -76,7 +81,8 @@ services:
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
-      timeout: 5s
+      # rabbitmq-diagnostics arranca su propio nodo Erlang: con el host cargado tarda más de 5 s.
+      timeout: 15s
       retries: 15
 
   # --- Fase 1: notification-service (antes "consumer") con base propia ---------------------------
