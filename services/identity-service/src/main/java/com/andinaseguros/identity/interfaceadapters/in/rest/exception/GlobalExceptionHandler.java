@@ -5,8 +5,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.*;
 import org.slf4j.*;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -104,8 +107,40 @@ public class GlobalExceptionHandler {
                                 Map.of()));
     }
 
+    /**
+     * Fase 7: un id que no es UUID, un parámetro de otro tipo o un JSON mal formado son errores del
+     * cliente (400). Antes caían en el 500 genérico, igual que en el monolito.
+     */
+    @ExceptionHandler({TypeMismatchException.class, HttpMessageNotReadableException.class})
+    ResponseEntity<ApiError> malFormada(Exception exception, HttpServletRequest request) {
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiError(
+                                OffsetDateTime.now(),
+                                400,
+                                "SOLICITUD_MAL_FORMADA",
+                                "La solicitud tiene un formato inválido",
+                                request.getRequestURI(),
+                                Map.of()));
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiError> generic(Exception exception, HttpServletRequest request) {
+        if (exception instanceof ErrorResponse respuesta) {
+            // Errores propios de Spring MVC con su código: ruta inexistente (404), método no
+            // permitido (405), tipo de contenido no soportado (415)...
+            int status = respuesta.getStatusCode().value();
+            String codigo = status == 404 ? "RECURSO_NO_ENCONTRADO" : "SOLICITUD_NO_SOPORTADA";
+            return ResponseEntity.status(status)
+                    .body(
+                            new ApiError(
+                                    OffsetDateTime.now(),
+                                    status,
+                                    codigo,
+                                    respuesta.getBody().getTitle(),
+                                    request.getRequestURI(),
+                                    Map.of()));
+        }
         log.error("Error no controlado en {}", request.getRequestURI(), exception);
 
         return ResponseEntity.status(500)

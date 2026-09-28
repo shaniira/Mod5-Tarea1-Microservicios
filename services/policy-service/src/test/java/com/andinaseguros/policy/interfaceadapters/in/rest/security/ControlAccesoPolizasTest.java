@@ -87,6 +87,16 @@ class ControlAccesoPolizasTest {
         mvc.perform(get("/api/mi-cuenta/polizas").with(rol("ADMIN"))).andExpect(status().isForbidden());
     }
 
+    /** Fase 7: un id que no es UUID o un JSON roto es un error del cliente, no un 500. */
+    @Test
+    void unaSolicitudMalFormadaEs400YNo500() throws Exception {
+        mvc.perform(get("/api/polizas/{id}", "no-es-uuid").with(rol("ADMIN"))).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/polizas").with(rol("ADMIN")).contentType("application/json").content("{"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/polizas/{id}/no-existe", UUID.randomUUID()).with(rol("ADMIN")))
+                .andExpect(status().isNotFound());
+    }
+
     private static RequestPostProcessor cliente(UUID customerId) {
         return jwt().jwt(j -> j.claim("rol", "CLIENTE").claim("customerId", customerId.toString()))
                 .authorities(new SimpleGrantedAuthority("ROLE_CLIENTE"));

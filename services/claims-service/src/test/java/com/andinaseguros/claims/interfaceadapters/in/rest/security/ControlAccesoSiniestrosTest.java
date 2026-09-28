@@ -89,6 +89,19 @@ class ControlAccesoSiniestrosTest {
                 .thenReturn(Optional.of(new PolizaRef(polizaDeAna, ana, "POL-1", EstadoPoliza.VIGENTE)));
     }
 
+    /** Fase 7: un id que no es UUID o un JSON roto es un error del cliente, no un 500. */
+    @Test
+    void unaSolicitudMalFormadaEs400YNo500() throws Exception {
+        mvc.perform(get("/api/polizas/{id}/siniestros", "no-es-uuid").with(rol("ADMIN")))
+                .andExpect(status().isBadRequest());
+        mvc.perform(
+                        patch("/api/polizas/{id}/siniestros/{sid}/estado", UUID.randomUUID(), UUID.randomUUID())
+                                .with(rol("ADMIN"))
+                                .contentType("application/json")
+                                .content("{"))
+                .andExpect(status().isBadRequest());
+    }
+
     private static RequestPostProcessor cliente(UUID customerId) {
         return jwt().jwt(j -> j.claim("rol", "CLIENTE").claim("customerId", customerId.toString()))
                 .authorities(new SimpleGrantedAuthority("ROLE_CLIENTE"));

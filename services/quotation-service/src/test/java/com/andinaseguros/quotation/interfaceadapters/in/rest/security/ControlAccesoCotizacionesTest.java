@@ -92,6 +92,14 @@ class ControlAccesoCotizacionesTest {
                 .andExpect(jsonPath("$.codigo").value("CLIENTES_NO_DISPONIBLE"));
     }
 
+    /** Fase 7: un id que no es UUID o un JSON roto es un error del cliente, no un 500. */
+    @Test
+    void unaSolicitudMalFormadaEs400YNo500() throws Exception {
+        mvc.perform(get("/api/cotizaciones/{id}", "no-es-uuid").with(rol("ADMIN"))).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/cotizaciones").with(rol("ADMIN")).contentType("application/json").content("{"))
+                .andExpect(status().isBadRequest());
+    }
+
     private static RequestPostProcessor cliente(UUID customerId) {
         return jwt().jwt(j -> j.claim("rol", "CLIENTE").claim("customerId", customerId.toString()))
                 .authorities(new SimpleGrantedAuthority("ROLE_CLIENTE"));
