@@ -31,11 +31,5 @@ spec:
               service:
                 name: api-gateway-service
                 port: { number: 8080 }
-          - path: /swagger-ui.html
-            pathType: Prefix
-            backend:
-              service: { name: api-gateway-service, port: { number: 8080 } }
-          - path: /v3/api-docs
-            pathType: Prefix
-            backend:
-              service: { name: api-gateway-service, port: { number: 8080 } }
+          # Paso 6.10: sin /swagger-ui.html ni /v3/api-docs; eran del monolito. Los contratos de
+          # cada servicio están en contracts/openapi.

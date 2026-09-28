@@ -79,12 +79,12 @@ kind delete cluster --name andina-seguros      # borrar todo el clúster de prue
 kubectl apply -f k8s/00-namespace.yaml
 
 # Secretos reales primero (nunca los *.example.yaml tal cual). Fase 2: la clave privada RS256
-# de los JWT solo la monta identity-service; gateway y backend usan la clave publica (JWKS).
+# de los JWT solo la monta identity-service; el gateway y los servicios usan la clave publica (JWKS).
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
 kubectl create secret generic identity-jwt-key --namespace andina-seguros \
   --from-file=private.pem=private.pem && rm private.pem
 # repetir el patrón con mongodb-secrets (33-secret-mongodb.example.yaml), identity-secrets
-# (51), backend-secrets (21), notification-secrets (61) y rabbitmq-secrets (31).
+# (51), notification-secrets (61) y rabbitmq-secrets (31).
 # MongoDB usa los mismos scripts que Docker Compose (replica set + usuarios por servicio):
 kubectl create configmap mongodb-scripts --namespace andina-seguros --from-file=infra/mongo/
 
@@ -93,9 +93,8 @@ kubectl apply -f k8s/12-deployment-gateway.yaml
 kubectl apply -f k8s/13-service-gateway.yaml
 kubectl apply -f k8s/14-hpa-gateway.yaml
 
-kubectl apply -f k8s/20-configmap-backend.yaml
-kubectl apply -f k8s/22-deployment-backend.yaml
-kubectl apply -f k8s/23-service-backend.yaml
+# Paso 6.10: el monolito (backend) ya no se despliega. Sus manifiestos quedan archivados en
+# k8s/archivo-monolito/ (20-23) solo como referencia.
 
 kubectl apply -f k8s/30-mongodb.yaml
 kubectl apply -f k8s/31-rabbitmq.yaml
@@ -111,7 +110,7 @@ kubectl apply -f k8s/60-configmap-notification.yaml
 kubectl apply -f k8s/62-deployment-notification.yaml
 
 # Fases 3 a 6: customer, claims, quotation y policy (antes, sus Secrets: 71, 81, 91 y 96).
-# El gateway (11) ya apunta a ellos; el backend queda sin tráfico de negocio.
+# El gateway (11) ya apunta a ellos.
 for s in 70-configmap-customer 72-deployment-customer 73-service-customer \
          80-configmap-claims 82-deployment-claims 83-service-claims \
          90-configmap-quotation 92-deployment-quotation 93-service-quotation \
@@ -133,7 +132,7 @@ kubectl logs -n andina-seguros deploy/api-gateway -f
 
 | Punto | Decisión | Por qué |
 |---|---|---|
-| **backend sin HPA** | No se define `HorizontalPodAutoscaler` para `backend` y su `Deployment` queda en `replicas: 1` | Desde la fase 2 el estado efímero (OAuth, tickets, MFA) está en Redis dentro de identity-service, pero el relay del Outbox del backend está pensado para una sola réplica. Se habilita el escalado cuando el relay reclame cada evento antes de enviarlo. |
+| **backend sin HPA** (archivado en el paso 6.10) | No se define `HorizontalPodAutoscaler` para `backend` y su `Deployment` queda en `replicas: 1` | Desde la fase 2 el estado efímero (OAuth, tickets, MFA) está en Redis dentro de identity-service, pero el relay del Outbox del backend está pensado para una sola réplica. Se habilita el escalado cuando el relay reclame cada evento antes de enviarlo. |
 | **identity-service con 2 réplicas** | `replicas: 2`, sin HPA todavía | No guarda estado en memoria (Redis), así que escala sin fallos de MFA ni Facebook (probado en Docker Compose, paso 2.10). Usa la base `identity_db` del MongoDB del clúster con su propio usuario (solo `readWrite` sobre esa base). |
 | **api-gateway con HPA y 2 réplicas mínimo** | `minReplicas: 2`, CPU 70% / memoria 80% | El Gateway no guarda estado propio (el rate limiter vive en Redis), así que sí es seguro escalarlo horizontalmente desde ya. Cumple la regla "API Gateway: mínimo 2 réplicas en ambientes no locales". |
 | **MongoDB y RabbitMQ de un solo Pod** | `replicas: 1`, sin clustering | MongoDB es un replica set **de un nodo** (necesario para las transacciones del Outbox) con autenticación obligatoria y un usuario por servicio (`andina`, `identity`, `notification`), cada uno solo con permiso sobre su base. El Service es headless para que el nombre del replica set resuelva a la IP del Pod. Alta disponibilidad real (3 nodos) queda para la fase 7. |

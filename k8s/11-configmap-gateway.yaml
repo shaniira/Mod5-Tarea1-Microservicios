@@ -7,7 +7,6 @@ data:
   SERVER_PORT: "8080"
   # Service DNS de Kubernetes: "<service>.<namespace>.svc.cluster.local" o, dentro del mismo
   # namespace, simplemente "<service>". Nunca una IP de Pod (los Pods son efimeros).
-  BACKEND_SERVICE_URL: "http://backend-service.andina-seguros.svc.cluster.local:8080"
   REDIS_HOST: "redis-service.andina-seguros.svc.cluster.local"
   REDIS_PORT: "6379"
   CORS_ALLOWED_ORIGINS: "https://andina-seguros.example.com"
@@ -16,8 +15,8 @@ data:
   IDENTITY_SERVICE_URL: "http://identity-service.andina-seguros.svc.cluster.local:8080"
   JWT_JWKS_URI: "http://identity-service.andina-seguros.svc.cluster.local:8080/.well-known/jwks.json"
   JWT_ISSUER: "andina-identity"
-  # Corte de las fases 3 a 6: el negocio va a los microservicios. Reversa: apuntar cualquiera de
-  # estas URL al backend. "Mi cuenta" compone customer-service y policy-service.
+  # Corte de las fases 3 a 6: el negocio va a los microservicios. "Mi cuenta" compone
+  # customer-service y policy-service. Paso 6.10: sin backend (manifiestos en archivo-monolito/).
   CUSTOMER_SERVICE_URL: "http://customer-service.andina-seguros.svc.cluster.local:8080"
   CLAIMS_SERVICE_URL: "http://claims-service.andina-seguros.svc.cluster.local:8080"
   QUOTATION_SERVICE_URL: "http://quotation-service.andina-seguros.svc.cluster.local:8080"
