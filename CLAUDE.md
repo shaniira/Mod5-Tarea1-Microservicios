@@ -120,7 +120,12 @@ Al terminar:
 
 ## Siguiente trabajo
 
-Las 8 fases de la ruta están cerradas (fase 7: `n_…`). Lo que queda son decisiones documentadas para cuando el negocio lo pida (`n_…`, secciones 5 y 6):
+Las 8 fases de la ruta están cerradas (fase 7: `n_…`). Dos decisiones esperan a la dueña del proyecto (`n_…`, sección 9):
+
+- **Siniestro recién registrado y renovación:** evaluación provisional hasta que `claim_ref` alcance la versión de claims, o consulta directa a claims con circuit breaker.
+- **Revocación con Redis caído:** aceptar que un token revocado valga hasta vencer (máx. 8 h) o acortar la vida del token.
+
+El resto son decisiones documentadas para cuando el negocio lo pida (`n_…`, secciones 5 y 6):
 
 1. **Kubernetes:** manifiestos validados (kubeconform en CI; RabbitMQ ya es `StatefulSet` con volumen) pero no aplicados. El clúster kind local está apagado (`docker start andina-seguros-control-plane`) y todavía tiene el despliegue de la fase 0.
 2. **Seguridad para producción:** permisos de RabbitMQ por servicio y TLS interno (S5), token en cookie `HttpOnly` con renovación (S8), Alertmanager.
