@@ -9,6 +9,8 @@
 #   bash infra/operacion/caos.sh claims rabbitmq # solo algunos
 # Casos básicos: claims notification customer quotation policy identity rabbitmq redis
 #                mongo-policy whatsapp jsonpe
+# Casos de consistencia: renovacion-reciente (siniestro justo antes de renovar), renovacion-claims
+#                (claims caído al renovar), revocacion-redis (token revocado con Redis caído)
 # Casos largos:  replicas (2 réplicas de policy), relay-lote (lote acumulado con 2 réplicas),
 #                identity-larga (identity caído 6 minutos)
 # Sale con código 1 si algún resultado no es el esperado.
@@ -289,11 +291,68 @@ caso_relay_lote() {
 }
 
 CASOS=("$@")
+# --- Fase 7: consistencia en la renovación (CP en el paso irreversible) ---------------------------
+codigo_de() { node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const i=s.indexOf(' ');let c='';try{c=JSON.parse(s.slice(i+1)).codigo||''}catch(e){};console.log(s.slice(0,i)+' '+c)})"; }
+renovacion_aprobada() { # deja en PID una póliza emitida y en RID su renovación aprobada
+  cotizar_y_aceptar; sleep 4
+  PID=$(emitir "$QID" | campo id); sleep 4
+  RID=$(api POST "/api/renovaciones/poliza/$PID/evaluar" | campo id)
+  api PATCH "/api/renovaciones/$RID/aprobar" > /dev/null
+}
+
+caso_renovacion_reciente() {
+  echo "== Siniestro registrado justo antes de generar la renovación: claims lo confirma y no se renueva"
+  renovacion_aprobada
+  local SID R
+  SID=$(api POST "/api/polizas/$PID/siniestros" '{"fecha":"2026-11-05","tipo":"CHOQUE","montoEstimado":700,"responsabilidadAsegurado":false,"gravedad":"LEVE","estado":"REPORTADO"}' | campo id)
+  # Inmediatamente, sin esperar a que el evento llegue a la copia claim_ref de policy.
+  R=$(api POST "/api/renovaciones/$RID/generar-poliza" | codigo_de)
+  [ "$R" = "422 SINIESTROS_PENDIENTES" ] && ok "generar con el siniestro recién registrado: 422 SINIESTROS_PENDIENTES" || falla "generar con siniestro reciente: $R"
+  api PATCH "/api/polizas/$PID/siniestros/$SID/estado" '{"estado":"LIQUIDADO"}' > /dev/null
+  R=$(api POST "/api/renovaciones/$RID/generar-poliza" | codigo_de)
+  [ "$R" = "422 RENOVACION_DESACTUALIZADA" ] && ok "con el siniestro ya cerrado, la propuesta vieja pide reevaluar: 422 RENOVACION_DESACTUALIZADA" || falla "propuesta desactualizada: $R"
+  sleep 4
+  RID=$(api POST "/api/renovaciones/poliza/$PID/evaluar" | campo id)
+  api PATCH "/api/renovaciones/$RID/aprobar" > /dev/null
+  R=$(api POST "/api/renovaciones/$RID/generar-poliza" | cut -d' ' -f1)
+  [ "$R" = 201 ] && ok "reevaluada con el siniestro, se genera la renovada: 201" || falla "generar tras reevaluar: $R"
+}
+
+caso_renovacion_claims() {
+  echo "== claims-service caído al generar una renovación: 503 y no se renueva (se prefiere error a dato viejo)"
+  renovacion_aprobada
+  apagar claims-service
+  local R; R=$(api POST "/api/renovaciones/$RID/generar-poliza" | codigo_de)
+  [ "$R" = "503 SINIESTROS_NO_DISPONIBLE" ] && ok "generar sin claims: 503 SINIESTROS_NO_DISPONIBLE" || falla "generar sin claims: $R"
+  api GET "/api/polizas/$PID" | grep -q '"estado":"VIGENTE"' && ok "la póliza original sigue VIGENTE" || falla "la póliza original cambió de estado"
+  encender claims-service
+  R=$(api POST "/api/renovaciones/$RID/generar-poliza" | cut -d' ' -f1)
+  [ "$R" = 201 ] && ok "con claims de vuelta se genera la renovada: 201" || falla "generar al volver claims: $R"
+}
+
+# --- Fase 7: revocación con Redis caído (copia local en el gateway) ------------------------------
+caso_revocacion_redis() {
+  echo "== Redis caído: un token con sesión cerrada sigue rechazado (copia local); uno vigente sigue sirviendo"
+  local T_CERRADO C
+  T_CERRADO=$(T= ; token; echo "$T"); token
+  C=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/logout" -H "Authorization: Bearer $T_CERRADO")
+  echo "  INFO   logout: $C"
+  C=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T_CERRADO" "$BASE/api/polizas")
+  [ "$C" = 401 ] && ok "token con sesión cerrada, Redis sano: 401" || falla "token con sesión cerrada: $C"
+  sleep 7 # que la copia local del gateway se refresque (cada 5 s)
+  apagar andina-clean-redis
+  C=$(curl -s -o /dev/null -w '%{http_code}' -m 20 -H "Authorization: Bearer $T_CERRADO" "$BASE/api/polizas")
+  [ "$C" = 401 ] && ok "token con sesión cerrada, Redis caído: 401 (copia local)" || falla "token revocado con Redis caído: $C"
+  C=$(codigo GET /api/polizas); [ "$C" = 200 ] && ok "token vigente, Redis caído: 200" || falla "token vigente con Redis caído: $C"
+  echo "  INFO   decisiones con la copia: $(docker exec andina-api-gateway wget -qO- http://localhost:8080/actuator/prometheus 2>/dev/null | grep '^gateway_revocaciones_copia_usos_total' | awk '{print $2}')"
+  encender andina-clean-redis
+}
+
 BASICOS=(claims notification customer quotation policy identity rabbitmq redis mongo-policy whatsapp jsonpe)
 # Sin argumentos: los casos básicos (~25 min). "todos" suma los largos: réplicas, lote con 2
 # réplicas e identity caído 6 minutos (~40 min en total).
 [ ${#CASOS[@]} -eq 0 ] && CASOS=("${BASICOS[@]}")
-[ "${CASOS[*]}" = todos ] && CASOS=("${BASICOS[@]}" replicas relay-lote identity-larga)
+[ "${CASOS[*]}" = todos ] && CASOS=("${BASICOS[@]}" renovacion-reciente renovacion-claims revocacion-redis replicas relay-lote identity-larga)
 preparar
 echo "Pruebas de caos ($CID), cliente $CLIENTE, vehículo $VEHICULO"
 for caso in "${CASOS[@]}"; do "caso_${caso//-/_}"; token; done
