@@ -29,11 +29,14 @@ services:
       - clean_network
     healthcheck:
       # Inicia el replica set la primera vez y solo da "sano" cuando el nodo ya es PRIMARY.
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "bash", "/scripts/healthcheck.sh"]
-      interval: 5s
+      interval: 30s
       timeout: 15s
-      retries: 30
-      start_period: 20s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   backend:
     image: andina-seguros-clean:1.0.0
@@ -90,10 +93,13 @@ services:
     networks: ["rabbitmq_network"]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
       # rabbitmq-diagnostics arranca su propio nodo Erlang: con el host cargado tarda más de 5 s.
+      # Fase 7: cada 5 s mientras arranca y luego cada 30 s (cada chequeo cuesta CPU).
+      interval: 30s
       timeout: 15s
-      retries: 15
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   # --- Fase 1: notification-service (antes "consumer") con base propia ---------------------------
   # Ya no esta en clean_network: no puede llegar al MongoDB del backend ni aunque quisiera.
@@ -111,10 +117,14 @@ services:
       - ../services/notification-service/mongo-init:/docker-entrypoint-initdb.d:ro
     networks: ["notification_data_network"]
     healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 15
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
     # Sin puerto publicado al host.
 
   notification-service:
@@ -198,10 +208,14 @@ services:
       - ../services/identity-service/mongo-init:/docker-entrypoint-initdb.d:ro
     networks: ["identity_data_network"]
     healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 15
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   # Sin container_name: se puede escalar ("docker compose up --scale identity-service=2", paso
   # 2.10). El gateway y el backend lo encuentran por el DNS de Docker.
@@ -264,11 +278,14 @@ services:
       - ../infra/mongo:/scripts:ro
     networks: ["customer_data_network"]
     healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "bash", "/scripts/healthcheck.sh"]
-      interval: 5s
+      interval: 30s
       timeout: 15s
-      retries: 30
-      start_period: 20s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   customer-service:
     image: customer-service:1.0.0
@@ -327,11 +344,14 @@ services:
       - ../infra/mongo:/scripts:ro
     networks: ["claims_data_network"]
     healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "bash", "/scripts/healthcheck.sh"]
-      interval: 5s
+      interval: 30s
       timeout: 15s
-      retries: 30
-      start_period: 20s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   claims-service:
     image: claims-service:1.0.0
@@ -374,11 +394,14 @@ services:
       - ../infra/mongo:/scripts:ro
     networks: ["quotation_data_network"]
     healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "bash", "/scripts/healthcheck.sh"]
-      interval: 5s
+      interval: 30s
       timeout: 15s
-      retries: 30
-      start_period: 20s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   quotation-service:
     image: quotation-service:1.0.0
@@ -422,11 +445,14 @@ services:
       - ../infra/mongo:/scripts:ro
     networks: ["policy_data_network"]
     healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "bash", "/scripts/healthcheck.sh"]
-      interval: 5s
+      interval: 30s
       timeout: 15s
-      retries: 30
-      start_period: 20s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
 
   policy-service:
     image: policy-service:1.0.0
