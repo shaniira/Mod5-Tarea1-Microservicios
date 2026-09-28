@@ -29,6 +29,9 @@ spring:
       write-dates-as-timestamps: false
 
 app:
+  # Fase 7 (retiro del monolito): siembra las tablas tarifarias demo si no existen.
+  demo-data:
+    enabled: ${APP_DEMO_DATA_ENABLED:false}
   rabbitmq:
     events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
     dead-letter-exchange: ${RABBITMQ_EVENTS_DLX:andina.events.dlx}
