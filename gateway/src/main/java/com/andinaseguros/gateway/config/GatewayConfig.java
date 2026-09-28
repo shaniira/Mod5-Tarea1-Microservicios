@@ -1,6 +1,7 @@
 package com.andinaseguros.gateway.config;
 
 import java.time.Duration;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.gateway.config.HttpClientCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -31,5 +32,11 @@ public class GatewayConfig {
                         spec ->
                                 spec.cacheMaxTimeToLive(Duration.ofSeconds(10))
                                         .cacheNegativeTimeToLive(Duration.ofSeconds(1)));
+    }
+
+    /** Redis del rate limiter: falla rápido si Redis cae (ver {@link RedisSinBloqueo}). */
+    @Bean
+    LettuceClientConfigurationBuilderCustomizer redisSinBloqueo() {
+        return builder -> builder.clientOptions(RedisSinBloqueo.opciones()).commandTimeout(RedisSinBloqueo.TIMEOUT);
     }
 }
