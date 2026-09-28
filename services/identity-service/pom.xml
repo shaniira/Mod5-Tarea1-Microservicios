@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.andinaseguros</groupId>
+  <groupId>com.backendseguros</groupId>
   <artifactId>identity-service</artifactId>
   <version>1.0.0</version>
   <name>Andina Identity Service</name>

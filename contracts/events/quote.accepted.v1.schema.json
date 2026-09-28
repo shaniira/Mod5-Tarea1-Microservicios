@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/quote.accepted.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/quote.accepted.v1.schema.json",
   "title": "quote.accepted.v1",
   "description": "El cliente acepto una cotizacion (PATCH /api/cotizaciones/{id}/aceptar). Lleva todo lo que policy-service necesita para emitir la poliza sin consultar a quotation: cliente, vehiculo, prima, validez de la cotizacion y tarifa aplicada con su desglose. Exchange: andina.events. Publica: quotation-service (fase 5). Consumen: policy-service (fase 6, proyeccion accepted_quotes; indice unico por quoteId contra la doble emision).",
   "type": "object",

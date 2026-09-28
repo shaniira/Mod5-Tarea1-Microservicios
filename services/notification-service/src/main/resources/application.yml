@@ -76,7 +76,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
         automatic-transition-from-open-to-half-open-enabled: true
         record-exceptions:
-          - com.andinaseguros.notification.interfaceadapters.out.whatsapp.WhatsAppTransitorioException
+          - com.backendseguros.notification.interfaceadapters.out.whatsapp.WhatsAppTransitorioException
   retry:
     instances:
       whatsapp:
@@ -85,7 +85,7 @@ resilience4j:
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
         retry-exceptions:
-          - com.andinaseguros.notification.interfaceadapters.out.whatsapp.WhatsAppTransitorioException
+          - com.backendseguros.notification.interfaceadapters.out.whatsapp.WhatsAppTransitorioException
 
 management:
   endpoints:

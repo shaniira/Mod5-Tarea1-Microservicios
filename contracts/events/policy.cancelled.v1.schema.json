@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/policy.cancelled.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/policy.cancelled.v1.schema.json",
   "title": "policy.cancelled.v1",
   "description": "Una poliza paso a CANCELADA. Contrato definido en la fase 6 para claims-service (policy_ref). Hoy ninguna operacion del sistema cancela polizas (ni el monolito ni policy-service), asi que todavia no hay productor. Exchange: andina.events. Publica: policy-service. Consume: claims-service.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/vehicle.registered.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/vehicle.registered.v1.schema.json",
   "title": "vehicle.registered.v1",
   "description": "Un vehiculo fue registrado para un cliente (POST /api/clientes/{id}/vehiculos). Tambien se publica como snapshot en el backfill (POST /api/clientes/eventos/reenvio). Lleva lo que necesita la tarificacion (tipo, uso y anio). Exchange: andina.events. Publica: customer-service (fase 3). Consumen: el backend (proyeccion vehicle_ref, mientras cotiza) y quotation-service (fase 5).",
   "type": "object",

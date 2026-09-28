@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/claim.registered.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/claim.registered.v1.schema.json",
   "title": "claim.registered.v1",
   "description": "Se registro un siniestro sobre una poliza (POST /api/polizas/{polizaId}/siniestros). Tambien se publica como snapshot en el backfill (POST /api/siniestros/eventos/reenvio), con el estado y la version actuales. Lleva lo que necesita la renovacion: el estado (abierto o cerrado) y si el asegurado fue responsable. Exchange: andina.events. Publica: claims-service (fase 4). Consumen: policy-service (fase 6, open_claims_by_policy).",
   "type": "object",

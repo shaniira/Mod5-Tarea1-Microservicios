@@ -77,7 +77,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
         automatic-transition-from-open-to-half-open-enabled: true
         record-exceptions:
-          - com.andinaseguros.identity.interfaceadapters.out.security.google.GoogleIdentityVerifierAdapter$GoogleSinRespuesta
+          - com.backendseguros.identity.interfaceadapters.out.security.google.GoogleIdentityVerifierAdapter$GoogleSinRespuesta
       facebook:
         sliding-window-size: 10
         minimum-number-of-calls: 5
@@ -86,7 +86,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
         automatic-transition-from-open-to-half-open-enabled: true
         record-exceptions:
-          - com.andinaseguros.identity.interfaceadapters.out.external.facebook.FacebookOAuthAdapter$FacebookSinRespuesta
+          - com.backendseguros.identity.interfaceadapters.out.external.facebook.FacebookOAuthAdapter$FacebookSinRespuesta
   # Bulkhead (seccion 6.1): limita las llamadas simultaneas a cada proveedor. Si Google o Facebook
   # se vuelven lentos, solo se ocupan estos cupos y el resto del servicio (login por contrasena,
   # MFA) sigue atendiendo. Sin espera: si no hay cupo, se responde "no disponible" al instante.

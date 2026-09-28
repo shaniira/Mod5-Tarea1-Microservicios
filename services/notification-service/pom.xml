@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.andinaseguros</groupId>
+  <groupId>com.backendseguros</groupId>
   <artifactId>notification-service</artifactId>
   <version>1.1.0</version>
   <name>Andina Notification Service</name>

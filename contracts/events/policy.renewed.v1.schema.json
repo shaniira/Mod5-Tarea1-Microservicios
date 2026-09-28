@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/policy.renewed.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/policy.renewed.v1.schema.json",
   "title": "policy.renewed.v1",
   "description": "Se genero la poliza renovada de una propuesta aprobada (POST /api/renovaciones/{id}/generar-poliza): la poliza nueva queda VIGENTE y la anterior RENOVADA. Exchange: andina.events. Publica: policy-service (fase 6). Consumen: claims-service (policy_ref) y notification-service (a futuro).",
   "type": "object",

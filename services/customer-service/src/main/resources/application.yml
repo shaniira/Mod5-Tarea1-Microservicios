@@ -67,8 +67,8 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
         record-exceptions:
-          - com.andinaseguros.customer.usecases.exception.VehicleProviderUnavailableException
-          - com.andinaseguros.customer.usecases.exception.VehicleProviderTimeoutException
+          - com.backendseguros.customer.usecases.exception.VehicleProviderUnavailableException
+          - com.backendseguros.customer.usecases.exception.VehicleProviderTimeoutException
   retry:
     instances:
       jsonpe:
@@ -78,8 +78,8 @@ resilience4j:
         exponential-backoff-multiplier: 2
         enable-randomized-wait: true
         retry-exceptions:
-          - com.andinaseguros.customer.usecases.exception.VehicleProviderUnavailableException
-          - com.andinaseguros.customer.usecases.exception.VehicleProviderTimeoutException
+          - com.backendseguros.customer.usecases.exception.VehicleProviderUnavailableException
+          - com.backendseguros.customer.usecases.exception.VehicleProviderTimeoutException
   bulkhead:
     instances:
       jsonpe:

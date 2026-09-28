@@ -69,14 +69,14 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
         record-exceptions:
-          - com.andinaseguros.quotation.interfaceadapters.out.cliente.CustomerServiceDirectorioAdapter$CustomerServiceCaido
+          - com.backendseguros.quotation.interfaceadapters.out.cliente.CustomerServiceDirectorioAdapter$CustomerServiceCaido
   retry:
     instances:
       customer:
         max-attempts: 2
         wait-duration: 200ms
         retry-exceptions:
-          - com.andinaseguros.quotation.interfaceadapters.out.cliente.CustomerServiceDirectorioAdapter$CustomerServiceCaido
+          - com.backendseguros.quotation.interfaceadapters.out.cliente.CustomerServiceDirectorioAdapter$CustomerServiceCaido
 
 springdoc:
   # Swagger y el contrato OpenAPI solo en desarrollo (SWAGGER_ENABLED=true en Compose).

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/customer.registered.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/customer.registered.v1.schema.json",
   "title": "customer.registered.v1",
   "description": "Un cliente fue registrado. Tambien se publica como snapshot en el backfill (POST /api/clientes/eventos/reenvio), con la version actual del cliente. Exchange: andina.events. Publica: customer-service (hasta la fase 2 lo publicaba el backend). Consumen: notification-service, identity-service y el backend (proyeccion customer_ref, fase 3).",
   "type": "object",

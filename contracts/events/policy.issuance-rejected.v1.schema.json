@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/policy.issuance-rejected.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/policy.issuance-rejected.v1.schema.json",
   "title": "policy.issuance-rejected.v1",
   "description": "Compensacion de la saga de emision (paso 6.4): policy-service rechazo emitir la poliza de una cotizacion aceptada porque ya no es valida (vencida o ya emitida). quotation-service la deja ACEPTADA y registra el motivo. Exchange: andina.events. Publica: policy-service. Consume: quotation-service.",
   "type": "object",

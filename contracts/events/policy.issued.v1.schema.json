@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://andinaseguros.example/contracts/events/policy.issued.v1.schema.json",
+  "$id": "https://backendseguros.example/contracts/events/policy.issued.v1.schema.json",
   "title": "policy.issued.v1",
   "description": "Se emitio una poliza. Lo publica policy-service en andina.events (el exchange heredado andina.insurance.events, donde publicaba el monolito, se retiro en el paso 6.11). Consumen: notification-service, claims-service (policy_ref) y quotation-service (marca la cotizacion EMITIDA). La cola de auditoria se elimino en el paso 7.9.",
   "type": "object",

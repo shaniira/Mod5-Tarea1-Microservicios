@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.andinaseguros</groupId>
+  <groupId>com.backendseguros</groupId>
   <artifactId>policy-service</artifactId>
   <version>1.0.0</version>
   <name>Policy Service</name>

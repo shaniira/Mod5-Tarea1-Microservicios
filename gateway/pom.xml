@@ -10,7 +10,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.andinaseguros</groupId>
+  <groupId>com.backendseguros</groupId>
   <artifactId>api-gateway</artifactId>
   <version>1.0.0</version>
   <name>Andina Seguros API Gateway</name>
