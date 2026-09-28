@@ -156,7 +156,7 @@ Conclusiones:
 | S5 RabbitMQ con credenciales por defecto y consola publicada | 🟡 Consola y puertos cerrados; contraseña por `.env` (el valor por defecto solo sirve en local). **Decisión:** todos los servicios comparten un usuario; permisos por servicio (cada uno solo sus colas y exchanges) y TLS quedan para producción |
 | S6 Tráfico sin cifrar | ✅ Kubernetes: TLS en el Ingress. Local: perfil `tls` (Caddy, HTTPS en 8443/8444 con HSTS). El tráfico interno entre contenedores sigue sin cifrar (misma máquina o red privada del clúster) |
 | S7 ADMIN demo con contraseña conocida | ✅ Datos demo solo con `APP_DEMO_DATA_ENABLED=true` (Compose local); por defecto apagado |
-| S8 Sesión débil | 🟡 Revocación en Redis (logout y usuarios desactivados). **Decisión:** el token sigue en `localStorage` con 8 h de vida; cookie `HttpOnly` y tokens cortos con renovación quedan como evolución. La CSP nueva (S11) reduce el riesgo de XSS |
+| S8 Sesión débil | 🟡 Revocación en Redis (logout y usuarios desactivados), con copia local en el gateway si Redis cae (sección 10.2). **Decisión:** el token sigue en `localStorage` con 8 h de vida; cookie `HttpOnly` y tokens cortos con renovación quedan como evolución. La CSP nueva (S11) reduce el riesgo de XSS |
 | S9 Sin límite de intentos | ✅ Login y MFA: 1 por segundo por IP en el gateway |
 | S10 Swagger público | ✅ Apagado por defecto; el gateway no enruta `/v3/api-docs` |
 | S11 Cabeceras de seguridad | ✅ CSP, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` en el frontend; el gateway agrega las de Spring Security |
@@ -209,6 +209,54 @@ Una revisión con Codex, hecha mientras la fase estaba en curso (antes de las pr
 | Correr caos, carga, reconciliación y restauración; confirmar que las pruebas pasan | Ya hecho (sección 3) |
 | `o_GUIA` enlazaba a un informe que no existía; `nginx.conf` borrado sin su plantilla | Ya resuelto: este documento existe y los dos archivos entraron en el mismo commit |
 | Qué hacer con la cola de auditoría | Ya decidido (paso 7.9) |
-| **Siniestro recién registrado y renovación** con varias réplicas o con el evento todavía en el Outbox de claims | **Abierto, pendiente de decisión.** Opciones: (a) la evaluación queda "provisional" y se confirma cuando `claim_ref` alcanza la versión de claims; (b) policy consulta a claims en ese momento (llamada síncrona con circuit breaker, y "pendientes" si no responde) |
-| **Revocación de tokens con Redis caído** (se deja pasar: un token revocado vale hasta que vence, como mucho 8 h) | **Abierto, pendiente de aprobación.** Alternativas: aceptar el riesgo, o acortar la vida del token para acotarlo |
+| **Siniestro recién registrado y renovación** con varias réplicas o con el evento todavía en el Outbox de claims | **Resuelto** (sección 10.1): al generar la póliza, policy confirma los siniestros con claims-service (CP en el paso irreversible) |
+| **Revocación de tokens con Redis caído** (se dejaba pasar: un token revocado valía hasta vencer) | **Resuelto** (sección 10.2): copia local de la lista de revocación en el gateway |
 | Aplicar Kubernetes, rotar tokens de JSON.pe, Alertmanager, login social real | Pendientes ya anotados (sección 6 y `CLAUDE.md`) |
+
+## 10. Decisiones de consistencia (teorema CAP por operación)
+
+Las dos decisiones abiertas de la sección 9 se resolvieron clasificando cada operación según lo que cuesta equivocarse. No todo el sistema es AP ni todo CP.
+
+### 10.1 Generar una póliza renovada: CP en el paso irreversible
+
+**Problema:** policy evalúa la renovación con su copia local de siniestros (`claim_ref`), que se actualiza por eventos: consistencia eventual. Un siniestro registrado un instante antes podía no estar en la copia y la renovación se generaba con datos viejos (prima equivocada, o una renovación que debía bloquearse).
+
+**Decisión:** la evaluación sigue siendo rápida y local (AP). Al **generar la póliza**, que es el paso irreversible, policy consulta a claims-service, la fuente (llamada síncrona `GET /api/polizas/{id}/siniestros`, con el token del usuario):
+
+| Resultado de claims | Respuesta |
+|---|---|
+| Hay un siniestro abierto | 422 `SINIESTROS_PENDIENTES`: no se renueva |
+| El historial cambió desde la evaluación (otra cantidad de siniestros) | 422 `RENOVACION_DESACTUALIZADA`: evaluar de nuevo |
+| claims no responde (timeout de 2 s, 1 reintento, circuit breaker `claims`) | 503 `SINIESTROS_NO_DISPONIBLE` con `Retry-After`: no se renueva (falla cerrada) |
+| Todo coincide | Se genera la póliza |
+
+Es el intercambio que describe PACELC: la consistencia fuerte cuesta latencia y disponibilidad, por eso se paga solo en el paso donde un error cuesta dinero.
+
+**Código:** `HistorialSiniestrosPort`, `ClaimsServiceHistorialAdapter`, `GenerarPolizaRenovadaUseCase`, `SiniestrosNoDisponiblesException` (503 en `GlobalExceptionHandler`) y `CLAIMS_SERVICE_URL` en `k8s/95`.
+
+**Verificación:** 3 pruebas unitarias nuevas (policy: 52) y dos casos de caos:
+
+| Caso | Resultado |
+|---|---|
+| `renovacion-reciente`: se evalúa y aprueba; se registra un siniestro abierto y se genera **enseguida**, sin esperar a la copia | 422 `SINIESTROS_PENDIENTES`. Con el siniestro liquidado, la propuesta vieja da 422 `RENOVACION_DESACTUALIZADA`; al reevaluar, se genera (201) |
+| `renovacion-claims`: claims-service caído al generar | 503 `SINIESTROS_NO_DISPONIBLE` y la póliza original sigue VIGENTE; al volver claims, 201 |
+
+### 10.2 Revocación de tokens sin Redis: AP con una réplica de lectura
+
+**Problema:** el gateway valida el JWT por sí solo (firma y vencimiento) y consulta en Redis la lista de revocados (logout y usuarios desactivados). Si Redis caía, dejaba pasar todo: un token revocado volvía a servir hasta vencer (máx. 8 h). Rechazar todo (falla cerrada) haría de Redis un punto único de fallo de toda la API.
+
+**Decisión:** el gateway mantiene una **copia local** de la lista, refrescada cada 5 s por un hilo propio (`REVOCATION_REFRESH`). Redis sigue siendo la fuente cuando responde (un logout surte efecto al instante); si no responde, se decide con la copia.
+
+- Los tokens revocados **antes** de la caída siguen rechazados.
+- Solo se desconoce lo revocado **durante** la caída, y eso identity tampoco puede anotarlo: escribe en el mismo Redis.
+- La copia puede estar atrasada como mucho un intervalo de refresco: consistencia eventual acotada.
+- Métricas: `gateway_revocaciones_copia_edad_seconds`, `_revocados` y `_usos_total`. Alerta `CopiaRevocacionesAtrasada` si la copia pasa de 60 s.
+
+**Verificación:** 3 pruebas unitarias (gateway: 4) y el caso de caos `revocacion-redis`:
+- con Redis sano, el token con sesión cerrada da 401;
+- con Redis caído, el token con sesión cerrada sigue dando **401** gracias a la copia, y el token vigente da 200;
+- la métrica registra que se usó la copia.
+
+**Defecto encontrado al probarlo:** el primer diseño refrescaba con `Flux.interval` de Reactor y el flujo se detenía tras el primer refresco sin dejar rastro (la métrica de antigüedad crecía y no llegaban SCAN a Redis). Se reemplazó por un hilo programado que registra los fallos; la antigüedad quedó en 0–5 s.
+
+Tras todas las pruebas, la reconciliación sigue coincidiendo en las 7 comparaciones (320 pólizas, 5 siniestros, 332 cotizaciones aceptadas) y las DLQ están en 0.

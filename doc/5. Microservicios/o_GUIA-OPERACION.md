@@ -50,6 +50,7 @@ Las alertas están en `infra/observability/prometheus/alertas.yml` y se ven en P
 | **DlqConMensajes** (1 min) | Un consumidor no pudo procesar mensajes | Sección 6 |
 | **OutboxAtrasado** (> 5 min) | Un servicio no puede publicar eventos (RabbitMQ caído o inaccesible) | Levantar RabbitMQ. Los eventos no se pierden: el relay los publica en orden al volver. Si RabbitMQ está bien, revisar `lastError` en la colección `outbox` del servicio |
 | **NotificacionesPausadas** (2 min) | WhatsApp no responde; notification retiene los mensajes (no van a la DLQ) | Revisar el proveedor (JSON.pe WhatsApp) y `WHATSAPP_TOKEN`. Al recuperarse, el consumo se reanuda solo y salen los retenidos |
+| **CopiaRevocacionesAtrasada** (> 60 s, 1 min) | El gateway no puede refrescar su copia de la lista de revocación: Redis de identity no responde. Sigue rechazando lo revocado antes de la caída; lo revocado durante la caída no se conoce | Levantar Redis (`docker compose up -d redis`). La copia se pone al día sola en 5 s |
 
 ## 4. Reconciliación de proyecciones (cada noche)
 
@@ -78,12 +79,12 @@ Verificado con `bash infra/operacion/caos.sh` (casos básicos, ~25 min) y `bash 
 | customer-service | Clientes, vehículos, consulta de placas (503) | Cotizar clientes ya conocidos (copias en quotation), emitir, siniestros, renovar |
 | quotation-service | Cotizar, tarifas (503) | Emitir cotizaciones ya aceptadas, siniestros, renovar |
 | policy-service | Pólizas y renovaciones (503); "Mi cuenta" responde parcial | Clientes, cotizar y aceptar (el `quote.accepted` espera en la cola) |
-| claims-service | Siniestros (503) | Emitir y renovar (usa `claim_ref`); `policy.issued` espera en la cola |
+| claims-service | Siniestros (503); **generar pólizas renovadas** (503 `SINIESTROS_NO_DISPONIBLE`: se confirma con claims y se prefiere no renovar a renovar con datos viejos) | Emitir, evaluar y aprobar renovaciones (usan `claim_ref`); `policy.issued` espera en la cola |
 | notification-service | El WhatsApp (se envía al volver) | Todo lo demás |
 | identity-service | Iniciar sesión (503); un servicio que se reinicie mientras identity está caído no puede validar tokens hasta que identity vuelva | Los tokens ya emitidos siguen valiendo hasta que expiran (probado con 6 min de caída) |
 | RabbitMQ | La propagación de eventos (se retrasa) | Todas las operaciones; los eventos esperan en el Outbox |
 | MongoDB de un servicio | Ese servicio (no listo, 503) | Los demás |
-| Redis | El límite de tasa del gateway y la revocación de tokens (se deja pasar). MFA y login social guardan su estado en Redis: se espera que fallen (no se probó) | Todo lo demás, incluido el login con contraseña |
+| Redis | El límite de tasa del gateway (se deja pasar). MFA y login social guardan su estado en Redis: se espera que fallen (no se probó) | Todo lo demás, incluido el login con contraseña. La revocación se decide con la copia local del gateway: lo revocado antes de la caída sigue rechazado |
 | JSON.pe (placas) | Datos de placas nuevas: responde `SIN_DATOS` y se ingresan a mano | Placas ya consultadas (caché de 24 h) |
 | WhatsApp | El envío (se retiene, no va a la DLQ) | Todo lo demás |
 
