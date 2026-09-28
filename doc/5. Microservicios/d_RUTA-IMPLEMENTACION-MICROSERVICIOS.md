@@ -243,13 +243,13 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 6.10 | **Apagar el monolito:** retirar `Arquitectura-Clean` del Compose, conservar su repositorio archivado y su base **respaldada** durante un periodo de seguridad antes de borrarla | S |
 | 6.11 | **Retirar el exchange antiguo** `andina.insurance.events` y los enlaces dobles | S |
 
-**Estado (2026-09-27):** policy-service implementado y corte de las fases 3 a 6 hecho: el gateway envía todo el negocio a los microservicios y el monolito quedó sin tráfico, con su código sin modificar. Pendientes: retirar el monolito del Compose (6.10), el exchange heredado (6.11) y la observabilidad de los servicios nuevos. Detalle en [m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md).
+**Estado (2026-09-27): ✅ cerrada.** policy-service implementado, corte de las fases 3 a 6 hecho y monolito retirado: su base está respaldada, `backend` solo arranca con `--profile monolito` y el código quedó sin cambios (6.10). El exchange heredado se borró (6.11) y los servicios nuevos están en Prometheus, Grafana y Jaeger. Detalle en [m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md), secciones 7 y 9.
 
 **Criterios de salida**
 - [x] Emitir y renovar pólizas funciona solo con eventos y proyecciones.
 - [x] Emitir la misma cotización dos veces en paralelo genera una sola póliza. *(5 rondas de 3 solicitudes simultáneas.)*
-- [ ] El flujo completo cotizar → aceptar → emitir → notificar por WhatsApp funciona de extremo a extremo con un solo `correlationId` visible en Grafana y Jaeger. *(Funciona por el gateway y el `correlationId` se sigue en los logs de 6 servicios; falta sumar los servicios nuevos a Grafana y Jaeger.)*
-- [ ] El monolito ya no está en el Compose. *(Sin tráfico de negocio desde el corte; retirarlo es el paso 6.10.)*
+- [x] El flujo completo cotizar → aceptar → emitir → notificar por WhatsApp funciona de extremo a extremo con un solo `correlationId` visible en Grafana y Jaeger. *(En Loki, en 6 servicios; en Jaeger, la emisión es una sola traza del gateway a policy, notification, quotation y claims.)*
+- [x] El monolito ya no está en el Compose. *(Perfil `monolito`, solo para una reversa; base respaldada y volumen conservado.)*
 
 ---
 

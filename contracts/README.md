@@ -1,13 +1,13 @@
 # Contratos
 
-Esquemas de los eventos que viajan por RabbitMQ entre el backend y los microservicios (sección 4 de la [propuesta de migración](../doc/5.%20Microservicios/c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md)).
+Esquemas de los eventos que viajan por RabbitMQ entre los microservicios (sección 4 de la [propuesta de migración](../doc/5.%20Microservicios/c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md)).
 
 | Evento (routing key) | Exchange | Publica | Consume | Esquema |
 |---|---|---|---|---|
-| `customer.registered.v1` | `andina.events` | customer-service (hasta la fase 2: backend) | notification-service, identity-service, backend | [events/customer.registered.v1.schema.json](events/customer.registered.v1.schema.json) |
-| `customer.updated.v1` | `andina.events` | customer-service (hasta la fase 2: backend) | notification-service, identity-service, backend | [events/customer.updated.v1.schema.json](events/customer.updated.v1.schema.json) |
-| `vehicle.registered.v1` | `andina.events` | customer-service | backend (mientras cotiza), quotation-service (fase 5) | [events/vehicle.registered.v1.schema.json](events/vehicle.registered.v1.schema.json) |
-| `policy.issued.v1` | `andina.insurance.events` (backend) y `andina.events` (policy-service) | backend (fase 6: policy-service) | notification-service, claims-service (proyección `policy_ref`), quotation-service (marca la cotización EMITIDA), auditoría | [events/policy.issued.v1.schema.json](events/policy.issued.v1.schema.json) |
+| `customer.registered.v1` | `andina.events` | customer-service | notification-service, identity-service, quotation-service (`customer_ref`) | [events/customer.registered.v1.schema.json](events/customer.registered.v1.schema.json) |
+| `customer.updated.v1` | `andina.events` | customer-service | notification-service, identity-service, quotation-service (`customer_ref`) | [events/customer.updated.v1.schema.json](events/customer.updated.v1.schema.json) |
+| `vehicle.registered.v1` | `andina.events` | customer-service | quotation-service (`vehicle_ref`) | [events/vehicle.registered.v1.schema.json](events/vehicle.registered.v1.schema.json) |
+| `policy.issued.v1` | `andina.events` (el heredado `andina.insurance.events` se retiró en el paso 6.11) | policy-service | notification-service, claims-service (proyección `policy_ref`), quotation-service (marca la cotización EMITIDA) | [events/policy.issued.v1.schema.json](events/policy.issued.v1.schema.json) |
 | `policy.renewed.v1` | `andina.events` | policy-service | claims-service | [events/policy.renewed.v1.schema.json](events/policy.renewed.v1.schema.json) |
 | `policy.issuance-rejected.v1` | `andina.events` | policy-service | quotation-service | [events/policy.issuance-rejected.v1.schema.json](events/policy.issuance-rejected.v1.schema.json) |
 | `policy.expired.v1` / `policy.cancelled.v1` | `andina.events` | policy-service (sin productor todavía) | claims-service | [expired](events/policy.expired.v1.schema.json), [cancelled](events/policy.cancelled.v1.schema.json) |
@@ -32,4 +32,4 @@ Esquemas de los eventos que viajan por RabbitMQ entre el backend y los microserv
 | claims-service | [openapi/claims-service.json](openapi/claims-service.json) | `docker exec andina-api-gateway wget -qO- http://claims-service:8080/v3/api-docs` |
 | quotation-service | [openapi/quotation-service.json](openapi/quotation-service.json) | `docker exec andina-api-gateway wget -qO- http://quotation-service:8080/v3/api-docs` |
 | policy-service | [openapi/policy-service.json](openapi/policy-service.json) | `docker exec andina-api-gateway wget -qO- http://policy-service:8080/v3/api-docs` |
-| backend (monolito) | `GET /v3/api-docs` en `http://localhost:8083` | Se exportará al separar cada dominio (fases 3 a 6) |
+| backend (monolito) | Retirado en el paso 6.10 | Sus dominios quedaron en los contratos de customer, claims, quotation y policy |

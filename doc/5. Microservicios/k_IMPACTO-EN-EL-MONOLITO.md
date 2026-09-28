@@ -18,7 +18,7 @@ Este documento registra, fase por fase y commit por commit, qué se cambió en e
 | 5. quotation-service | **No** | Tarifas y cotizaciones: desde el corte, a quotation-service | — |
 | 6. policy-service | **No** | Pólizas, renovaciones y "Mi cuenta": desde el corte, a policy-service y al gateway | — |
 
-Desde la fase 3 el código del monolito se mantiene **congelado** por decisión del equipo (2026-09-27): los servicios nuevos se construyeron al lado, con su base propia y copias de datos. El 2026-09-27 se hizo **el corte conjunto de las fases 3 a 6 sin tocar el monolito** (sección 6): el desacoplamiento se logró en el gateway, no borrando código. El monolito sigue en el Compose, sin tráfico de negocio, como reversa.
+Desde la fase 3 el código del monolito se mantiene **congelado** por decisión del equipo (2026-09-27): los servicios nuevos se construyeron al lado, con su base propia y copias de datos. El 2026-09-27 se hizo **el corte conjunto de las fases 3 a 6 sin tocar el monolito** (sección 6): el desacoplamiento se logró en el gateway, no borrando código. Ese mismo día **se retiró el monolito** (sección 7): base respaldada, fuera del arranque normal (perfil `monolito`, solo para una reversa) y exchange heredado borrado.
 
 ---
 
@@ -103,4 +103,18 @@ Con las cuatro fases implementadas, ninguna función del negocio depende ya del 
 | Código (`src`, `pom.xml`, `Dockerfile`) | **Sin cambios** |
 | Base del monolito | Intacta; se leyó con los scripts de migración justo antes del corte |
 
-Pendiente (paso 6.10): retirar `backend` del Compose y respaldar `andina_clean_mongo_data`. Mientras siga, sirve de reversa: basta con volver a apuntar las URL de los servicios del gateway a `http://backend:8080` (las escrituras hechas después del corte habría que copiarlas al monolito).
+## 7. Retiro del monolito — pasos 6.10 y 6.11 (2026-09-27)
+
+El monolito se apagó sin tocar su código. Detalle en [m, sección 9](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md#9-cierre-de-la-fase-retiro-del-monolito-exchange-heredado-y-observabilidad-2026-09-27).
+
+| Qué | Efecto sobre el monolito |
+|---|---|
+| Respaldo | `mongodump` de `andina_seguros_clean` en `respaldos/` (no versionado), verificado restaurándolo en un MongoDB temporal: 9 colecciones con los mismos conteos |
+| `Arquitectura-Clean/docker-compose.yml` | `backend` y `mongodb` pasan al perfil `monolito`: ya no arrancan con el stack. Los contenedores se eliminaron; el volumen `andina_clean_mongo_data` se conserva |
+| Gateway | Sin la ruta de reserva al backend (`/api/**` sin dueño → 404), sin `backendCB` y fuera de `clean_network` |
+| Observabilidad | El backend sale de Prometheus y del Compose de observabilidad |
+| Kubernetes | Sus manifiestos (20-23) pasan a `k8s/archivo-monolito/` |
+| RabbitMQ | El exchange `andina.insurance.events`, donde el monolito publicaba `policy.issued.v1`, se borró; los consumidores ya no lo declaran. Su cola `andina.policy.audit.queue` (sin consumidor) no se recreó; sus 6 mensajes quedaron en el directorio del nodo anterior de RabbitMQ (m, 9.4) |
+| Código (`src`, `pom.xml`, `Dockerfile`) | **Sin cambios**, archivado |
+
+**Reversa (mientras dure el periodo de seguridad):** `docker compose --profile monolito up -d mongodb backend` y apuntar la URL del servicio en el gateway a `http://backend:8080`. Las escrituras hechas después del corte habría que copiarlas antes al monolito. Pasado ese periodo, se puede borrar el volumen `andina_clean_mongo_data` (el respaldo queda en `respaldos/`).

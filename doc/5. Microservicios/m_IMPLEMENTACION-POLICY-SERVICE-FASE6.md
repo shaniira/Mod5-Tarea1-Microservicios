@@ -2,7 +2,7 @@
 
 Este documento registra lo que se implementó en la fase 6 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#10-fase-6--policy-service-y-apagado-del-monolito), las decisiones, el impacto en el monolito y la verificación contra el stack de Docker.
 
-**Resultado:** pólizas, la saga de emisión y las renovaciones viven en `services/policy-service`, con base propia (`policy_db`), las proyecciones `accepted_quotes` y `claim_ref`, y `policy.*` por Outbox. La saga completa (cotizar → aceptar → emitir → notificar → siniestro → renovar) funcionó de extremo a extremo **solo con eventos y proyecciones**, y la doble emisión en paralelo nunca generó más de una póliza. El 2026-09-27 se hizo **el corte de las fases 3 a 6** (sección 7): el gateway envía todo el negocio a los microservicios y el monolito quedó sin tráfico, con su código sin modificar. Retirarlo del Compose (pasos 6.10 y 6.11) queda pendiente.
+**Resultado:** pólizas, la saga de emisión y las renovaciones viven en `services/policy-service`, con base propia (`policy_db`), las proyecciones `accepted_quotes` y `claim_ref`, y `policy.*` por Outbox. La saga completa (cotizar → aceptar → emitir → notificar → siniestro → renovar) funcionó de extremo a extremo **solo con eventos y proyecciones**, y la doble emisión en paralelo nunca generó más de una póliza. El 2026-09-27 se hizo **el corte de las fases 3 a 6** (sección 7): el gateway envía todo el negocio a los microservicios y el monolito quedó sin tráfico, con su código sin modificar. Ese mismo día **se cerró la fase** (sección 9): el monolito salió del Compose con su base respaldada (6.10), se retiró el exchange heredado (6.11) y los servicios nuevos entraron en Prometheus, Grafana y Jaeger. Los 4 criterios de salida se cumplen.
 
 ---
 
@@ -48,10 +48,12 @@ Cambios en servicios anteriores para cerrar la saga:
 
 ### 3.1 Qué sigue haciendo el monolito
 
-| Funcionalidad | Dónde está hoy |
-|---|---|
-| Todas las rutas de la API (clientes, cotizaciones, pólizas, siniestros, renovaciones, "Mi cuenta") | Monolito |
-| Publicar `customer.*` y `policy.issued.v1` | Monolito |
+Nada. Desde el corte (sección 7) no recibe tráfico, y desde el cierre de la fase (sección 9) no arranca con el stack: queda en el perfil `monolito` del Compose, solo para una reversa.
+
+| Funcionalidad | Antes del corte | Hoy |
+|---|---|---|
+| Rutas de la API (clientes, cotizaciones, pólizas, siniestros, renovaciones, "Mi cuenta") | Monolito | customer, quotation, policy y claims; "Mi cuenta" la compone el gateway |
+| Publicar `customer.*` y `policy.issued.v1` | Monolito (`policy.issued` en `andina.insurance.events`) | customer-service y policy-service, en `andina.events` |
 
 ### 3.2 El corte (fases 3 a 6 juntas) y el apagado del monolito
 
@@ -62,8 +64,8 @@ Con las fases 3 a 6 implementadas, el corte puede hacerse de una vez y **sin mod
 3. Activar la publicación en los cuatro servicios: `CUSTOMER_EVENTS_PUBLISH_ENABLED`, `CLAIMS_EVENTS_PUBLISH_ENABLED`, `QUOTATION_EVENTS_PUBLISH_ENABLED` y `POLICY_EVENTS_PUBLISH_ENABLED` en `true`.
 4. En el gateway, reemplazar la ruta `backend` por las rutas de cada servicio. Las de siniestros van **antes** que `/api/polizas/**`. `/api/mi-cuenta` pasa a ser una composición de customer-service (`/api/clientes/{customerId}`) y policy-service (`/api/mi-cuenta/polizas`), con respuesta parcial si uno no responde.
 5. Ejecutar los backfill: `POST /api/clientes/eventos/reenvio` y `POST /api/siniestros/eventos/reenvio`.
-6. **Paso 6.10:** retirar `backend` (y su dependencia del gateway) de `docker-compose.yml`. Respaldar `andina_clean_mongo_data` y conservarlo un tiempo antes de borrarlo. El código del monolito se conserva en el repositorio, sin cambios.
-7. **Paso 6.11:** cuando nadie publique en `andina.insurance.events`, quitar los enlaces a ese exchange en notification, claims y quotation.
+6. **Paso 6.10:** retirar `backend` (y su dependencia del gateway) de `docker-compose.yml`. Respaldar `andina_clean_mongo_data` y conservarlo un tiempo antes de borrarlo. El código del monolito se conserva en el repositorio, sin cambios. *(Hecho: sección 9.)*
+7. **Paso 6.11:** cuando nadie publique en `andina.insurance.events`, quitar los enlaces a ese exchange en notification, claims y quotation. *(Hecho: sección 9.)*
 
 **Reversa (antes del paso 6):** volver la ruta `backend` al gateway y apagar los interruptores.
 
@@ -75,8 +77,8 @@ Pruebas hechas el 2026-09-27 contra el stack de Compose, por la red interna (los
 |---|---|---|---|
 | 1 | Emitir y renovar pólizas funciona solo con eventos y proyecciones | Cotizar y aceptar en quotation → `quote.accepted.v1` llegó a `accepted_quotes`; emitir en policy → 201; `policy.issued.v1` dejó la cotización EMITIDA en quotation, la póliza VIGENTE en `policy_ref` de claims y el WhatsApp enviado por notification. Un siniestro abierto registrado en claims llegó a `claim_ref` y la evaluación respondió **422 `SINIESTROS_PENDIENTES`**; al liquidarlo, la evaluación dio 201 (REQUIERE_RECALCULO, prima 1525.50), se aprobó y se generó la póliza renovada; `policy.renewed.v1` dejó en claims la anterior RENOVADA (v2) y la nueva VIGENTE. Colas y DLQ en 0 | ✅ Cumple |
 | 2 | Emitir la misma cotización dos veces en paralelo genera una sola póliza | 5 rondas de 3 solicitudes simultáneas por cotización: **exactamente 1 póliza en las 5**; las perdedoras respondieron 422 `COTIZACION_YA_EMITIDA` y quotation registró cada compensación. Ver el error corregido abajo | ✅ Cumple |
-| 3 | El flujo cotizar → aceptar → emitir → WhatsApp con un solo `correlationId` visible en Grafana y Jaeger | Después del corte (sección 7), el flujo completo por el gateway con un `X-Correlation-Id` fijo: el mismo id aparece en los logs JSON del gateway, quotation, policy, claims, notification e identity, y el WhatsApp se envió. **No se levantó el stack de observabilidad** y los 4 servicios nuevos todavía no están en Prometheus/Grafana/Jaeger | ⏳ Parcial (logs sí; Grafana y Jaeger pendientes) |
-| 4 | El monolito ya no está en el Compose | Contradice la decisión de mantener el monolito congelado y en paralelo; es el paso 6 del corte (sección 3.2) | ⏳ Pendiente del corte |
+| 3 | El flujo cotizar → aceptar → emitir → WhatsApp con un solo `correlationId` visible en Grafana y Jaeger | Con el stack de observabilidad y sin el monolito (sección 9): el `correlationId` del flujo aparece en Loki/Grafana en 6 servicios, y la emisión es **una sola traza en Jaeger** (16 spans) que va del gateway a policy y, por RabbitMQ, a notification, quotation y claims | ✅ Cumple |
+| 4 | El monolito ya no está en el Compose | `backend` y su MongoDB solo arrancan con `--profile monolito`; el stack normal no los levanta (sección 9) | ✅ Cumple |
 
 Pruebas adicionales:
 
@@ -91,10 +93,11 @@ Pruebas adicionales:
 
 | Punto | Detalle |
 |---|---|
-| **Monolito en el Compose** | Sigue corriendo, sin tráfico de negocio desde el corte. Retirarlo es el paso 6.10 |
 | **Vencer y cancelar pólizas** | No existe la operación en el sistema; los contratos están listos para cuando exista |
-| **Observabilidad** | Los servicios nuevos no están en Prometheus ni en el Compose de observabilidad (fase 7) |
-| **Kubernetes** | Manifiestos escritos y validados con `--dry-run=server`; no aplicados |
+| **Kubernetes** | Manifiestos escritos y validados con `--dry-run=server`; no aplicados. El clúster kind local todavía corre el despliegue de la fase 0 (gateway, **backend**, MongoDB, RabbitMQ, Redis) y carga mucho el equipo (sección 9) |
+| **Siniestro recién registrado y renovación** | La sincronización de `claim_ref` mira la carga inicial y los mensajes *listos* de `policy.claim.events`. No ve un evento que todavía está en el Outbox de claims ni uno ya entregado al consumidor y sin confirmar: una evaluación hecha en ese instante no ve el siniestro. Con el equipo cargado se vio una ventana de ~1,3 s (sección 9). Para la fase 7: contar también los mensajes sin confirmar, o que la evaluación quede provisional hasta que `claim_ref` esté al día |
+| **Id que no es UUID** | `GET /api/polizas/abc` (y equivalentes en claims) responde 500 en lugar de 400. El monolito hacía lo mismo; queda para la fase 7 |
+| **RabbitMQ en Kubernetes** | Usa `emptyDir`: al reiniciar el Pod pierde colas y mensajes. En Compose se corrigió el equivalente (sección 9); en Kubernetes queda para la fase 7 (StatefulSet con volumen) |
 
 ## 7. Corte de las fases 3 a 6 (2026-09-27)
 
@@ -131,6 +134,55 @@ Una revisión con Codex, hecha mientras la fase estaba en curso, señaló 8 punt
 | Emisión concurrente contra MongoDB real y flujo completo | Hechos (secciones 4 y 7) |
 | Vencer/cancelar, Kubernetes, auditoría, commits | Documentados: sin operación en el sistema, manifiestos ya escritos, cola heredada sin consumidor (fase 7) y commits hechos al cerrar |
 
+## 9. Cierre de la fase: retiro del monolito, exchange heredado y observabilidad (2026-09-27)
+
+### 9.1 Paso 6.10 — monolito retirado
+
+| Qué | Cómo |
+|---|---|
+| Respaldo de la base | `mongodump` de `andina_seguros_clean` en `respaldos/monolito-andina_seguros_clean-2026-09-27.archive.gz` (SHA-256 `0e8381b1…afda9792`). Se restauró en un MongoDB temporal: las 9 colecciones con los mismos conteos (clientes 14, cotizaciones 57, outbox 39, pólizas 17, propuestas 5, siniestros 1, tablas 3, usuarios 5, vehículos 14). `respaldos/` está en `.gitignore`: tiene datos de clientes |
+| Compose | `backend` y `mongodb` pasan al perfil `monolito`: `docker compose up` ya no los levanta. Se detuvieron y eliminaron los contenedores; el volumen `andina_clean_mongo_data` **se conserva** |
+| Gateway | Sin la ruta de reserva `backend`, su circuito `backendCB`, su *fallback* ni `BACKEND_SERVICE_URL`. Una ruta `/api/**` sin dueño responde 404. El gateway sale de `clean_network` (la red de la base del monolito) |
+| Kubernetes | Los manifiestos 20-23 del backend pasan a `k8s/archivo-monolito/`; `BACKEND_SERVICE_URL` sale del ConfigMap del gateway y el Ingress deja de publicar el Swagger del monolito |
+| Código del monolito | **Sin cambios**; queda archivado en `Arquitectura-Clean/` |
+
+**Reversa, durante el periodo de seguridad:** `docker compose --profile monolito up -d mongodb backend` y apuntar la URL del servicio en el gateway a `http://backend:8080`. Las escrituras posteriores al corte habría que copiarlas antes al monolito.
+
+### 9.2 Paso 6.11 — exchange heredado retirado
+
+- notification, claims y quotation ya no declaran ni enlazan `andina.insurance.events`. La propiedad correspondiente se eliminó de los tres servicios: `legacy-exchange` en notification e `insurance-exchange` en claims y quotation.
+- Con el monolito apagado nadie publicaba ahí; se borró el exchange (y con él sus 4 enlaces). `policy.*` llega solo por `andina.events`.
+- **Se conserva `andina.insurance.events.dlx`:** es la DLX de `andina.policy.notification.queue`, y RabbitMQ no permite cambiar los argumentos de una cola existente. Renombrarla implica recrear la cola vacía (fase 7).
+- La cola `andina.policy.audit.queue` la declaraba el monolito y no tenía consumidor. Ver 9.4.
+
+### 9.3 Observabilidad de los servicios nuevos (criterio 3)
+
+- `docker-compose.observability.yml`: customer, claims, quotation y policy exportan trazas al Collector; RabbitMQ entra en la red de observabilidad; el backend sale.
+- `prometheus.yml`: jobs de los 4 servicios y `rabbitmq` (plugin `rabbitmq_prometheus`, familia `queue_coarse_metrics`); sin job `backend`.
+- La alerta `DlqConMensajes` y el panel "Mensajes en DLQ" usan `rabbitmq_detailed_queue_messages{queue=~".+[.]dlq"}`: cubren las 8 DLQ de todos los servicios, no solo las de notification.
+- Los servicios ya tenían métricas, trazas (con `traceparent` guardado en el Outbox) y logs JSON: no hizo falta cambiar su código.
+
+Verificación (stack de observabilidad levantado, sin monolito, WhatsApp simulado y luego restaurado):
+
+| Prueba | Resultado |
+|---|---|
+| Prometheus | 9 *targets* `up`: gateway, identity, notification, customer, claims, quotation, policy, rabbitmq y el propio Prometheus. Las 6 reglas cargadas sin error; las 8 DLQ medidas (0 mensajes) |
+| Flujo completo por el gateway (`fase6-1790542992`) | Cliente → vehículo → cotizar → aceptar → emitir `POL-2026-02EA10F9` → segunda emisión 422 → cotización EMITIDA → siniestro → evaluación 422 `SINIESTROS_PENDIENTES` → liquidar → evaluar, aprobar y generar `POL-REN-2027-72DC140B` → original RENOVADA. WhatsApp enviado (simulado) |
+| Grafana / Loki | `{service=~".+"} \|= "fase6-1790542992"`: gateway 15 líneas, quotation 4, policy 3, notification 3, claims 2, identity 1 |
+| Jaeger | La emisión es una sola traza de 16 spans: `api-gateway` → `policy-service` → RabbitMQ → `notification-service`, `quotation-service` y `claims-service`. Aceptar la cotización: una traza `api-gateway` → `quotation-service` → `policy-service`. Jaeger lista los 7 servicios |
+| Evento después de los cambios de RabbitMQ | Alta de un cliente: `customer.registered` aplicado en notification, quotation e identity |
+| Ruta sin dueño | `GET /api/no-existe` → 404; `/api/mi-cuenta` con ADMIN → 403; `/api/polizas` → 200 |
+| Pruebas automáticas | gateway 1, notification 27, claims 25, quotation 37 (todas pasan) |
+
+### 9.4 Problemas encontrados
+
+| Problema | Qué pasó | Acción |
+|---|---|---|
+| **RabbitMQ sin nombre de host fijo** | Al recrear el contenedor para sumarlo a la red de observabilidad, arrancó un nodo nuevo (`rabbit@<id del contenedor>`) con estado vacío. Ya había otro nodo huérfano de una recreación anterior. Los servicios redeclararon sus colas, que estaban vacías, así que **no se perdió ningún evento de negocio**. La cola `andina.policy.audit.queue`, que nadie más declara, quedó con sus **6 mensajes** en el directorio del nodo anterior (`/var/lib/rabbitmq/mnesia/rabbit@dbed063fcf4d`, en el volumen) | `hostname: rabbitmq` en el Compose. Probado: un mensaje persistente en una cola de prueba sobrevivió a `--force-recreate`. Esos 6 mensajes eran copias de `policy.issued` sin consumidor; se decide qué hacer con ellos en la fase 7 (auditoría) |
+| **Healthcheck de RabbitMQ con 5 s** | Con el equipo cargado, `rabbitmq-diagnostics ping` tardaba 12 s: RabbitMQ figuraba *unhealthy* y bloqueaba el arranque de quien depende de él | `timeout: 15s`, como en MongoDB |
+| **Equipo sobrecargado** | El clúster kind (`andina-seguros-control-plane`) sigue corriendo el despliegue de la fase 0, con *load average* ~40 y usando swap. Con el stack recién recreado, la primera emisión tardó 5,1 s (límite del gateway 5 s → 503, aunque la póliza se creó) y un registro de siniestro superó los 3 s de claims | No se tocó el clúster. En caliente el flujo pasó completo. Queda pendiente decidir si se apaga el despliegue viejo o se aplican los manifiestos nuevos |
+| **Id que no es UUID → 500** | Visto en el primer intento (ids vacíos) | Igual que el monolito; queda en la fase 7 (sección 5) |
+
 ## 6. Archivos
 
 | Área | Archivos |
@@ -141,3 +193,4 @@ Una revisión con Codex, hecha mientras la fase estaba en curso, señaló 8 punt
 | Contratos | `contracts/events/policy.issued.v1` (campos opcionales), `policy.renewed.v1`, `policy.issuance-rejected.v1`, `policy.expired.v1`, `policy.cancelled.v1`; `contracts/README.md` |
 | Infraestructura | `Arquitectura-Clean/docker-compose.yml`, `Arquitectura-Clean/.env.example` |
 | CI | `.github/workflows/policy-service.yml` |
+| Cierre (sección 9) | `gateway/src/main/resources/application.yml`, `FallbackController`; `RabbitMqConfiguration` y `RabbitMqProperties` de notification, claims y quotation (y sus `application.yml`); `Arquitectura-Clean/docker-compose.yml` (perfil `monolito`, `hostname` de RabbitMQ); `infra/observability/**`; `k8s/11`, `k8s/40`, `k8s/archivo-monolito/`, `k8s/README.md`; `DOCKER-EJECUCION.md`; `.gitignore` (`respaldos/`) |
