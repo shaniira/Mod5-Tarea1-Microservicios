@@ -158,6 +158,10 @@ spring:
           uri: ${QUOTATION_SERVICE_URL:http://localhost:8087}
           predicates:
             - Path=/api/cotizaciones/**,/api/tablas-tarifarias/**
+          # Fase 7: sin esto regía el response-timeout global (5 s) y el timelimiter de 6 s de
+          # quotationCB nunca llegaba a aplicarse.
+          metadata:
+            response-timeout: 6000 # ms
           filters:
             - name: RequestRateLimiter
               args:
