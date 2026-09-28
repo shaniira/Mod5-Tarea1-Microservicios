@@ -30,6 +30,15 @@ groups:
         annotations:
           resumen: "{{ $labels.application }}: más del 5 % de respuestas 5xx"
 
+      # Fase 7: el gateway no puede refrescar su copia de revocaciones (Redis de identity caído).
+      # Sigue atendiendo con la copia; lo revocado durante la caída no se conoce.
+      - alert: CopiaRevocacionesAtrasada
+        expr: gateway_revocaciones_copia_edad_seconds > 60
+        for: 1m
+        labels: { severidad: alta }
+        annotations:
+          resumen: "El gateway decide revocaciones con una copia de hace {{ $value }} s: revisar Redis"
+
       - alert: CircuitoAbierto
         expr: resilience4j_circuitbreaker_state{state=~"open|forced_open"} == 1
         for: 2m

@@ -4,7 +4,11 @@ import com.andinaseguros.gateway.config.GatewaySecurityProperties;
 import com.andinaseguros.gateway.filter.CorrelationIdWebFilter;
 import com.andinaseguros.gateway.web.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.config.GlobalCorsProperties;
@@ -44,8 +48,22 @@ public class GatewaySecurityConfig {
     RevocacionesRedis revocacionesRedis(
             @Value("${spring.data.redis.host:localhost}") String host,
             @Value("${spring.data.redis.port:6379}") int port,
-            @Value("${app.security.revocation-redis-database:1}") int database) {
-        return new RevocacionesRedis(host, port, database);
+            @Value("${app.security.revocation-redis-database:1}") int database,
+            @Value("${app.security.revocation-refresh:5s}") Duration refresco,
+            MeterRegistry metricas) {
+        RevocacionesRedis revocaciones = new RevocacionesRedis(host, port, database, refresco);
+        // Fase 7: estado de la copia local de revocaciones (alerta CopiaRevocacionesAtrasada).
+        Gauge.builder("gateway.revocaciones.copia.edad", revocaciones, RevocacionesRedis::edadCopiaSegundos)
+                .description("Segundos desde el último refresco correcto de la copia local de revocaciones")
+                .baseUnit("seconds")
+                .register(metricas);
+        Gauge.builder("gateway.revocaciones.copia.revocados", revocaciones, RevocacionesRedis::revocadosEnCopia)
+                .description("Tokens y usuarios revocados en la copia local")
+                .register(metricas);
+        FunctionCounter.builder("gateway.revocaciones.copia.usos", revocaciones, RevocacionesRedis::usosDeLaCopia)
+                .description("Veces que se decidió con la copia local porque Redis no respondió")
+                .register(metricas);
+        return revocaciones;
     }
 
     @Bean

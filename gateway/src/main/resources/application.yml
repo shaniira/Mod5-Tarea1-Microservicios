@@ -260,6 +260,8 @@ app:
     # Base de Redis donde identity-service guarda la lista de revocacion (logout y usuarios
     # desactivados); el gateway solo la lee.
     revocation-redis-database: ${REVOCATION_REDIS_DATABASE:1}
+    # Fase 7: cada cuánto se refresca la copia local de revocaciones (se usa si Redis no responde).
+    revocation-refresh: ${REVOCATION_REFRESH:5s}
     correlation-id-header: X-Correlation-Id
     # Mismas rutas publicas que Arquitectura-Clean/SecurityConfig.java: /api/auth/** (login,
     # register, google, facebook, mfa/verificar), swagger y el health del propio Gateway.
