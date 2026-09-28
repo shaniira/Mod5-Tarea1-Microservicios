@@ -15,7 +15,7 @@ MANIFIESTO="$DESTINO/MANIFIESTO.txt"
 echo "# Respaldo $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$MANIFIESTO"
 
 # contenedor:base de cada servicio (database per service)
-BASES="andina-identity-mongodb:identity_db andina-notification-mongodb:notification_db
+BASES="identity-mongodb:identity_db notification-mongodb:notification_db
 customer-mongodb:customer_db claims-mongodb:claims_db quotation-mongodb:quotation_db
 policy-mongodb:policy_db"
 

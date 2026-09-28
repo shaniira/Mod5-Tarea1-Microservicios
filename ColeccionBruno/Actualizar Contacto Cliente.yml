@@ -15,7 +15,7 @@ http:
     type: json
     data: |-
       {
-        "correo": "ana.demo@andina.local",
+        "correo": "ana.demo@backendseguros.local",
         "telefono": "921175206"
       }
   auth: inherit

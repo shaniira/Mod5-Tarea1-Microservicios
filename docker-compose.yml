@@ -1,9 +1,9 @@
 # Stack completo de Andina Seguros (microservicios). Se levanta desde la raíz del repositorio:
 #   docker compose up -d --build
 # El monolito (Arquitectura-Clean) se retiró del repositorio: su código queda en la etiqueta de git
-# monolito-final y su base en respaldos/. El nombre del proyecto (andina-clean) se conserva para no
-# renombrar contenedores, redes ni volúmenes existentes.
-name: andina-clean
+# monolito-final y su base en respaldos/. Los volúmenes creados con el nombre anterior del proyecto
+# (andina-clean) conservan ese nombre para no perder datos (ver volumes: al final).
+name: backend-seguros
 
 services:
   rabbitmq:
@@ -37,7 +37,7 @@ services:
   # Solo ve su propia base y RabbitMQ (database per service).
   notification-mongodb:
     image: mongo:8
-    container_name: andina-notification-mongodb
+    container_name: notification-mongodb
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
@@ -60,8 +60,8 @@ services:
     # Sin puerto publicado al host.
 
   notification-service:
-    image: andina-notification-service:1.1.0
-    container_name: andina-notification-service
+    image: notification-service:1.1.0
+    container_name: notification-service
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
@@ -85,7 +85,7 @@ services:
   # services/notification-service/README.md).
   whatsapp-mock:
     image: wiremock/wiremock:3.9.1
-    container_name: andina-whatsapp-mock
+    container_name: whatsapp-mock
     profiles: ["whatsapp-mock"]
     command: ["--global-response-templating", "--disable-banner"]
     volumes:
@@ -94,7 +94,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: andina-clean-redis
+    container_name: redis
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     # gateway_network: rate limiter del gateway (base 0). identity_data_network: estado efimero de
@@ -128,7 +128,7 @@ services:
 
   identity-mongodb:
     image: mongo:8
-    container_name: andina-identity-mongodb
+    container_name: identity-mongodb
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
@@ -152,7 +152,7 @@ services:
   # Sin container_name: se puede escalar ("docker compose up --scale identity-service=2", paso
   # 2.10). El gateway y los servicios lo encuentran por el DNS de Docker.
   identity-service:
-    image: andina-identity-service:1.0.0
+    image: identity-service:1.0.0
     build:
       context: ./services/identity-service
       dockerfile: Dockerfile
@@ -411,8 +411,8 @@ services:
       rabbitmq: { condition: service_healthy }
 
   gateway:
-    image: andina-api-gateway:1.0.0
-    container_name: andina-api-gateway
+    image: api-gateway:1.0.0
+    container_name: api-gateway
     build:
       context: ./gateway
       dockerfile: Dockerfile
@@ -471,7 +471,9 @@ services:
     networks: [default, gateway_network]
     depends_on: [frontend, gateway]
 volumes:
+  # Nombre heredado del proyecto anterior (andina-clean): conserva colas, mensajes y usuarios.
   rabbitmq_data:
+    name: andina-clean_rabbitmq_data
   notification_mongo_data:
     name: andina_notification_mongo_data
   identity_mongo_data:
@@ -494,14 +496,14 @@ volumes:
 networks:
   rabbitmq_network:
   notification_data_network:
-    name: andina_notification_data_network
+    name: notification_data_network
   gateway_network:
-    name: andina_gateway_network
+    name: gateway_network
   # Gateway, identity-service y los servicios de negocio (rutas, JWKS y llamadas sincronas).
   services_network:
-    name: andina_services_network
+    name: services_network
   identity_data_network:
-    name: andina_identity_data_network
+    name: identity_data_network
   customer_data_network:
     name: customer_data_network
   claims_data_network:

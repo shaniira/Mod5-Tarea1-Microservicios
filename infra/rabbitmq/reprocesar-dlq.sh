@@ -11,12 +11,12 @@
 # Antes de reprocesar hay que corregir la causa (ver la guía de operación, doc/5. Microservicios/
 # o_GUIA-OPERACION.md); si no, los mensajes vuelven a la DLQ.
 # En Kubernetes (RabbitMQ es un StatefulSet, Pod rabbitmq-0): RABBITMQ_CONTAINER no aplica; usar los
-# mismos comandos rabbitmqctl con "kubectl exec -n andina-seguros rabbitmq-0 --".
+# mismos comandos rabbitmqctl con "kubectl exec -n backend-seguros rabbitmq-0 --".
 set -eu
 
 DLQ="${1:?Uso: reprocesar-dlq.sh <dlq> [cola-destino]}"
 DESTINO="${2:-${DLQ%.dlq}}"
-CONTENEDOR="${RABBITMQ_CONTAINER:-andina-clean-rabbitmq-1}"
+CONTENEDOR="${RABBITMQ_CONTAINER:-backend-seguros-rabbitmq-1}"
 SHOVEL="reproceso-$DLQ"
 
 mensajes() {

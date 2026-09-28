@@ -1,8 +1,8 @@
 {
-  "uid": "andina-resumen",
+  "uid": "resumen",
   "title": "Backend Seguros — Resumen",
   "tags": [
-    "andina"
+    "seguros"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

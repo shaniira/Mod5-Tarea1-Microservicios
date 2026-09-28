@@ -31,4 +31,4 @@ jobs:
       - name: Pruebas
         run: mvn -B --no-transfer-progress verify
       - name: Imagen Docker
-        run: docker build -t andina-api-gateway:${{ github.sha }} .
+        run: docker build -t api-gateway:${{ github.sha }} .

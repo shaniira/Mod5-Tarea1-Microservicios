@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name: andina
+  - name: seguros
     folder: Backend Seguros
     type: file
     options:

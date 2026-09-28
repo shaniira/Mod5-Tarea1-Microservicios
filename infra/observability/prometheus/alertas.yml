@@ -1,7 +1,7 @@
 # Alertas iniciales (sección 7.2 de la propuesta y README de notification-service). Se ven en
 # Prometheus (Alerts) y en Grafana, y Alertmanager las envía por correo (alertmanager/alertmanager.yml).
 groups:
-  - name: andina-servicios
+  - name: servicios
     rules:
       - alert: ServicioCaido
         expr: up == 0
@@ -46,7 +46,7 @@ groups:
         annotations:
           resumen: "Circuit breaker {{ $labels.name }} abierto en {{ $labels.application }} hace más de 2 minutos"
 
-  - name: andina-mensajeria
+  - name: mensajeria
     rules:
       # Cada consumidor es dueño de su DLQ (*.dlq); la cantidad la mide RabbitMQ (job rabbitmq), así
       # que cubre a todos los servicios sin métricas propias.

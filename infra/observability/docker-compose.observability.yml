@@ -10,7 +10,7 @@
 services:
   otel-collector:
     image: otel/opentelemetry-collector:0.108.0
-    container_name: andina-otel-collector
+    container_name: otel-collector
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yml"]
     volumes:
@@ -20,7 +20,7 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:1.60
-    container_name: andina-jaeger
+    container_name: jaeger
     restart: unless-stopped
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
@@ -29,7 +29,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.54.1
-    container_name: andina-prometheus
+    container_name: prometheus
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -45,7 +45,7 @@ services:
   # ServicioNoListo (Prometheus no puede leer ese endpoint directamente).
   blackbox:
     image: prom/blackbox-exporter:v0.25.0
-    container_name: andina-blackbox
+    container_name: blackbox
     restart: unless-stopped
     networks: [observability_network]
 
@@ -56,7 +56,7 @@ services:
   # arranca igual y los correos fallan con un error de autenticación en el log.
   alertmanager:
     image: prom/alertmanager:v0.27.0
-    container_name: andina-alertmanager
+    container_name: alertmanager
     restart: unless-stopped
     environment:
       ALERTMANAGER_SMTP_PASSWORD: ${ALERTMANAGER_SMTP_PASSWORD:-}
@@ -73,7 +73,7 @@ services:
 
   loki:
     image: grafana/loki:3.1.1
-    container_name: andina-loki
+    container_name: loki
     restart: unless-stopped
     command: ["-config.file=/etc/loki/local-config.yaml"]
     volumes:
@@ -82,7 +82,7 @@ services:
 
   promtail:
     image: grafana/promtail:3.1.1
-    container_name: andina-promtail
+    container_name: promtail
     restart: unless-stopped
     command: ["-config.file=/etc/promtail/config.yml"]
     volumes:
@@ -94,7 +94,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.2.0
-    container_name: andina-grafana
+    container_name: grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
@@ -145,12 +145,17 @@ services:
     networks: [observability_network]
 
 volumes:
+  # Nombres heredados del proyecto anterior (andina-clean): conservan métricas, logs y el estado de Grafana.
   prometheus_data:
+    name: andina-clean_prometheus_data
   loki_data:
+    name: andina-clean_loki_data
   grafana_data:
+    name: andina-clean_grafana_data
   alertmanager_data:
+    name: andina-clean_alertmanager_data
 
 networks:
   observability_network:
-    name: andina_observability_network
+    name: observability_network
 

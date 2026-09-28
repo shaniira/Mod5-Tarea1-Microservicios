@@ -54,7 +54,7 @@ espera_codigo() { # espera_codigo <esperado> <método> <ruta> [json]
 mongo() { # mongo <contenedor> <base> <expresión>
   MSYS_NO_PATHCONV=1 docker exec "$1" sh -c 'mongosh --quiet -u "${MONGO_ROOT_USERNAME:-$MONGO_INITDB_ROOT_USERNAME}" -p "${MONGO_ROOT_PASSWORD:-$MONGO_INITDB_ROOT_PASSWORD}" --authenticationDatabase admin "$0" --eval "$1"' "$2" "$3" | tr -d '\r'
 }
-mensajes() { docker exec andina-clean-rabbitmq-1 rabbitmqctl -q list_queues name messages 2>/dev/null | awk -v q="$1" '$1==q{print $2}'; }
+mensajes() { docker exec backend-seguros-rabbitmq-1 rabbitmqctl -q list_queues name messages 2>/dev/null | awk -v q="$1" '$1==q{print $2}'; }
 sano() { docker inspect -f '{{.State.Health.Status}}' "$1" 2>/dev/null | grep -qx healthy; }
 apagar() { docker stop "$1" > /dev/null && echo "  -- $1 detenido"; }
 encender() { docker start "$1" > /dev/null && echo "  -- $1 iniciado"; espera "$1 vuelve a estar sano" 240 sano "$1"; }
@@ -68,7 +68,7 @@ en_accepted_quotes() { [ "$(mongo policy-mongodb policy_db "print(db.accepted_qu
 en_policy_ref() { [ "$(mongo claims-mongodb claims_db "print(db.policy_ref.countDocuments({_id:'$1'}))")" = 1 ]; }
 cotizacion_emitida() { [ "$(codigo GET "/api/cotizaciones/$1")" = 200 ] && api GET "/api/cotizaciones/$1" | grep -q '"estado":"EMITIDA"'; }
 outbox_sin_pendientes() { [ "$(mongo policy-mongodb policy_db "print(db.outbox.countDocuments({status:'PENDING'}))")" = 0 ]; }
-whatsapp_enviado() { docker logs andina-notification-service 2>&1 | grep "$1" | grep -q "ENVIADA"; }
+whatsapp_enviado() { docker logs notification-service 2>&1 | grep "$1" | grep -q "ENVIADA"; }
 
 preparar() {
   token
@@ -92,12 +92,12 @@ caso_claims() {
 caso_notification() {
   echo "== notification-service caído: todo funciona salvo el WhatsApp, que sale al volver"
   cotizar_y_aceptar; sleep 4
-  apagar andina-notification-service
+  apagar notification-service
   R=$(emitir "$QID"); NUM=$(echo "$R" | campo numero)
   [ "${R%% *}" = 201 ] && ok "emitir sin notification: 201" || falla "emitir sin notification: ${R:0:120}"
   sleep 3
   [ "$(mensajes notification.policy.events)" -ge 1 ] && ok "policy.issued espera en notification.policy.events" || falla "el evento no quedó en la cola de notification"
-  encender andina-notification-service
+  encender notification-service
   espera "el WhatsApp de $NUM sale al volver" 90 whatsapp_enviado "$NUM"
 }
 
@@ -158,12 +158,12 @@ caso_identity_larga() {
 caso_rabbitmq() {
   echo "== RabbitMQ caído durante una emisión: no se pierde ningún evento (Outbox)"
   cotizar_y_aceptar; sleep 4
-  apagar andina-clean-rabbitmq-1
+  apagar backend-seguros-rabbitmq-1
   R=$(emitir "$QID"); PID=$(echo "$R" | campo id); NUM=$(echo "$R" | campo numero)
   [ "${R%% *}" = 201 ] && ok "emitir sin RabbitMQ: 201" || falla "emitir sin RabbitMQ: ${R:0:120}"
   P=$(mongo policy-mongodb policy_db "print(db.outbox.countDocuments({aggregateId:'$PID',status:'PENDING'}))")
   [ "$P" -ge 1 ] && ok "policy.issued queda PENDING en el Outbox ($P)" || falla "el evento no quedó en el Outbox"
-  encender andina-clean-rabbitmq-1
+  encender backend-seguros-rabbitmq-1
   espera "el Outbox publica al volver (0 pendientes)" 120 outbox_sin_pendientes
   espera "claims recibe la póliza" 120 en_policy_ref "$PID"
   espera "quotation marca la cotización EMITIDA" 120 cotizacion_emitida "$QID"
@@ -172,12 +172,12 @@ caso_rabbitmq() {
 
 caso_redis() {
   echo "== Redis caído: el gateway sigue atendiendo (rate limiter) y el login sigue funcionando"
-  apagar andina-clean-redis
+  apagar redis
   sleep 3
   C=$(codigo GET /api/polizas); [ "$C" = 200 ] && ok "lecturas sin Redis: 200" || falla "lecturas sin Redis: $C"
   C=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' -d '{"username":"admin2","password":"admin2"}')
   echo "  INFO   login sin Redis: $C (el estado de MFA/OAuth y la revocación viven en Redis)"
-  encender andina-clean-redis
+  encender redis
 }
 
 caso_mongo_policy() {
@@ -187,20 +187,20 @@ caso_mongo_policy() {
   echo "  INFO   pólizas responde: $(codigo GET /api/polizas)"
   C=$(codigo GET /api/clientes); [ "$C" = 200 ] && ok "clientes sigue en 200" || falla "clientes: $C"
   C=$(codigo GET /api/cotizaciones); [ "$C" = 200 ] && ok "cotizaciones sigue en 200" || falla "cotizaciones: $C"
-  espera "policy-service deja de estar listo (readiness)" 60 bash -c "! docker exec andina-api-gateway wget -qO- http://policy-service:8080/actuator/health/readiness"
+  espera "policy-service deja de estar listo (readiness)" 60 bash -c "! docker exec api-gateway wget -qO- http://policy-service:8080/actuator/health/readiness"
   encender policy-mongodb
-  espera "policy-service vuelve a estar listo" 120 docker exec andina-api-gateway wget -qO- http://policy-service:8080/actuator/health/readiness
+  espera "policy-service vuelve a estar listo" 120 docker exec api-gateway wget -qO- http://policy-service:8080/actuator/health/readiness
   espera "pólizas vuelve a 200" 60 espera_codigo 200 GET /api/polizas
 }
 
 caso_whatsapp() {
   echo "== WhatsApp caído: el circuito se abre, el consumo se pausa y nada va a la DLQ"
-  docker stop andina-whatsapp-mock > /dev/null && echo "  -- whatsapp-mock detenido"
+  docker stop whatsapp-mock > /dev/null && echo "  -- whatsapp-mock detenido"
   local NUMS=()
   for _ in 1 2 3 4 5 6; do cotizar_y_aceptar; sleep 3; NUMS+=("$(emitir "$QID" | campo numero)"); done
-  espera "el listener de pólizas se pausa (circuito abierto)" 120 bash -c "docker logs andina-notification-service 2>&1 | tail -200 | grep -qi 'paus'"
+  espera "el listener de pólizas se pausa (circuito abierto)" 120 bash -c "docker logs notification-service 2>&1 | tail -200 | grep -qi 'paus'"
   D=$(mensajes notification.policy.events.dlq); [ "${D:-0}" = 0 ] && ok "DLQ de pólizas en 0" || falla "hay $D mensaje(s) en la DLQ"
-  docker start andina-whatsapp-mock > /dev/null && echo "  -- whatsapp-mock iniciado"
+  docker start whatsapp-mock > /dev/null && echo "  -- whatsapp-mock iniciado"
   espera "los WhatsApp retenidos salen al recuperarse (${NUMS[-1]})" 240 whatsapp_enviado "${NUMS[-1]}"
   D=$(mensajes notification.policy.events.dlq); [ "${D:-0}" = 0 ] && ok "DLQ sigue en 0" || falla "hay $D mensaje(s) en la DLQ"
 }
@@ -271,14 +271,14 @@ caso_relay_lote() {
   espera "segunda réplica sana" 240 sano policy-service-replica2
   local QIDS=() IDS=() i R id n DUP=0 FALTA=0
   for i in $(seq 1 20); do cotizar_y_aceptar; QIDS+=("$QID"); done; sleep 5
-  apagar andina-clean-rabbitmq-1
+  apagar backend-seguros-rabbitmq-1
   for i in $(seq 1 20); do
     if [ $((i % 2)) = 0 ]; then R=policy-service; else R=policy-service-replica2; fi
     IDS+=("$(emitir_en "$R" "${QIDS[$((i - 1))]}")")
   done
   local P; P=$(mongo policy-mongodb policy_db "print(db.outbox.countDocuments({status:'PENDING'}))")
   [ "$P" -ge 20 ] && ok "20 emisiones con RabbitMQ caído: $P eventos acumulados en el Outbox" || falla "solo $P eventos pendientes"
-  encender andina-clean-rabbitmq-1
+  encender backend-seguros-rabbitmq-1
   espera "el lote se publica (0 pendientes)" 180 outbox_sin_pendientes
   sleep 10
   for id in "${IDS[@]}"; do
@@ -340,12 +340,12 @@ caso_revocacion_redis() {
   C=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T_CERRADO" "$BASE/api/polizas")
   [ "$C" = 401 ] && ok "token con sesión cerrada, Redis sano: 401" || falla "token con sesión cerrada: $C"
   sleep 7 # que la copia local del gateway se refresque (cada 5 s)
-  apagar andina-clean-redis
+  apagar redis
   C=$(curl -s -o /dev/null -w '%{http_code}' -m 20 -H "Authorization: Bearer $T_CERRADO" "$BASE/api/polizas")
   [ "$C" = 401 ] && ok "token con sesión cerrada, Redis caído: 401 (copia local)" || falla "token revocado con Redis caído: $C"
   C=$(codigo GET /api/polizas); [ "$C" = 200 ] && ok "token vigente, Redis caído: 200" || falla "token vigente con Redis caído: $C"
-  echo "  INFO   decisiones con la copia: $(docker exec andina-api-gateway wget -qO- http://localhost:8080/actuator/prometheus 2>/dev/null | grep '^gateway_revocaciones_copia_usos_total' | awk '{print $2}')"
-  encender andina-clean-redis
+  echo "  INFO   decisiones con la copia: $(docker exec api-gateway wget -qO- http://localhost:8080/actuator/prometheus 2>/dev/null | grep '^gateway_revocaciones_copia_usos_total' | awk '{print $2}')"
+  encender redis
 }
 
 BASICOS=(claims notification customer quotation policy identity rabbitmq redis mongo-policy whatsapp jsonpe)

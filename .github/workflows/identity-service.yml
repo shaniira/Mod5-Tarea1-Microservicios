@@ -32,4 +32,4 @@ jobs:
         env:
           CONTRATOS_OBLIGATORIOS: "true"
       - name: Imagen Docker
-        run: docker build -t andina-identity-service:${{ github.sha }} .
+        run: docker build -t identity-service:${{ github.sha }} .

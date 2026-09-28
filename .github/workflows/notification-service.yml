@@ -32,4 +32,4 @@ jobs:
         env:
           CONTRATOS_OBLIGATORIOS: "true"
       - name: Imagen Docker
-        run: docker build -t andina-notification-service:${{ github.sha }} .
+        run: docker build -t notification-service:${{ github.sha }} .

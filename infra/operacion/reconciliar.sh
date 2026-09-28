@@ -63,11 +63,11 @@ comparar() {
 echo "Reconciliación de proyecciones ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
 
 consulta customer-mongodb customer_db 'db.clientes.find().toArray().map(d => [d._id, v(d.telefono), v(d.correo)].join("|"))' > "$TMP/clientes-contacto"
-consulta andina-notification-mongodb notification_db 'db.customer_contacts.find().toArray().map(d => [d._id, v(d.telefono), v(d.correo)].join("|"))' > "$TMP/contactos"
+consulta notification-mongodb notification_db 'db.customer_contacts.find().toArray().map(d => [d._id, v(d.telefono), v(d.correo)].join("|"))' > "$TMP/contactos"
 comparar "clientes -> customer_contacts (notification)" "$TMP/clientes-contacto" "$TMP/contactos"
 
 consulta customer-mongodb customer_db 'db.clientes.find().toArray().map(d => [d._id, v(d.correo)].join("|"))' > "$TMP/clientes-correo"
-consulta andina-identity-mongodb identity_db 'db.customer_email_index.find().toArray().map(d => [d._id, v(d.correo)].join("|"))' > "$TMP/correos"
+consulta identity-mongodb identity_db 'db.customer_email_index.find().toArray().map(d => [d._id, v(d.correo)].join("|"))' > "$TMP/correos"
 comparar "clientes -> customer_email_index (identity)" "$TMP/clientes-correo" "$TMP/correos"
 
 consulta customer-mongodb customer_db 'db.clientes.find().toArray().map(d => [d._id, fecha(d.fechaNacimiento), v(d.activo)].join("|"))' > "$TMP/clientes-ref"

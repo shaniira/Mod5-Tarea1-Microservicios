@@ -9,7 +9,7 @@
 //
 // Uso (desde la raíz del repositorio, con el stack levantado; WhatsApp simulado para no enviar
 // mensajes reales):
-//   docker run --rm -i --network andina_gateway_network -e BASE=http://gateway:8080 \
+//   docker run --rm -i --network gateway_network -e BASE=http://gateway:8080 \
 //     grafana/k6:0.54.0 run - < infra/carga/carga.js
 import http from 'k6/http';
 import { check, sleep } from 'k6';

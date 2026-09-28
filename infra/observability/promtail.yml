@@ -1,4 +1,4 @@
-# Promtail: lee los logs de los contenedores del proyecto andina-clean y los envía a Loki. Los logs
+# Promtail: lee los logs de los contenedores del proyecto backend-seguros y los envía a Loki. Los logs
 # de los servicios son JSON: se extraen level, correlationId y traceId para poder buscar por ellos.
 server:
   http_listen_port: 9080
@@ -16,7 +16,7 @@ scrape_configs:
         refresh_interval: 10s
         filters:
           - name: label
-            values: ["com.docker.compose.project=andina-clean"]
+            values: ["com.docker.compose.project=backend-seguros"]
     relabel_configs:
       - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
         target_label: service
