@@ -70,7 +70,7 @@ Pruebas adicionales:
 | **Ventana de consistencia eventual** | Si el teléfono de un cliente cambia y en el mismo segundo se emite una póliza suya, el WhatsApp puede salir al teléfono anterior: los dos eventos viajan por colas distintas y la póliza puede procesarse antes que el cambio. Se observó una vez en las pruebas. La proyección queda correcta; solo afecta a ese mensaje. Es el costo aceptado de usar proyecciones (sección 5.1 de la propuesta) |
 | MongoDB de Kubernetes | Sigue siendo un servidor suelto: allí el Outbox funciona sin transacción (aviso en el log). notification-service aún no tiene manifiestos de Kubernetes, igual que el consumer anterior |
 | Trazas | El `traceId` se genera y se propaga, pero solo se exportan si se define `MANAGEMENT_OTLP_TRACING_ENDPOINT`; el stack de observabilidad (paso 0.9) no existe todavía. El backend aún no propaga `traceparent` en los mensajes |
-| Alertas | Las métricas existen, pero no hay Prometheus ni Alertmanager que las evalúen (paso 0.9) |
+| Alertas | Las métricas existen, pero no hay Prometheus ni Alertmanager que las evalúen (paso 0.9). **Resuelto:** Prometheus evalúa las alertas y Alertmanager las envía por correo (`n_…`, sección 11) |
 | Relay del Outbox | Pensado para una réplica del backend, que hoy no puede escalar (riesgo A3) |
 | MongoDB del backend | Sigue sin autenticación y con el puerto publicado (paso 0.6 pendiente) |
 

@@ -16,7 +16,7 @@ Todos los comandos se ejecutan desde la raíz del repositorio, salvo que se indi
 | Con HTTPS local (https://localhost:8443 y :8444) | `FRONTEND_API_URL=https://localhost:8444/api FRONTEND_API_ORIGIN=https://localhost:8444 CORS_ALLOWED_ORIGINS=https://localhost:8443 docker compose --profile tls up -d --build` |
 | Estado | `docker compose ps` (todos los servicios deben estar `healthy`) |
 
-Puertos: frontend 5173, gateway 8080; con observabilidad, Grafana 3000, Jaeger 16686 y Prometheus 9090. Todo lo demás es interno. Más detalle en [DOCKER-EJECUCION.md](../../DOCKER-EJECUCION.md).
+Puertos: frontend 5173, gateway 8080; con observabilidad, Grafana 3000, Jaeger 16686, Prometheus 9090 y Alertmanager 9093. Todo lo demás es interno. Más detalle en [DOCKER-EJECUCION.md](../../DOCKER-EJECUCION.md).
 
 **Más de una réplica.** Todos los servicios admiten varias réplicas: el estado efímero vive en Redis y MongoDB, y el relay del Outbox publica solo desde la réplica que tiene el turno (`outbox_lock`). En Kubernetes basta con subir `replicas`. En Compose los servicios con `container_name` fijo no escalan con `--scale`; una segunda réplica de prueba se levanta con `docker compose run -d --no-deps <servicio>`.
 
@@ -39,7 +39,18 @@ Puertos: frontend 5173, gateway 8080; con observabilidad, Grafana 3000, Jaeger 1
 
 ## 3. Qué hacer ante cada alerta
 
-Las alertas están en `infra/observability/prometheus/alertas.yml` y se ven en Prometheus (Alerts) y en Grafana. Para recibirlas por correo o chat falta Alertmanager (pendiente fuera del código).
+Las alertas están en `infra/observability/prometheus/alertas.yml` y se ven en Prometheus (Alerts) y en Grafana. **Alertmanager** las envía por correo a ramirezlisset361@gmail.com, con el cuerpo predeterminado de Alertmanager (sin plantilla propia).
+
+### 3.1 Envío de alertas por correo (Alertmanager)
+
+| Qué | Detalle |
+|---|---|
+| Configuración | `infra/observability/alertmanager/alertmanager.yml`: Gmail (`smtp.gmail.com:587`, STARTTLS), remitente y destinatario ramirezlisset361@gmail.com, `send_resolved: true` (también avisa cuando se resuelve) |
+| Contraseña | Una **contraseña de aplicación** de Google (no la contraseña de la cuenta), en `Arquitectura-Clean/.env` como `ALERTMANAGER_SMTP_PASSWORD=<16 letras sin espacios>`. Se crea en https://myaccount.google.com/apppasswords (requiere la verificación en 2 pasos activa). Después: `docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d alertmanager` |
+| Agrupación | Un correo por grupo de alerta y severidad; espera 30 s para juntar las que se disparan a la vez; si el grupo cambia, otro correo a los 5 min; si sigue activa, recordatorio cada 4 h |
+| Consola | http://localhost:9093 (alertas recibidas, silencios). Para silenciar una alerta durante un mantenimiento: "New Silence" con su `alertname` |
+| Si no llegan correos | `docker logs andina-alertmanager \| grep -i notify`. "missing password": falta la variable. "535 Username and Password not accepted": la contraseña de aplicación es incorrecta o se revocó. Revisar también la carpeta de spam |
+| Probar el envío | Apagar un servicio 2 minutos (`docker stop claims-service`): llegan `ServicioCaido` y `ServicioNoListo`; al volver a levantarlo, el aviso de resueltas |
 
 | Alerta | Qué significa | Qué hacer |
 |---|---|---|

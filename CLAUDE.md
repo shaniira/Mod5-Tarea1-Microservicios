@@ -54,7 +54,7 @@ Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotat
 | `services/quotation-service/`    | Tablas tarifarias, motor de tarificación, cotizaciones; proyecciones `customer_ref` y `vehicle_ref` con lectura de refuerzo a customer-service; publica `quote.accepted` |
 | `frontend/`                      | Vue 3.5 + TypeScript + Vite + Pinia; llama solo al gateway                                                          |
 | `contracts/`                     | Esquemas JSON de eventos y OpenAPI                                                                                  |
-| `infra/observability/`           | OTel Collector, Jaeger, Prometheus (alertas), Loki, Promtail, Grafana, blackbox (readiness)                         |
+| `infra/observability/`           | OTel Collector, Jaeger, Prometheus (alertas), Alertmanager (correo), Loki, Promtail, Grafana, blackbox (readiness) |
 | `infra/operacion/`               | Pruebas de caos (`caos.sh`) y reconciliación de proyecciones (`reconciliar.sh`)                                     |
 | `infra/mongo/`, `infra/rabbitmq/` | MongoDB (replica set y autenticación, respaldo, prueba de restauración); plugins de RabbitMQ y reproceso de DLQ |
 | `infra/carga/`, `infra/tls/`     | Prueba de carga (k6) y proxy HTTPS local (perfil `tls`)                                                             |
@@ -83,7 +83,7 @@ Conventional Commits en español: `tipo(scope): descripción en presente`, **asu
 cd Arquitectura-Clean
 docker compose up -d --build                                    # stack completo
 docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d   # abre puertos internos para depurar
-docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d   # + Grafana :3000, Jaeger :16686, Prometheus :9090
+docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d   # + Grafana :3000, Jaeger :16686, Prometheus :9090, Alertmanager :9093
 WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mock up -d   # WhatsApp simulado
 ```
 
@@ -96,7 +96,7 @@ WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mo
 ## Pendientes fuera del código
 
 - Rotar en JSON.pe los tokens que estuvieron versionados (lo hace el dueño de la cuenta).
-- Alertmanager para enviar alertas por correo o chat.
+- Registrar en `Arquitectura-Clean/.env` la contraseña de aplicación de Gmail (`ALERTMANAGER_SMTP_PASSWORD`) para que Alertmanager envíe las alertas a ramirezlisset361@gmail.com (guía de operación, sección 3.1).
 - Probar el frontend en el navegador con cuentas reales de Google y Facebook.
 
 
@@ -125,7 +125,7 @@ Las 8 fases de la ruta están cerradas (fase 7: `n_…`). Decisiones de consiste
 Lo que queda son decisiones documentadas para cuando el negocio lo pida (`n_…`, secciones 5 y 6):
 
 1. **Kubernetes:** manifiestos validados (kubeconform en CI; RabbitMQ ya es `StatefulSet` con volumen) pero no aplicados. El clúster kind local está apagado (`docker start andina-seguros-control-plane`) y todavía tiene el despliegue de la fase 0.
-2. **Seguridad para producción:** permisos de RabbitMQ por servicio y TLS interno (S5), token en cookie `HttpOnly` con renovación (S8), Alertmanager.
+2. **Seguridad para producción:** permisos de RabbitMQ por servicio y TLS interno (S5), token en cookie `HttpOnly` con renovación (S8).
 3. **Alta disponibilidad:** MongoDB y RabbitMQ de 3 nodos (A5).
 4. **Rendimiento:** en el equipo de 4 CPU las lecturas dan p95 de 1,7 s (objetivo 1 s); el gateway suma unos 350 ms. Fijar el límite de tasa por entorno según la capacidad medida (`n_…`, sección 3.4).
 5. Pasado el periodo de seguridad, borrar el volumen `andina_clean_mongo_data` (el respaldo queda en `respaldos/`).

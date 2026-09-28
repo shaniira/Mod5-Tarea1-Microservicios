@@ -77,6 +77,7 @@ docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.ob
 - **Grafana** (http://localhost:3000, usuario `admin`, clave `GRAFANA_ADMIN_PASSWORD` o `grafana-local`): tablero "Andina Seguros — Resumen" y, en Explore, los logs de todos los servicios. Para seguir una petición: `{service=~".+"} |= "<X-Correlation-Id>"`; desde cada log, el `traceId` abre la traza en Jaeger.
 - **Jaeger** (http://localhost:16686): una emisión es una sola traza: gateway → policy-service → RabbitMQ → notification-service, claims-service y quotation-service.
 - **Prometheus** (http://localhost:9090): métricas de los 7 servicios y de RabbitMQ (mensajes por cola), readiness de cada servicio (blackbox) y alertas: servicio caído o no listo, circuito abierto, DLQ con mensajes (de cualquier servicio), Outbox atrasado, 5xx y notificaciones pausadas.
+- **Alertmanager** (http://localhost:9093): envía las alertas por correo a ramirezlisset361@gmail.com (Gmail), con el cuerpo predeterminado. Requiere la contraseña de aplicación de Google en `Arquitectura-Clean/.env` como `ALERTMANAGER_SMTP_PASSWORD`; configuración en `infra/observability/alertmanager/alertmanager.yml`. Detalle en la [guía de operación](doc/5.%20Microservicios/o_GUIA-OPERACION.md), sección 3.1.
 
 Detener sin borrar datos:
 

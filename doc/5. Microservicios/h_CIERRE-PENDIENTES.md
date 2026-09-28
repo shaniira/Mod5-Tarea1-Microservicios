@@ -72,5 +72,5 @@ Ninguno de estos commits sacó funcionalidad del monolito: son cambios de seguri
 ## 5. Lo que no depende del código
 
 - **Tokens de JSON.pe que estuvieron versionados:** hay que rotarlos en el panel de JSON.pe (solo puede hacerlo el dueño de la cuenta).
-- **Alertas por correo o chat:** las reglas están en Prometheus y se ven en Grafana; para enviar avisos falta configurar un Alertmanager con el canal del equipo.
+- **Alertas por correo o chat:** las reglas están en Prometheus y se ven en Grafana; para enviar avisos falta configurar un Alertmanager con el canal del equipo. **Resuelto en la fase 7:** Alertmanager envía las alertas por correo (`n_…`, sección 11).
 - **Frontend en el navegador:** se verificaron el API y las cabeceras CORS con el origen del frontend; no se hizo una prueba manual en el navegador.

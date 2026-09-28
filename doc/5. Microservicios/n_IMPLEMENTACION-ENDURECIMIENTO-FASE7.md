@@ -174,7 +174,7 @@ Conclusiones:
 |---|---|
 | Consumidor de auditoría (7.9) | Se eliminó la cola en lugar de implementar un consumidor: nadie la usaba. Los 6 mensajes que tenía quedaron en el directorio de un nodo anterior de RabbitMQ (fase 6, sección 9.4); no se recuperan |
 | Kubernetes | Manifiestos validados (kubeconform) y RabbitMQ con volumen; **no se aplicaron** al clúster: el clúster kind local corría el despliegue de la fase 0 y saturaba el equipo, y se apagó |
-| Alertmanager | Fuera del código (pendiente): las alertas se ven en Prometheus y Grafana |
+| Alertmanager | **Configurado** (sección 11): correo a ramirezlisset361@gmail.com por Gmail. Falta solo registrar la contraseña de aplicación en `.env` |
 | Permisos de RabbitMQ por servicio, token en cookie, clústeres de 3 nodos | Sección 5 |
 | Límite de tasa del gateway | Se deja en 50/s por IP; fijarlo por entorno según la capacidad medida (sección 3.4) |
 | Reparto entre réplicas en Compose | Compose no balancea (el gateway reutiliza la conexión); en Kubernetes reparte el Service |
@@ -211,7 +211,7 @@ Una revisión con Codex, hecha mientras la fase estaba en curso (antes de las pr
 | Qué hacer con la cola de auditoría | Ya decidido (paso 7.9) |
 | **Siniestro recién registrado y renovación** con varias réplicas o con el evento todavía en el Outbox de claims | **Resuelto** (sección 10.1): al generar la póliza, policy confirma los siniestros con claims-service (CP en el paso irreversible) |
 | **Revocación de tokens con Redis caído** (se dejaba pasar: un token revocado valía hasta vencer) | **Resuelto** (sección 10.2): copia local de la lista de revocación en el gateway |
-| Aplicar Kubernetes, rotar tokens de JSON.pe, Alertmanager, login social real | Pendientes ya anotados (sección 6 y `CLAUDE.md`) |
+| Aplicar Kubernetes, rotar tokens de JSON.pe, login social real | Pendientes ya anotados (sección 6 y `CLAUDE.md`). Alertmanager: hecho (sección 11) |
 
 ## 10. Decisiones de consistencia (teorema CAP por operación)
 
@@ -260,3 +260,32 @@ Es el intercambio que describe PACELC: la consistencia fuerte cuesta latencia y 
 **Defecto encontrado al probarlo:** el primer diseño refrescaba con `Flux.interval` de Reactor y el flujo se detenía tras el primer refresco sin dejar rastro (la métrica de antigüedad crecía y no llegaban SCAN a Redis). Se reemplazó por un hilo programado que registra los fallos; la antigüedad quedó en 0–5 s.
 
 Tras todas las pruebas, la reconciliación sigue coincidiendo en las 7 comparaciones (320 pólizas, 5 siniestros, 332 cotizaciones aceptadas) y las DLQ están en 0.
+
+## 11. Envío de alertas por correo (Alertmanager)
+
+Hasta aquí las alertas solo se veían en Prometheus y Grafana. Ahora **Alertmanager** las envía por correo a ramirezlisset361@gmail.com, con el cuerpo de correo predeterminado de Alertmanager (sin plantilla propia).
+
+### 11.1 Qué se configuró y dónde
+
+| Archivo | Qué se hizo | Para qué sirve |
+|---|---|---|
+| `infra/observability/alertmanager/alertmanager.yml` (nuevo) | SMTP de Gmail (`smtp.gmail.com:587`, STARTTLS); remitente, usuario y destinatario ramirezlisset361@gmail.com; contraseña leída de un archivo (`smtp_auth_password_file`); agrupación por `alertname` y `severidad` (espera 30 s, reenvío del grupo a los 5 min, recordatorio cada 4 h); `send_resolved: true` | Decidir a quién, cómo y cada cuánto se avisa. Sin sección de plantillas: correo predeterminado |
+| `infra/observability/docker-compose.observability.yml` | Servicio `alertmanager` (`prom/alertmanager:v0.27.0`, UI en el puerto 9093, volumen `alertmanager_data`). Recibe `ALERTMANAGER_SMTP_PASSWORD` del entorno y al arrancar la escribe en `/tmp/smtp_password` | Correr Alertmanager junto al resto de la observabilidad sin versionar la contraseña. Si falta la variable, el stack arranca igual (los correos fallan con "missing password" en el log) |
+| `infra/observability/prometheus/prometheus.yml` | Sección `alerting` que apunta a `alertmanager:9093`, y job `alertmanager` | Que Prometheus entregue las alertas disparadas, y que `ServicioCaido` avise también si cae Alertmanager |
+| `Arquitectura-Clean/.env.example` | Variable `ALERTMANAGER_SMTP_PASSWORD=` con instrucciones | Indica dónde va la contraseña de aplicación |
+| `infra/observability/prometheus/alertas.yml` | Comentario actualizado | — |
+| Documentos | Guía de operación (sección 3.1), `DOCKER-EJECUCION.md`, `CLAUDE.md` | Cómo registrar la contraseña, probar el envío y qué hacer si no llegan correos |
+
+**Dónde se registra la contraseña:** en `Arquitectura-Clean/.env`, variable `ALERTMANAGER_SMTP_PASSWORD`, con la **contraseña de aplicación** de Google (https://myaccount.google.com/apppasswords, requiere la verificación en 2 pasos), no la contraseña normal de la cuenta. El archivo `.env` no se versiona.
+
+**Por qué un archivo en lugar de un secreto de Compose:** se probó primero con `secrets:` de Compose tomado de la variable, pero Compose se niega a arrancar si la variable no existe, y eso habría impedido levantar toda la observabilidad a quien no tenga la contraseña.
+
+### 11.2 Verificación
+
+| Prueba | Resultado |
+|---|---|
+| `amtool check-config` | Configuración válida: 1 receptor, 0 plantillas (cuerpo predeterminado) |
+| Prometheus → Alertmanager | `activeAlertmanagers: http://alertmanager:9093/api/v2/alerts` |
+| Alerta real de punta a punta (claims-service apagado) | A los ~90 s, `ServicioCaido` y `ServicioNoListo` llegaron a Alertmanager; 30 s después intentó el envío a Gmail y falló solo por `missing password` (la contraseña de aplicación todavía no está en `.env`). Al volver claims, la alerta se resolvió |
+
+**Pendiente de la dueña del proyecto:** registrar `ALERTMANAGER_SMTP_PASSWORD` en `.env` y recrear el contenedor; luego repetir la prueba de apagar un servicio para confirmar que llega el correo.
