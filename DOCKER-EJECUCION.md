@@ -62,7 +62,7 @@ Desde la raíz del repositorio; qué hacer con cada resultado está en la [guía
 | Respaldar las 6 bases / probar la restauración | `sh infra/mongo/respaldar.sh` / `sh infra/mongo/probar-restauracion.sh respaldos/<fecha>` |
 | Reprocesar una DLQ | `sh infra/rabbitmq/reprocesar-dlq.sh <cola>.dlq` |
 | Pruebas de caos | `bash infra/operacion/caos.sh [caso...]` (con WhatsApp y JSON.pe simulados) |
-| Prueba de carga | `docker run --rm -i --network andina_gateway_network grafana/k6:0.54.0 run - < infra/carga/carga.js` |
+| Prueba de carga | `docker run --rm -i --network gateway_network grafana/k6:0.54.0 run - < infra/carga/carga.js` |
 
 ### Abrir puertos internos (solo para depurar)
 
@@ -100,8 +100,8 @@ El monolito (`Arquitectura-Clean`) dejó de recibir tráfico en el corte (2026-0
 
 ## Aislamiento
 
-- Cada servicio ↔ su MongoDB: una red propia (`customer_data_network`, `claims_data_network`, `quotation_data_network`, `policy_data_network`, `andina_identity_data_network`, `andina_notification_data_network`). Ningún servicio llega a la base de otro.
-- Servicios ↔ RabbitMQ: red `rabbitmq_network`. Gateway ↔ servicios: `andina_services_network`. Gateway ↔ Redis: `andina_gateway_network`.
+- Cada servicio ↔ su MongoDB: una red propia (`customer_data_network`, `claims_data_network`, `quotation_data_network`, `policy_data_network`, `identity_data_network`, `notification_data_network`). Ningún servicio llega a la base de otro.
+- Servicios ↔ RabbitMQ: red `rabbitmq_network`. Gateway ↔ servicios: `services_network`. Gateway ↔ Redis: `gateway_network`.
 - RabbitMQ tiene `hostname: rabbitmq`: al recrear el contenedor conserva colas y mensajes.
-- Volúmenes: uno por base (`customer_mongo_data`, `claims_mongo_data`, `quotation_mongo_data`, `policy_mongo_data`, `andina_identity_mongo_data`, `andina_notification_mongo_data`), y `rabbitmq_data`. El volumen del monolito (`andina_clean_mongo_data`) se borró al retirarlo, tras comprobar el respaldo.
-- El nombre del proyecto de Compose sigue siendo `andina-clean` (`name:` en `docker-compose.yml`): cambiarlo renombraría contenedores (`andina-clean-rabbitmq-1`...), redes y el volumen de RabbitMQ, y rompería los scripts de operación y el filtro de Promtail.
+- Volúmenes: uno por base (`customer_mongo_data`, `claims_mongo_data`, `quotation_mongo_data`, `policy_mongo_data`, `andina_identity_mongo_data`, `andina_notification_mongo_data`), `andina-clean_rabbitmq_data` y los del stack de observabilidad (`andina-clean_*_data`). El volumen del monolito (`andina_clean_mongo_data`) se borró al retirarlo, tras comprobar el respaldo.
+- El proyecto de Compose se llama `backend-seguros` (`name:` en `docker-compose.yml`); los contenedores y las redes no llevan el nombre de la empresa. Los volúmenes creados antes conservan su nombre (`andina_*`, `andina-clean_*`) porque renombrar un volumen obliga a copiar sus datos; en el caso de `andina_identity_keys` (clave de firma del JWT), además invalidaría todas las sesiones.

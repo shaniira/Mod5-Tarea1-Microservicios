@@ -49,13 +49,13 @@ Las alertas están en `infra/observability/prometheus/alertas.yml` y se ven en P
 | Contraseña | Una **contraseña de aplicación** de Google (no la contraseña de la cuenta), en el `.env` de la raíz como `ALERTMANAGER_SMTP_PASSWORD=<16 letras sin espacios>`. Se crea en https://myaccount.google.com/apppasswords (requiere la verificación en 2 pasos activa). Después: `docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d alertmanager` |
 | Agrupación | Un correo por grupo de alerta y severidad; espera 30 s para juntar las que se disparan a la vez; si el grupo cambia, otro correo a los 5 min; si sigue activa, recordatorio cada 4 h |
 | Consola | http://localhost:9093 (alertas recibidas, silencios). Para silenciar una alerta durante un mantenimiento: "New Silence" con su `alertname` |
-| Si no llegan correos | `docker logs andina-alertmanager \| grep -i notify`. "missing password": falta la variable. "535 Username and Password not accepted": la contraseña de aplicación es incorrecta o se revocó. Revisar también la carpeta de spam |
+| Si no llegan correos | `docker logs alertmanager \| grep -i notify`. "missing password": falta la variable. "535 Username and Password not accepted": la contraseña de aplicación es incorrecta o se revocó. Revisar también la carpeta de spam |
 | Probar el envío | Apagar un servicio 2 minutos (`docker stop claims-service`): llegan `ServicioCaido` y `ServicioNoListo`; al volver a levantarlo, el aviso de resueltas |
 
 | Alerta | Qué significa | Qué hacer |
 |---|---|---|
 | **ServicioCaido** (`up == 0`, 1 min) | El proceso no responde | `docker compose ps` y `docker compose logs --tail 200 <servicio>`. Si salió por memoria o error, `docker compose up -d <servicio>`. Mientras tanto el gateway responde 503 en sus rutas y el resto del sistema sigue (ver sección 5) |
-| **ServicioNoListo** (readiness, 1 min) | El proceso vive pero no alcanza su MongoDB, RabbitMQ o Redis | `docker exec andina-api-gateway wget -qO- http://<servicio>:8080/actuator/health/readiness` dice qué componente falla. Levantar ese componente; el servicio se recupera solo |
+| **ServicioNoListo** (readiness, 1 min) | El proceso vive pero no alcanza su MongoDB, RabbitMQ o Redis | `docker exec api-gateway wget -qO- http://<servicio>:8080/actuator/health/readiness` dice qué componente falla. Levantar ese componente; el servicio se recupera solo |
 | **ErroresServidorAltos** (> 5 % de 5xx, 5 min) | Muchas respuestas de error | En Loki, `{service="<servicio>"} \|= "ERROR"`. Un 503 del gateway suele ser un circuito abierto o un servicio caído; un 500, un error de programación: abrir incidente con el `correlationId` |
 | **CircuitoAbierto** (2 min) | Un destino falla y se dejó de llamarlo | Ver cuál (`name`): `customerCB`, `claimsCB`, `quotationCB`, `policyCB`, `identityCB` (gateway), `jsonpe` (placas), `whatsapp`, `customer` (quotation → customer). Arreglar el destino; el circuito se cierra solo tras 30 s en semiabierto |
 | **DlqConMensajes** (1 min) | Un consumidor no pudo procesar mensajes | Sección 6 |
@@ -106,7 +106,7 @@ Cada consumidor tiene su cola `<cola>` y su DLQ `<cola>.dlq`. Un mensaje llega a
 1. **Ver la causa:** en el log del consumidor, `Mensaje <id> enviado a la DLQ: <causa>` (notification) o el `WARN` del listener. El contenido se ve en la consola de RabbitMQ (con `docker-compose.debug.yml`, http://localhost:15672, cola, "Get messages").
 2. **Corregir la causa** (por ejemplo, reenviar el cliente que faltaba, corregir un token).
 3. **Reprocesar:** `sh infra/rabbitmq/reprocesar-dlq.sh <cola>.dlq` mueve los mensajes de vuelta a la cola principal. Los consumidores son idempotentes: un mensaje ya aplicado no se aplica dos veces.
-4. Si un mensaje no tiene arreglo (dato de prueba), se descarta con `docker exec andina-clean-rabbitmq-1 rabbitmqctl purge_queue <cola>.dlq`.
+4. Si un mensaje no tiene arreglo (dato de prueba), se descarta con `docker exec backend-seguros-rabbitmq-1 rabbitmqctl purge_queue <cola>.dlq`.
 
 ## 7. Respaldos y restauración
 
@@ -125,9 +125,9 @@ sh infra/mongo/probar-restauracion.sh respaldos/<fecha-hora>   # restaura en un 
 `infra/carga/carga.js` (k6) mide lecturas, emisión y el límite del gateway. Correrlo después de cambios de rendimiento (con WhatsApp simulado):
 
 ```bash
-docker run --rm -i --network andina_gateway_network -e BASE=http://gateway:8080 grafana/k6:0.54.0 run - < infra/carga/carga.js
+docker run --rm -i --network gateway_network -e BASE=http://gateway:8080 grafana/k6:0.54.0 run - < infra/carga/carga.js
 ```
 
 ## 9. Kubernetes
 
-Manifiestos en `k8s/` (orden de aplicación en `k8s/README.md`); en CI se validan con kubeconform. Los mismos procedimientos aplican con `kubectl exec -n andina-seguros <pod> -- <comando>` en lugar de `docker exec`.
+Manifiestos en `k8s/` (orden de aplicación en `k8s/README.md`); en CI se validan con kubeconform. Los mismos procedimientos aplican con `kubectl exec -n backend-seguros <pod> -- <comando>` en lugar de `docker exec`.

@@ -65,7 +65,7 @@ text(300, 94, 'botón de Google / redirección OAuth de Facebook (desde el naveg
 
 // --- Contenedor de Docker Compose ------------------------------------------------------------
 rect(285, 130, 1060, 1135, 'none', '#7a93bd', { dash: '8,5', sw: 1.6, rx: 12 });
-text(300, 150, 'Docker Compose · proyecto andina-clean · solo el frontend (5173) y el gateway (8080) publican puertos', { size: 12.5, bold: true, fill: '#2a5aa0' });
+text(300, 150, 'Docker Compose · proyecto backend-seguros · solo el frontend (5173) y el gateway (8080) publican puertos', { size: 12.5, bold: true, fill: '#2a5aa0' });
 
 box(300, 165, 200, 105, '#e9f8ef', '#46b37a', 'Frontend (Nginx)', ['Puerto 5173 → 80', 'SPA Vue compilada;', 'llama solo al gateway', '(VITE_API_URL).'], { size: 10.5 });
 flecha([[250, 330], [275, 330], [275, 215], [298, 215]], C.azul, { sw: 1.6 });

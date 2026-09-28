@@ -72,12 +72,7 @@ Cambios dentro del Compose:
 - Se quitaron el servicio `mongodb` (perfil `monolito`), el servicio `backend` (perfil `monolito`), la red `clean_network` y el volumen `clean_mongo_data`.
 - Se actualizaron 9 comentarios que hablaban del backend o de la reversa.
 
-**Decisión: el nombre del proyecto de Compose se mantiene `andina-clean`** (`name:` en la primera línea). Cambiarlo habría roto varias cosas:
-- Los contenedores habrían cambiado de nombre: `andina-clean-rabbitmq-1` e `andina-clean-identity-service-1`, que usan `caos.sh`, `reconciliar.sh`, `reprocesar-dlq.sh` y la guía de operación.
-- El volumen de RabbitMQ (`andina-clean_rabbitmq_data`) habría sido otro.
-- El filtro de Promtail por proyecto habría dejado de recoger los logs.
-
-Es solo un nombre, y conservarlo evita recrear datos.
+**Nombre del proyecto de Compose:** al mover el Compose se mantuvo `andina-clean`, para no recrear datos. Después, en la misma jornada, se renombró a `backend-seguros` junto con contenedores, redes e imágenes, fijando el nombre de los volúmenes heredados para no perder datos (sección 8).
 
 `docker-compose.debug.yml` quedó solo con los puertos de RabbitMQ: se quitaron los de `mongodb` (27020) y `backend` (8083).
 
@@ -178,7 +173,7 @@ Además, a pedido, **cada documento de fase (`e_` a `n_`) tiene ahora una secci�
 | Pedido | Qué se hizo | Archivos |
 |---|---|---|
 | Actualizar los diagramas y el documento de la arquitectura propuesta con lo implementado | Diagrama nuevo, generado por un script a partir de lo que dicen el código y el Compose (no la propuesta). Muestra:<ul><li>eventos que publica y consume cada servicio;</li><li>llamadas síncronas (lectura de refuerzo, confirmación CP);</li><li>una MongoDB por servicio y las redes reales;</li><li>Alertmanager, decisiones CAP, calidad y operación, Kubernetes.</li></ul>PNG renderizado con Chrome sin ventana. En la propuesta:<ul><li>notas **Implementado:** en cada punto que cambió;</li><li>mermaid actualizado;</li><li>estructura real del repositorio;</li><li>los 11 criterios marcados con su evidencia;</li><li>sección 13 con las diferencias y sus motivos.</li></ul> | `c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg` y `.png`, `diagramas/generar-diagrama-microservicios.js`, `diagramas/README.md`, `c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md` |
-| Quitar "Andina" de los documentos: el nombre es "Backend Seguros" | 41 reemplazos en 20 documentos ("Andina Seguros" y "JWT de Andina"). No se cambiaron los identificadores técnicos que existen en el sistema, porque el documento dejaría de coincidir con el código:<ul><li>`andina.events`;</li><li>`com.andinaseguros`;</li><li>contenedores `andina-*`;</li><li>la clase `AndinaSegurosApplication`;</li><li>el emisor TOTP literal.</li></ul>El tablero de Grafana y su carpeta pasaron a llamarse "Backend Seguros", para que coincidan con los documentos | Documentos `.md`; `infra/observability/grafana/dashboards/andina-resumen.json`; `grafana/provisioning/dashboards/dashboards.yml` |
+| Quitar "Andina" de los documentos: el nombre es "Backend Seguros" | 41 reemplazos en 20 documentos ("Andina Seguros" y "JWT de Andina"). No se cambiaron los identificadores técnicos que existen en el sistema, porque el documento dejaría de coincidir con el código:<ul><li>`andina.events`;</li><li>`com.andinaseguros`;</li><li>contenedores `andina-*`;</li><li>la clase `AndinaSegurosApplication`;</li><li>el emisor TOTP literal.</li></ul>El tablero de Grafana y su carpeta pasaron a llamarse "Backend Seguros", para que coincidan con los documentos | Documentos `.md`; `infra/observability/grafana/dashboards/resumen.json`; `grafana/provisioning/dashboards/dashboards.yml` |
 
 ## 7. Verificación
 
@@ -192,3 +187,66 @@ Además, a pedido, **cada documento de fase (`e_` a `n_`) tiene ahora una secci�
 | Cotizar por el gateway | 201, prima 1412.50 (el mismo cálculo que el monolito) |
 | Reconciliación (`sh infra/operacion/reconciliar.sh`) | 7 de 7 coinciden: 19 clientes en 3 proyecciones, 18 vehículos, 320 pólizas, 5 siniestros, 332 cotizaciones aceptadas |
 | Caos (`caos.sh` con claims, customer, quotation, policy, rabbitmq, renovacion-reciente, renovacion-claims, revocacion-redis, replicas) | Primera pasada (con el equipo cargado por el proceso huérfano y la prueba temporal, sección 5 filas 3 y 4): 6 de 9 casos correctos (customer, policy, rabbitmq, renovacion-claims, revocacion-redis y replicas; este último creó la segunda réplica con la ruta nueva del Compose). Fallaron claims, quotation y renovacion-reciente. **Repetidos con el equipo tranquilo: los 3 pasan** ("Todas las degradaciones se comportaron como estaba planificado"). En total, 9 de 9 |
+
+## 8. Nombres sin "andina" (2026-09-28)
+
+**Pedido:** que "andina" no aparezca en los contenedores ni en las clases y carpetas de los microservicios, cambiando cada nombre solo si el impacto es bajo.
+
+### 8.1 Evaluación
+
+| Nombre | Impacto de cambiarlo | Decisión |
+|---|---|---|
+| Paquete `com.andinaseguros` y `groupId` (538 clases en 7 proyectos) | Bajo. Es un cambio mecánico que verifican las pruebas. No afecta datos: el relay publica bytes sin `__TypeId__`, los listeners deducen el tipo de su parámetro y el `_class` de MongoDB se ignora si la clase no existe | **Cambiado** a `com.backendseguros` |
+| Proyecto de Compose `andina-clean`, `container_name` `andina-*`, redes `andina_*` e imágenes `andina-*` | Bajo. Los contenedores se recrean; los datos viven en volúmenes | **Cambiados**: proyecto `backend-seguros`, contenedores y redes sin prefijo |
+| Volúmenes `andina_*` y `andina-clean_*` | Alto. Renombrar un volumen obliga a copiar sus datos; `andina_identity_keys` es la clave de firma del JWT, y perderla invalida todas las sesiones | **Se mantienen**, con `name:` fijo para que el proyecto nuevo siga usándolos |
+| Exchange `andina.events`, su DLX y la cola `andina.policy.notification.queue` | Medio. Hay que cambiar 6 servicios a la vez y se pierden los mensajes en vuelo y en las DLQ | Se mantienen |
+| Usuario y clave por defecto de RabbitMQ (`andina`) | Alto. El usuario está guardado en RabbitMQ; cambiar la variable deja a los servicios sin acceso | Se mantienen |
+| Emisor del JWT (`andina-identity`) | Medio. Cierra todas las sesiones y debe cambiar a la vez en 7 servicios y en Kubernetes | Se mantiene |
+| Kubernetes: namespace `andina-seguros`, hosts, TLS e imágenes | Bajo: los manifiestos no están aplicados | **Cambiados** a `backend-seguros` |
+| `$id` de los contratos (`andinaseguros.example`) y correos de ejemplo `@andina.local` / `@andina.pe` | Bajo: son identificadores y datos de prueba | **Cambiados** |
+| Textos visibles: título del frontend, marca del menú, login, mensajes, emisor en Google Authenticator | Bajo. Las cuentas de Authenticator ya agregadas siguen funcionando: el secreto no cambia, solo la etiqueta de las nuevas | **Cambiados** a "Backend Seguros" |
+| Clúster kind local (`andina-seguros`), scripts históricos y respaldo del monolito | Son entorno externo o historia | Se mantienen |
+
+### 8.2 Qué se cambió
+
+| Área | Cambio | Archivos |
+|---|---|---|
+| Código | `src/{main,test}/java/com/andinaseguros` → `com/backendseguros` con `git mv` en los 7 proyectos; paquetes, imports, `groupId`, nombres de clase en `application.yml`; bean `andinaEventsExchange` → `eventsExchange`; nombre de una prueba y datos `jwt-andina` | `services/*/`, `gateway/` |
+| Textos de identity | Mensaje "cliente no registrado" y emisor TOTP: "Backend Seguros" | `AutenticarConGoogleUseCase`, `ConfigurarMfaUseCase` |
+| Contratos | `$id` → `https://backendseguros.example/...` (las pruebas de contrato los mapean); correos de ejemplo | `contracts/`, `Contratos.java` |
+| Compose | `name: backend-seguros`; contenedores `api-gateway`, `notification-service`, `identity-mongodb`, `notification-mongodb`, `whatsapp-mock`, `redis`; redes `gateway_network`, `services_network`, `identity_data_network`, `notification_data_network`; imágenes `api-gateway`, `identity-service`, `notification-service`; `rabbitmq_data` fijado a `andina-clean_rabbitmq_data` | `docker-compose.yml` |
+| Observabilidad | Contenedores sin prefijo; red `observability_network`; volúmenes fijados a `andina-clean_*`; Promtail filtra el proyecto `backend-seguros`; grupos de alertas `servicios` y `mensajeria`; tablero `resumen.json` (uid `resumen`) | `infra/observability/` |
+| Scripts | Nombres nuevos de contenedores y redes | `caos.sh`, `reconciliar.sh`, `respaldar.sh`, `reprocesar-dlq.sh`, `carga.js` |
+| CI | Imágenes sin prefijo | `.github/workflows/{gateway,identity-service,notification-service}.yml` |
+| Kubernetes | Namespace, hosts, TLS e imágenes; se quitó el usuario del monolito del Secret de ejemplo de MongoDB | `k8s/*.yaml`, `k8s/README.md` |
+| Frontend | Paquete `backend-seguros-frontend`; título, marca "B / Backend Seguros", textos; datos de prueba | `frontend/` |
+| Documentos | Nombres de contenedores, redes, imágenes, paquete y namespace en guías y documentos de fase | `*.md` |
+
+### 8.3 Cómo se migró el stack en ejecución
+
+1. Se borraron los contenedores del proyecto `andina-clean` (`docker rm -f` filtrando por la etiqueta del proyecto) y sus redes. **Los volúmenes no se tocaron.**
+2. `docker compose build` y `up -d` con el proyecto `backend-seguros`. Los volúmenes heredados se reutilizan porque su nombre está fijado en el Compose.
+3. Se borraron las imágenes viejas `andina-api-gateway`, `andina-identity-service`, `andina-notification-service` y `andina-clean-frontend`.
+
+### 8.4 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | **Se borraron 4 redes de otros proyectos del equipo** (`andina_hexagonal_network`, `andina_onion_network`, `andina_rabbitmq_network` y `andina_clean_network`, esta última del monolito) | El filtro `^andina_` usado para borrar las redes viejas del stack era demasiado amplio | Las redes no guardan datos y ningún contenedor en ejecución las usaba. Los contenedores detenidos de Hexagonal y Onion no arrancarán con `docker start`; se recuperan con `docker compose up` en su carpeta, que recrea la red. Lección: borrar recursos por nombre exacto, no por prefijo | `docker volume ls`: ningún volumen se tocó |
+| 2 | Si se cambiaba el nombre del proyecto, RabbitMQ, Prometheus, Loki, Grafana y Alertmanager habrían arrancado con volúmenes nuevos y vacíos | Compose antepone el nombre del proyecto a los volúmenes sin `name:` | `name:` fijo con el nombre heredado (`andina-clean_*`) | Colas de RabbitMQ presentes tras el cambio; Grafana conserva su estado |
+| 3 | Las pruebas de contrato habrían fallado al cambiar el `$id` de los esquemas | `Contratos.java` mapea el prefijo del `$id` a la carpeta `contracts/` | Se cambiaron juntos el `$id` y el mapeo | Pruebas de contrato en verde en los 6 servicios |
+
+### 8.5 Verificación
+
+| Prueba | Resultado |
+|---|---|
+| Pruebas de los 7 proyectos con `mvn clean test` (paquete nuevo, contratos obligatorios) | **272 de 272**: identity 62, policy 52, quotation 48, customer 43, claims 33, notification 30, gateway 4 |
+| Imágenes reconstruidas (vuelven a correr sus pruebas al construirse) | Todas construidas; `api-gateway:1.0.0`, `identity-service:1.0.0`, `notification-service:1.1.0`, `backend-seguros-frontend` |
+| Kubernetes (`kubeconform -strict`, como en CI) | 39 recursos válidos en 34 archivos |
+| Stack levantado | 24 contenedores; ningún nombre con "andina"; todos los que tienen healthcheck, `healthy` |
+| Datos conservados | Reconciliación 7 de 7 (19 clientes, 18 vehículos, 340 pólizas, 7 siniestros, 351 cotizaciones aceptadas); login y lecturas con la misma clave de firma; las 16 colas de RabbitMQ presentes y en 0 |
+| Observabilidad | Grafana: tablero `resumen` en la carpeta "Backend Seguros"; Loki recibe los logs del proyecto `backend-seguros` |
+| Caos con los nombres nuevos (`rabbitmq`, `redis`, `notification`, `whatsapp`, `revocacion-redis`, `claims`) | 6 de 6: "Todas las degradaciones se comportaron como estaba planificado" |
+| `infra/mongo/respaldar.sh` con los contenedores nuevos | Respaldó las 6 bases |
+
+Al terminar, el stack quedó con su configuración normal (WhatsApp y JSON.pe reales) y **todos los contenedores detenidos** (`docker compose stop`, sin borrar nada).

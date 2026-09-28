@@ -374,7 +374,7 @@ Tres señales, una herramienta para cada una y Grafana como punto de consulta. C
 ## 8. Estructura del repositorio y del despliegue
 
 ```
-andina-seguros/
+backend-seguros/
 ├── contracts/                 # OpenAPI + esquemas JSON de eventos (versionados)
 ├── gateway/
 ├── services/

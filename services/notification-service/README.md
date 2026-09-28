@@ -90,8 +90,8 @@ curl -X POST http://localhost:8080/api/clientes/eventos/reenvio -H "Authorizatio
 Sin puerto en el host; se consultan desde el contenedor:
 
 ```bash
-docker exec andina-notification-service wget -qO- http://localhost:8080/actuator/health/readiness
-docker exec andina-notification-service wget -qO- http://localhost:8080/actuator/prometheus | grep -E "^notification_|circuitbreaker_state"
+docker exec notification-service wget -qO- http://localhost:8080/actuator/health/readiness
+docker exec notification-service wget -qO- http://localhost:8080/actuator/prometheus | grep -E "^notification_|circuitbreaker_state"
 ```
 
 | Métrica | Significado | Alerta sugerida |

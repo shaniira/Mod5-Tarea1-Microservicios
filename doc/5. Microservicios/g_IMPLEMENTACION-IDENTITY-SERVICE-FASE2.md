@@ -12,7 +12,7 @@ Este documento registra lo que se implementó en la fase 2 de la [ruta de implem
 
 | Paso de la ruta | Implementación |
 |---|---|
-| 2.1 Redis | El Redis del gateway se conecta también a la red `andina_identity_data_network`; identity-service usa la base 1 (la 0 es del rate limiter). Sin puerto en el host |
+| 2.1 Redis | El Redis del gateway se conecta también a la red `identity_data_network`; identity-service usa la base 1 (la 0 es del rate limiter). Sin puerto en el host |
 | 2.2 JWT RS256 | `RsaJwtTokenAdapter` firma con RS256 y `kid` igual a la huella de la clave. Claims: `sub`, `rol` (lo lee el frontend), `roles`, `customerId` (solo CLIENTE), `iss=andina-identity`, `iat`, `exp`, `jti`. La clave privada la genera una vez el contenedor `identity-keygen` en el volumen `andina_identity_keys`, que solo monta identity-service (usuario 1001, permiso 400). `JwksController` publica solo la parte pública |
 | 2.3 Validación por JWKS con ventana | El backend pasó a ser *resource server* (`JwtDecoderConfig`) y el gateway valida con `NimbusReactiveJwtDecoder`. Durante la ventana ambos aceptaron también HS256 (commits `8e2c927` y `f2ba312`); al cerrar la fase se retiró (`71a66ac` y `b0af45d`) |
 | 2.4 identity-service con la plantilla | Se movieron `auth/*`, `mfa/*` y los adaptadores de Google, Facebook, TOTP, QR, BCrypt y AES-GCM, con la estructura Clean y las reglas ArchUnit. Las rutas y respuestas son las mismas, así que el frontend no cambió |

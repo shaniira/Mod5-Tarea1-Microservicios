@@ -77,7 +77,7 @@ Además:
 
 ## 4. Verificación
 
-Pruebas hechas el 2026-09-27 contra el stack de `Arquitectura-Clean/docker-compose.yml`. Como el servicio no está enrutado, se le llamó por la red interna (`andina_services_network`) con el mismo token RS256 que emite identity-service; al monolito, por el gateway. JSON.pe se simuló con WireMock (`--profile jsonpe-mock`), porque no hay un token real en `.env`.
+Pruebas hechas el 2026-09-27 contra el stack de `Arquitectura-Clean/docker-compose.yml`. Como el servicio no está enrutado, se le llamó por la red interna (`services_network`) con el mismo token RS256 que emite identity-service; al monolito, por el gateway. JSON.pe se simuló con WireMock (`--profile jsonpe-mock`), porque no hay un token real en `.env`.
 
 | # | Criterio de salida (ruta, sección 7) | Cómo se probó | Resultado |
 |---|---|---|---|

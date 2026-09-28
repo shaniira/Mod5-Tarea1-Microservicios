@@ -107,7 +107,7 @@ gateway/
 ├── .dockerignore
 └── src/
     ├── main/
-    │   ├── java/com/andinaseguros/gateway/
+    │   ├── java/com/backendseguros/gateway/
     │   │   ├── ApiGatewayApplication.java
     │   │   ├── config/
     │   │   │   ├── GatewayConfig.java
@@ -125,7 +125,7 @@ gateway/
     │   │       ├── FallbackController.java
     │   │       └── GatewayErrorAttributes.java
     │   └── resources/application.yml
-    └── test/java/com/andinaseguros/gateway/ApiGatewayApplicationTests.java
+    └── test/java/com/backendseguros/gateway/ApiGatewayApplicationTests.java
 
 k8s/
 ├── 00-namespace.yaml
@@ -363,7 +363,7 @@ mvn test                     # levanta el contexto de Spring (sin red externa)
 ### 8.2 Construir las imágenes Docker
 
 ```bash
-docker build -t andina-api-gateway:1.0.0 ./gateway
+docker build -t api-gateway:1.0.0 ./gateway
 docker build -t andina-seguros-clean:1.0.0 ./Arquitectura-Clean
 ```
 

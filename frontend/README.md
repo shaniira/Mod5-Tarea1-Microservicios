@@ -54,7 +54,7 @@ flowchart TB
 ## 4. Estructura del proyecto
 
 ```text
-andina-seguros-frontend/
+backend-seguros-frontend/
 ├── src/
 │   ├── assets/
 │   │   └── main.css
@@ -345,13 +345,13 @@ El contenedor realiza una compilación multi-stage con Node.js y sirve el result
 ```bash
 docker build \
   --build-arg VITE_API_URL=https://api.midominio.pe/api \
-  -t andina-seguros-frontend:1.0.0 .
+  -t backend-seguros-frontend:1.0.0 .
 ```
 
 ### Ejecutar imagen
 
 ```bash
-docker run --rm -p 8081:80 andina-seguros-frontend:1.0.0
+docker run --rm -p 8081:80 backend-seguros-frontend:1.0.0
 ```
 
 Abrir:

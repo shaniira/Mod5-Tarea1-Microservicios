@@ -212,7 +212,7 @@ Una revisión con Codex, hecha mientras la fase estaba en curso (antes de las pr
 |---|---|
 | El turno del Outbox puede vencer durante un lote lento | **Corregido** (defecto 12): se renueva antes de cada evento; validación al arrancar; prueba unitaria y caso `relay-lote` en vivo |
 | Documentos de las fases 3 a 6 con estados "pendiente" que ya no lo son, y 6.10/6.11 marcados "No se hizo" | **Corregido:** cada fila indica cómo quedó resuelta, sin borrar lo que se decidió en su momento |
-| `reprocesar-dlq.sh` indicaba `deploy/rabbitmq` en Kubernetes | **Corregido:** RabbitMQ es un StatefulSet; el comando es `kubectl exec -n andina-seguros rabbitmq-0 -- …` |
+| `reprocesar-dlq.sh` indicaba `deploy/rabbitmq` en Kubernetes | **Corregido:** RabbitMQ es un StatefulSet; el comando es `kubectl exec -n backend-seguros rabbitmq-0 -- …` |
 | `caos.sh` no corre por defecto los casos de réplicas | **Corregido:** `bash infra/operacion/caos.sh todos` suma `replicas`, `relay-lote` e `identity-larga` |
 | Correr caos, carga, reconciliación y restauración; confirmar que las pruebas pasan | Ya hecho (sección 3) |
 | `o_GUIA` enlazaba a un informe que no existía; `nginx.conf` borrado sin su plantilla | Ya resuelto: este documento existe y los dos archivos entraron en el mismo commit |

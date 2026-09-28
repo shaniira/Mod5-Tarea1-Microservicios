@@ -12,7 +12,7 @@ GUI) para no quedarse solo en la validación de sintaxis:
 
 ```bash
 kind create cluster --name andina-seguros
-kind load docker-image andina-api-gateway:1.0.0 --name andina-seguros
+kind load docker-image api-gateway:1.0.0 --name andina-seguros
 kind load docker-image andina-seguros-clean:1.0.0 --name andina-seguros
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 kubectl apply -f k8s/
@@ -21,7 +21,7 @@ kubectl apply -f k8s/
 Resultado verificado con tráfico real (no solo `kubectl get`):
 
 ```
-curl -k -H "Host: andina-seguros.example.com" https://localhost/api/auth/login -X POST ...
+curl -k -H "Host: backend-seguros.example.com" https://localhost/api/auth/login -X POST ...
 -> HTTP 308 en :80 (ssl-redirect funcionando) -> HTTPS en :443 -> Ingress -> api-gateway-service
    (balanceando entre 2 Pods) -> backend-service -> backend -> MongoDB -> JWT real devuelto
 ```
@@ -58,8 +58,8 @@ despliegue esto en un clúster nuevo.
 ### Cómo reproducirlo (o limpiarlo)
 
 ```bash
-kubectl get pods -n andina-seguros -o wide     # ver el estado actual
-kubectl port-forward -n andina-seguros svc/api-gateway-service 18080:8080  # probar sin Ingress
+kubectl get pods -n backend-seguros -o wide     # ver el estado actual
+kubectl port-forward -n backend-seguros svc/api-gateway-service 18080:8080  # probar sin Ingress
 
 kind delete cluster --name andina-seguros      # borrar todo el clúster de prueba
 ```
@@ -67,7 +67,7 @@ kind delete cluster --name andina-seguros      # borrar todo el clúster de prue
 ## Requisitos previos
 
 - Un clúster con **NGINX Ingress Controller** instalado (ver comentario en `40-ingress.yaml`).
-- Las imágenes `andina-api-gateway:1.0.0`, `andina-seguros-clean:1.0.0`, `customer-service:1.0.0`,
+- Las imágenes `api-gateway:1.0.0`, `andina-seguros-clean:1.0.0`, `customer-service:1.0.0`,
   `claims-service:1.0.0`, `quotation-service:1.0.0` y `policy-service:1.0.0` construidas y
   disponibles para el clúster (`docker build` + push a un registro, o `kind load docker-image` /
   `minikube image load` en un clúster local).
@@ -81,12 +81,12 @@ kubectl apply -f k8s/00-namespace.yaml
 # Secretos reales primero (nunca los *.example.yaml tal cual). Fase 2: la clave privada RS256
 # de los JWT solo la monta identity-service; el gateway y los servicios usan la clave publica (JWKS).
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
-kubectl create secret generic identity-jwt-key --namespace andina-seguros \
+kubectl create secret generic identity-jwt-key --namespace backend-seguros \
   --from-file=private.pem=private.pem && rm private.pem
 # repetir el patrón con mongodb-secrets (33-secret-mongodb.example.yaml), identity-secrets
 # (51), notification-secrets (61) y rabbitmq-secrets (31).
 # MongoDB usa los mismos scripts que Docker Compose (replica set + usuarios por servicio):
-kubectl create configmap mongodb-scripts --namespace andina-seguros --from-file=infra/mongo/
+kubectl create configmap mongodb-scripts --namespace backend-seguros --from-file=infra/mongo/
 
 kubectl apply -f k8s/11-configmap-gateway.yaml
 kubectl apply -f k8s/12-deployment-gateway.yaml
@@ -124,8 +124,8 @@ kubectl apply -f k8s/40-ingress.yaml
 Verificar:
 
 ```bash
-kubectl get pods,svc,hpa,ingress -n andina-seguros
-kubectl logs -n andina-seguros deploy/api-gateway -f
+kubectl get pods,svc,hpa,ingress -n backend-seguros
+kubectl logs -n backend-seguros deploy/api-gateway -f
 ```
 
 ## Decisiones y limitaciones (para no generar falsas expectativas)
@@ -137,7 +137,7 @@ kubectl logs -n andina-seguros deploy/api-gateway -f
 | **api-gateway con HPA y 2 réplicas mínimo** | `minReplicas: 2`, CPU 70% / memoria 80% | El Gateway no guarda estado propio (el rate limiter vive en Redis), así que sí es seguro escalarlo horizontalmente desde ya. Cumple la regla "API Gateway: mínimo 2 réplicas en ambientes no locales". |
 | **MongoDB y RabbitMQ de un solo Pod** | `replicas: 1`, sin clustering | MongoDB es un replica set **de un nodo** (necesario para las transacciones del Outbox) con autenticación obligatoria y un usuario por servicio (`andina`, `identity`, `notification`), cada uno solo con permiso sobre su base. El Service es headless para que el nombre del replica set resuelva a la IP del Pod. Alta disponibilidad real (3 nodos) no se implementó en la fase 7: queda documentada como evolución (ver `n_…`, sección 5). RabbitMQ pasó a `StatefulSet` con volumen persistente. |
 | **JWT RS256 con JWKS (fase 2)** | Solo `identity-service` monta el `Secret` `identity-jwt-key`; `api-gateway` y `backend` descargan la clave pública de `/.well-known/jwks.json` | Se retiró el secreto simétrico compartido (`andina-jwt-secret`): robar el gateway o el backend ya no permite firmar tokens. |
-| **Sin TLS real configurado** | El `Ingress` referencia `andina-seguros-tls` y `letsencrypt-prod`, pero ninguno existe todavía | Son placeholders de ejemplo; instalar cert-manager (o cargar un certificado propio) es un paso de entorno, no de este repositorio. |
+| **Sin TLS real configurado** | El `Ingress` referencia `backend-seguros-tls` y `letsencrypt-prod`, pero ninguno existe todavía | Son placeholders de ejemplo; instalar cert-manager (o cargar un certificado propio) es un paso de entorno, no de este repositorio. |
 | **Sin Eureka / service discovery adicional** | Se usa el DNS interno de Kubernetes (`<service>.<namespace>.svc.cluster.local`) | Cumple la regla "no introducir Eureka salvo necesidad real"; el DNS de Kubernetes ya resuelve el problema. |
 
 ## Relación con Docker Compose
@@ -145,7 +145,7 @@ kubectl logs -n andina-seguros deploy/api-gateway -f
 | Docker Compose (`docker-compose.yml` de la raíz) | Kubernetes (aquí) |
 |---|---|
 | `environment:` con valores literales | `ConfigMap` (no sensible) + `Secret` (sensible) |
-| Nombre del servicio en la red de Compose (`http://backend:8080`) | Nombre del `Service` + DNS de Kubernetes (`http://backend-service.andina-seguros.svc.cluster.local:8080`) |
+| Nombre del servicio en la red de Compose (`http://backend:8080`) | Nombre del `Service` + DNS de Kubernetes (`http://backend-service.backend-seguros.svc.cluster.local:8080`) |
 | `depends_on` + `healthcheck` | `startupProbe` / `readinessProbe` / `livenessProbe` |
 | `restart: unless-stopped` | `strategy: RollingUpdate` + reinicio automático de Pods por el `Deployment` |
 | Un solo host, sin autoescalado | `HorizontalPodAutoscaler` (gateway) |

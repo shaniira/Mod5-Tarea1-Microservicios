@@ -41,9 +41,9 @@ Al cambiar un evento: primero el esquema y su ejemplo aquí, luego productor y c
 
 | Servicio | Contrato | Cómo se regenera |
 |---|---|---|
-| identity-service | [openapi/identity-service.json](openapi/identity-service.json) | `GET /v3/api-docs` del servicio (springdoc), por ejemplo `docker exec andina-api-gateway wget -qO- http://identity-service:8080/v3/api-docs` |
-| customer-service | [openapi/customer-service.json](openapi/customer-service.json) | `docker exec andina-api-gateway wget -qO- http://customer-service:8080/v3/api-docs` |
-| claims-service | [openapi/claims-service.json](openapi/claims-service.json) | `docker exec andina-api-gateway wget -qO- http://claims-service:8080/v3/api-docs` |
-| quotation-service | [openapi/quotation-service.json](openapi/quotation-service.json) | `docker exec andina-api-gateway wget -qO- http://quotation-service:8080/v3/api-docs` |
-| policy-service | [openapi/policy-service.json](openapi/policy-service.json) | `docker exec andina-api-gateway wget -qO- http://policy-service:8080/v3/api-docs` |
+| identity-service | [openapi/identity-service.json](openapi/identity-service.json) | `GET /v3/api-docs` del servicio (springdoc), por ejemplo `docker exec api-gateway wget -qO- http://identity-service:8080/v3/api-docs` |
+| customer-service | [openapi/customer-service.json](openapi/customer-service.json) | `docker exec api-gateway wget -qO- http://customer-service:8080/v3/api-docs` |
+| claims-service | [openapi/claims-service.json](openapi/claims-service.json) | `docker exec api-gateway wget -qO- http://claims-service:8080/v3/api-docs` |
+| quotation-service | [openapi/quotation-service.json](openapi/quotation-service.json) | `docker exec api-gateway wget -qO- http://quotation-service:8080/v3/api-docs` |
+| policy-service | [openapi/policy-service.json](openapi/policy-service.json) | `docker exec api-gateway wget -qO- http://policy-service:8080/v3/api-docs` |
 | backend (monolito) | Retirado en el paso 6.10 | Sus dominios quedaron en los contratos de customer, claims, quotation y policy |
