@@ -70,6 +70,12 @@ public class RabbitMqConfiguration {
         return QueueBuilder.durable(nombre).deadLetterExchange(dlxName).deadLetterRoutingKey(dlqName).build();
     }
 
+    /** Eventos de siniestros recibidos y sin aplicar (sincronización de claim_ref, fase 7). */
+    @Bean
+    SiniestrosEnProceso siniestrosEnProceso(@Value("${app.rabbitmq.claim.queue}") String colaSiniestros) {
+        return new SiniestrosEnProceso(colaSiniestros);
+    }
+
     @Bean
     MessageConverter messageConverter(ObjectMapper objectMapper) {
         return new Jackson2JsonMessageConverter(objectMapper);
@@ -79,12 +85,14 @@ public class RabbitMqConfiguration {
     SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
             SimpleRabbitListenerContainerFactoryConfigurer configurer,
             ConnectionFactory connectionFactory,
-            MessageConverter messageConverter) {
+            MessageConverter messageConverter,
+            SiniestrosEnProceso siniestrosEnProceso) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         configurer.configure(factory, connectionFactory);
         factory.setMessageConverter(messageConverter);
         factory.setObservationEnabled(true);
         factory.setAdviceChain(
+                siniestrosEnProceso,
                 RetryInterceptorBuilder.stateless()
                         .maxAttempts(3)
                         .backOffOptions(1000, 2.0, 5000)

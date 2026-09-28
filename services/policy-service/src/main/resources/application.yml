@@ -24,6 +24,9 @@ spring:
       simple:
         acknowledge-mode: auto
         default-requeue-rejected: false
+        # Fase 7: un mensaje sin confirmar por réplica. Así "cola sin mensajes listos" + "ninguno en
+        # proceso" (SiniestrosEnProceso) significa que claim_ref ya aplicó todo lo recibido.
+        prefetch: 1
   jackson:
     serialization:
       write-dates-as-timestamps: false

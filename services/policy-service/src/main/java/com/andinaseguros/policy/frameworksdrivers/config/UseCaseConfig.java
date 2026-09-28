@@ -88,12 +88,14 @@ public class UseCaseConfig {
 
     /**
      * claim_ref está al día si tuvo la carga inicial y la cola de siniestros no tiene eventos
-     * esperando (paso 6.5).
+     * esperando (paso 6.5). Fase 7: "esperando" suma los mensajes listos de la cola y los que esta
+     * réplica ya recibió y aún aplica (con prefetch 1 no hay otros sin confirmar).
      */
     @Bean
     SincronizacionSiniestrosPort sincronizacionSiniestros(
             MongoProyeccionesRepository proyecciones,
             AmqpAdmin rabbitAdmin,
+            SiniestrosEnProceso siniestrosEnProceso,
             @Value("${app.rabbitmq.claim.queue}") String colaSiniestros) {
         return new SincronizacionSiniestrosAdapter(
                 proyecciones::cargaInicialHecha,
@@ -102,7 +104,7 @@ public class UseCaseConfig {
                     if (info == null) {
                         throw new IllegalStateException("La cola " + colaSiniestros + " no existe");
                     }
-                    return info.getMessageCount();
+                    return info.getMessageCount() + siniestrosEnProceso.getAsLong();
                 });
     }
 

@@ -11,8 +11,10 @@ import org.slf4j.LoggerFactory;
  * eventos de siniestros esperando. Si alguno no se cumple, o no se puede comprobar (RabbitMQ no
  * responde), se considera atrasada: la renovación responde "siniestros pendientes" y se reintenta.
  *
- * <p>Límite: un evento que el consumidor ya tomó pero aún no terminó de aplicar no cuenta como
- * "esperando". Es una ventana de milisegundos.
+ * <p>Fase 7: "esperando" incluye los eventos que el consumidor ya recibió y aún aplica (antes solo
+ * se contaban los listos en la cola, y con prefetch alto podía haber cientos sin contar). Límites
+ * que quedan: un evento que sigue en el Outbox de claims (hasta ~1 s, el intervalo del relay) y,
+ * con varias réplicas, el que esté aplicando otra réplica (milisegundos).
  */
 public class SincronizacionSiniestrosAdapter implements SincronizacionSiniestrosPort {
     private static final Logger log = LoggerFactory.getLogger(SincronizacionSiniestrosAdapter.class);
