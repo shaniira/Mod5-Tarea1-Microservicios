@@ -1,0 +1,21 @@
+# Nginx del frontend (fase 7, hallazgo S11): SPA con cabeceras de seguridad. Es una plantilla: la
+# imagen reemplaza ${API_ORIGIN} al arrancar (origen del gateway que llama la SPA).
+server {
+    listen 8080;
+    server_name _;
+    server_tokens off;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # CSP: solo scripts propios y Google Identity Services (botón de Google). La API es el gateway.
+    # style-src permite 'unsafe-inline' porque el botón de Google inyecta estilos en línea.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; frame-src https://accounts.google.com/gsi/; connect-src 'self' ${API_ORIGIN} https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self' ${API_ORIGIN}; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

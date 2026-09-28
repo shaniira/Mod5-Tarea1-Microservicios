@@ -45,16 +45,18 @@ RUN pnpm run test \
     && pnpm run build
 
 # ============================================================
-# Etapa 2: Nginx
+# Etapa 2: Nginx sin root (fase 7): imagen nginx-unprivileged, puerto 8080
 # ============================================================
-FROM nginx:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Plantilla: al arrancar se reemplaza ${API_ORIGIN} (origen del gateway, para la CSP).
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+ENV API_ORIGIN=http://localhost:8080
 COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q --spider http://127.0.0.1/ || exit 1
+  CMD wget -q --spider http://127.0.0.1:8080/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

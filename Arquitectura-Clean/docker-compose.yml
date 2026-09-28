@@ -486,7 +486,10 @@ services:
         # gateway (:8080), unico punto de entrada de la API (patron Strangler Fig).
         VITE_API_URL: http://localhost:8080/api
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-    ports: ["5173:80"]
+    # Fase 7: nginx sin root escucha en 8080; API_ORIGIN va a la CSP (connect-src).
+    environment:
+      API_ORIGIN: ${FRONTEND_API_ORIGIN:-http://localhost:8080}
+    ports: ["5173:8080"]
     restart: unless-stopped
 volumes:
   clean_mongo_data:

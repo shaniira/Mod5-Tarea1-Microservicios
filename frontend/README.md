@@ -84,7 +84,7 @@ andina-seguros-frontend/
 ├── .env.example
 ├── Dockerfile
 ├── docker-compose.yml
-├── nginx.conf
+├── nginx.conf.template
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
