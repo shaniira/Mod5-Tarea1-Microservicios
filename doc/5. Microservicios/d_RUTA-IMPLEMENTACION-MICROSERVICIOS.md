@@ -267,6 +267,17 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 7.8 | **Documentación operativa:** cómo levantar el stack, cómo leer los paneles, qué hacer ante cada alerta | S |
 | 7.9 | **Consumidor de auditoría** (opcional): implementar el de `audit.queue` o eliminar la cola | S |
 
+**Estado (2026-09-28): ✅ cerrada.** Los 9 pasos están hechos y verificados contra el stack de Compose, y los criterios de "terminado" de la propuesta (sección 11) se cumplen. Las pruebas encontraron y corrigieron 11 defectos; los más graves: el gateway se colgaba con Redis caído, el relay del Outbox no admitía réplicas y el corte había dejado copias huérfanas y divergentes. La auditoría (7.9) se resolvió eliminando la cola. Queda como decisión documentada lo que no se implementó: permisos de RabbitMQ por servicio, token en cookie, clústeres de 3 nodos y aplicar los manifiestos al clúster. Detalle en [n_IMPLEMENTACION-ENDURECIMIENTO-FASE7.md](n_IMPLEMENTACION-ENDURECIMIENTO-FASE7.md); operación en [o_GUIA-OPERACION.md](o_GUIA-OPERACION.md).
+
+**Criterios de salida** (los de la sección 11 de la propuesta)
+- [x] Apagar RabbitMQ durante una emisión no pierde ningún evento.
+- [x] Toda llamada síncrona tiene timeout, circuit breaker y fallback, comprobado apagando el destino (11 componentes).
+- [x] Con el circuito de WhatsApp abierto, los mensajes no llegan a la DLQ.
+- [x] El sistema funciona con 2 réplicas (relay del Outbox con turno; cada evento se publica una vez).
+- [x] Pruebas de contrato de cada API y evento en CI.
+- [x] Reconciliación sin diferencias; respaldo restaurado y comprobado; reproceso de DLQ probado.
+- [x] S1–S11 y A1–A6 resueltos o con decisión documentada.
+
 ---
 
 ## 12. Procedimiento estándar para migrar los datos de un dominio

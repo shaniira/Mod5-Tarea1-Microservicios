@@ -17,6 +17,7 @@ Este documento registra, fase por fase y commit por commit, qué se cambió en e
 | 4. claims-service | **No** | Siniestros: desde el corte, a claims-service | — |
 | 5. quotation-service | **No** | Tarifas y cotizaciones: desde el corte, a quotation-service | — |
 | 6. policy-service | **No** | Pólizas, renovaciones y "Mi cuenta": desde el corte, a policy-service y al gateway | — |
+| 7. Endurecimiento | **No** (ya retirado) | La cola de auditoría que declaraba el monolito se eliminó (paso 7.9) | — (su respaldo sirvió para confirmar datos al reconciliar; ver `n_…`, defecto 4) |
 
 Desde la fase 3 el código del monolito se mantiene **congelado** por decisión del equipo (2026-09-27): los servicios nuevos se construyeron al lado, con su base propia y copias de datos. El 2026-09-27 se hizo **el corte conjunto de las fases 3 a 6 sin tocar el monolito** (sección 6): el desacoplamiento se logró en el gateway, no borrando código. Ese mismo día **se retiró el monolito** (sección 7): base respaldada, fuera del arranque normal (perfil `monolito`, solo para una reversa) y exchange heredado borrado.
 
