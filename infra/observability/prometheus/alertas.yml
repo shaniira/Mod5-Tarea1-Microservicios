@@ -1,5 +1,5 @@
 # Alertas iniciales (sección 7.2 de la propuesta y README de notification-service). Se ven en
-# Prometheus (Alerts) y en Grafana; para avisar por correo o chat se agrega Alertmanager.
+# Prometheus (Alerts) y en Grafana, y Alertmanager las envía por correo (alertmanager/alertmanager.yml).
 groups:
   - name: andina-servicios
     rules:

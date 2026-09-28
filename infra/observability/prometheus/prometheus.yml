@@ -3,6 +3,12 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Fase 7: Prometheus envía las alertas disparadas a Alertmanager, que las manda por correo.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 rule_files:
   - /etc/prometheus/alertas.yml
 
@@ -82,6 +88,11 @@ scrape_configs:
         target_label: servicio
       - target_label: __address__
         replacement: blackbox:9115
+
+  # Fase 7: el propio Alertmanager (si cae, ServicioCaido lo muestra en Prometheus y Grafana).
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager:9093"]
 
   - job_name: prometheus
     static_configs:

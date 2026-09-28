@@ -4,7 +4,8 @@
 # Se levanta junto al stack normal, desde Arquitectura-Clean/:
 #   docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d
 #
-# Puertos solo en local: Grafana 3000, Jaeger UI 16686, Prometheus 9090. Loki y el Collector
+# Puertos solo en local: Grafana 3000, Jaeger UI 16686, Prometheus 9090, Alertmanager 9093 (envío de
+# alertas por correo; contraseña en ALERTMANAGER_SMTP_PASSWORD de .env). Loki y el Collector
 # quedan en la red interna "observability".
 services:
   otel-collector:
@@ -46,6 +47,28 @@ services:
     image: prom/blackbox-exporter:v0.25.0
     container_name: andina-blackbox
     restart: unless-stopped
+    networks: [observability_network]
+
+  # Fase 7: envía por correo las alertas de Prometheus (alertmanager/alertmanager.yml). UI en
+  # http://localhost:9093. La contraseña de aplicación de Gmail llega en la variable
+  # ALERTMANAGER_SMTP_PASSWORD (Arquitectura-Clean/.env, nunca en un archivo versionado); al arrancar se
+  # escribe en /tmp/smtp_password, que Alertmanager lee (smtp_auth_password_file). Si falta, el stack
+  # arranca igual y los correos fallan con un error de autenticación en el log.
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: andina-alertmanager
+    restart: unless-stopped
+    environment:
+      ALERTMANAGER_SMTP_PASSWORD: ${ALERTMANAGER_SMTP_PASSWORD:-}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf '%s' "$$ALERTMANAGER_SMTP_PASSWORD" > /tmp/smtp_password &&
+        exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
+    volumes:
+      - ../infra/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports: ["9093:9093"]
     networks: [observability_network]
 
   loki:
@@ -125,7 +148,9 @@ volumes:
   prometheus_data:
   loki_data:
   grafana_data:
+  alertmanager_data:
 
 networks:
   observability_network:
     name: andina_observability_network
+

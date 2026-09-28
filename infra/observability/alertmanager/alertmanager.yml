@@ -1,0 +1,27 @@
+# Alertmanager: envía por correo las alertas que dispara Prometheus (infra/observability/prometheus/
+# alertas.yml). Se usa el cuerpo de correo predeterminado de Alertmanager, sin plantilla propia.
+#
+# Envío por Gmail (smtp.gmail.com:587, STARTTLS) con la cuenta del proyecto. La contraseña NO va en
+# este archivo: es una "contraseña de aplicación" de Google que se registra en Arquitectura-Clean/.env
+# como ALERTMANAGER_SMTP_PASSWORD; al arrancar el contenedor se escribe en /tmp/smtp_password.
+global:
+  smtp_smarthost: smtp.gmail.com:587
+  smtp_from: ramirezlisset361@gmail.com
+  smtp_auth_username: ramirezlisset361@gmail.com
+  smtp_auth_password_file: /tmp/smtp_password
+  smtp_require_tls: true
+
+route:
+  receiver: correo
+  # Agrupa en un solo correo las alertas del mismo nombre y severidad.
+  group_by: [alertname, severidad]
+  group_wait: 30s        # espera para juntar alertas que se disparan a la vez
+  group_interval: 5m     # entre correos de un mismo grupo que cambia
+  repeat_interval: 4h    # recordatorio si la alerta sigue activa
+
+receivers:
+  - name: correo
+    email_configs:
+      - to: ramirezlisset361@gmail.com
+        # También avisa cuando la alerta se resuelve.
+        send_resolved: true
