@@ -7,10 +7,10 @@ Diseño completo, decisiones y pruebas realizadas: [doc/5. Microservicios/f_IMPL
 ## Flujo
 
 ```text
-backend ──(Outbox)──► RabbitMQ
-   customer.registered.v1 / customer.updated.v1  (andina.events)
+customer-service / policy-service ──(Outbox)──► RabbitMQ (andina.events)
+   customer.registered.v1 / customer.updated.v1  (customer-service)
         └─► notification.customer.events ─► CustomerEventsListener ─► customer_contacts (notification_db)
-   policy.issued.v1  (andina.insurance.events y andina.events)
+   policy.issued.v1  (policy-service; el exchange heredado andina.insurance.events se retiró en el paso 6.11)
         └─► andina.policy.notification.queue ─► PolicyIssuedListener
                 ─► teléfono desde customer_contacts ─► WhatsApp (timeout + retry + circuit breaker)
 ```

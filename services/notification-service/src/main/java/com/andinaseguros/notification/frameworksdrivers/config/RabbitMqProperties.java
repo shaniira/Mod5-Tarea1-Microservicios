@@ -4,13 +4,11 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * legacyExchange / eventsExchange: durante la transición (fase 1 en adelante) las colas se enlazan
- * a los dos exchanges (sección 4 de la propuesta). Cuando todos publiquen en andina.events, el
- * heredado se retira.
+ * eventsExchange: andina.events, el único exchange de eventos desde el paso 6.11 (el heredado
+ * andina.insurance.events se retiró junto con el monolito, que era su único productor).
  */
 @ConfigurationProperties(prefix = "app.rabbitmq")
 public record RabbitMqProperties(
-        String legacyExchange,
         String eventsExchange,
         QueueSettings policy,
         QueueSettings customer,

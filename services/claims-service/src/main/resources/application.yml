@@ -28,8 +28,6 @@ spring:
 app:
   rabbitmq:
     events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
-    # Exchange heredado: el backend sigue publicando policy.issued.v1 aqui.
-    insurance-exchange: ${RABBITMQ_EXCHANGE:andina.insurance.events}
     policy:
       queue: ${RABBITMQ_POLICY_QUEUE:claims.policy.events}
       dead-letter-exchange: ${RABBITMQ_EVENTS_DLX:andina.events.dlx}

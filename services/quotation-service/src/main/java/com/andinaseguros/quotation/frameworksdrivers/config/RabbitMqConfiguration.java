@@ -29,8 +29,8 @@ import org.springframework.context.annotation.Configuration;
  * <ul>
  *   <li>quotation.customer.events: customer.registered/updated.v1 y vehicle.registered.v1
  *       (proyecciones customer_ref y vehicle_ref).
- *   <li>quotation.policy.events: policy.issued.v1, enlazada a los dos exchanges durante la
- *       transición (andina.insurance.events, donde publica el backend, y andina.events).
+ *   <li>quotation.policy.events: policy.issued.v1 y policy.issuance-rejected.v1, de andina.events.
+ *       Desde el paso 6.11 ya no se enlaza al exchange heredado andina.insurance.events.
  * </ul>
  *
  * Además declara andina.events, donde quotation publica quote.accepted.v1.
@@ -49,7 +49,6 @@ public class RabbitMqConfiguration {
             @Value("${app.rabbitmq.policy.queue}") String policyQueueName,
             @Value("${app.rabbitmq.policy.dead-letter-queue}") String policyDlqName) {
         TopicExchange events = new TopicExchange(properties.eventsExchange(), true, false);
-        TopicExchange insurance = new TopicExchange(properties.insuranceExchange(), true, false);
         TopicExchange dlx = new TopicExchange(dlxName, true, false);
         Queue customer = cola(customerQueueName, dlxName, customerDlqName);
         Queue customerDlq = QueueBuilder.durable(customerDlqName).build();
@@ -57,7 +56,6 @@ public class RabbitMqConfiguration {
         Queue policyDlq = QueueBuilder.durable(policyDlqName).build();
         return new Declarables(
                 events,
-                insurance,
                 dlx,
                 customer,
                 customerDlq,
@@ -66,7 +64,6 @@ public class RabbitMqConfiguration {
                 BindingBuilder.bind(customer).to(events).with("customer.registered.v1"),
                 BindingBuilder.bind(customer).to(events).with("customer.updated.v1"),
                 BindingBuilder.bind(customer).to(events).with("vehicle.registered.v1"),
-                BindingBuilder.bind(policy).to(insurance).with("policy.issued.v1"),
                 BindingBuilder.bind(policy).to(events).with("policy.issued.v1"),
                 // Fase 6: compensación de la saga de emisión.
                 BindingBuilder.bind(policy).to(events).with("policy.issuance-rejected.v1"),

@@ -23,10 +23,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Cola propia de claims para policy.* (cada consumidor es dueño de sus colas). policy.issued.v1
- * llega por los dos exchanges durante la transición: andina.insurance.events (backend) y
- * andina.events (policy-service). policy.renewed/expired/cancelled.v1 solo los publica
- * policy-service, en andina.events. Con su DLQ: un fallo se reintenta 3 veces y luego va a la DLQ.
+ * Cola propia de claims para policy.* (cada consumidor es dueño de sus colas): policy-service
+ * publica policy.issued/renewed/expired/cancelled.v1 en andina.events. Desde el paso 6.11 ya no se
+ * enlaza al exchange heredado andina.insurance.events. Con su DLQ: un fallo se reintenta 3 veces y
+ * luego va a la DLQ.
  * Además declara andina.events, donde claims publica claim.*.
  */
 @Configuration
@@ -41,7 +41,6 @@ public class RabbitMqConfiguration {
             @Value("${app.rabbitmq.policy.dead-letter-exchange}") String dlxName,
             @Value("${app.rabbitmq.policy.dead-letter-queue}") String dlqName) {
         TopicExchange events = new TopicExchange(properties.eventsExchange(), true, false);
-        TopicExchange insurance = new TopicExchange(properties.insuranceExchange(), true, false);
         TopicExchange dlx = new TopicExchange(dlxName, true, false);
         Queue queue =
                 QueueBuilder.durable(queueName)
@@ -51,11 +50,9 @@ public class RabbitMqConfiguration {
         Queue dlq = QueueBuilder.durable(dlqName).build();
         return new Declarables(
                 events,
-                insurance,
                 dlx,
                 queue,
                 dlq,
-                BindingBuilder.bind(queue).to(insurance).with("policy.issued.v1"),
                 BindingBuilder.bind(queue).to(events).with("policy.issued.v1"),
                 BindingBuilder.bind(queue).to(events).with("policy.renewed.v1"),
                 BindingBuilder.bind(queue).to(events).with("policy.expired.v1"),

@@ -25,23 +25,24 @@ import org.springframework.context.annotation.Configuration;
  * propuesta): el backend ya no las declara.
  *
  * <ul>
- *   <li>{@code andina.policy.notification.queue}: policy.issued.v1 desde los dos exchanges. Conserva
- *       el nombre y los argumentos de antes para no perder los mensajes que ya estaban en ella.
+ *   <li>{@code andina.policy.notification.queue}: policy.issued.v1 desde andina.events. Conserva el
+ *       nombre y los argumentos de antes (incluida su DLX andina.insurance.events.dlx): RabbitMQ no
+ *       deja cambiar los argumentos de una cola existente.
  *   <li>{@code notification.customer.events}: customer.registered.v1 y customer.updated.v1.
  * </ul>
+ *
+ * <p>Paso 6.11: ya no se enlaza al exchange heredado andina.insurance.events.
  */
 @Configuration
 public class RabbitMqConfiguration {
 
     @Bean
     Declarables notificationTopology(RabbitMqProperties properties) {
-        TopicExchange legacy = new TopicExchange(properties.legacyExchange(), true, false);
         TopicExchange events = new TopicExchange(properties.eventsExchange(), true, false);
 
         List<Declarable> declarables = new ArrayList<>();
-        declarables.add(legacy);
         declarables.add(events);
-        agregarCola(declarables, properties.policy(), List.of(legacy, events));
+        agregarCola(declarables, properties.policy(), List.of(events));
         agregarCola(declarables, properties.customer(), List.of(events));
         return new Declarables(declarables);
     }

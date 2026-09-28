@@ -29,7 +29,6 @@ spring:
 
 app:
   rabbitmq:
-    legacy-exchange: ${RABBITMQ_LEGACY_EXCHANGE:andina.insurance.events}
     events-exchange: ${RABBITMQ_EVENTS_EXCHANGE:andina.events}
     policy:
       queue: ${RABBITMQ_POLICY_QUEUE:andina.policy.notification.queue}

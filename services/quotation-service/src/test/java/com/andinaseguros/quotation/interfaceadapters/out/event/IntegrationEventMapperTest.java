@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 /** El mensaje debe cumplir contracts/events/quote.accepted.v1.schema.json. */
 class IntegrationEventMapperTest {
     private final IntegrationEventMapper mapper =
-            new IntegrationEventMapper(new RabbitMqProperties("andina.events", "andina.insurance.events"));
+            new IntegrationEventMapper(new RabbitMqProperties("andina.events"));
     private final ObjectMapper json =
             new ObjectMapper()
                     .registerModule(new JavaTimeModule())
