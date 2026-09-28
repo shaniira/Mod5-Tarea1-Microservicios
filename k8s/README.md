@@ -1,8 +1,8 @@
-# Manifiestos Kubernetes — Andina Seguros (Fase 0: Gateway delante del monolito)
+# Manifiestos Kubernetes — Backend Seguros (Fase 0: Gateway delante del monolito)
 
 Estos manifiestos son el **objetivo de orquestación** (ver "DOCKER COMPOSE" y "OBJETIVO FINAL"
 en la propuesta de migración): Docker Compose sigue siendo lo que se usa para desarrollo local
-(`Arquitectura-Clean/docker-compose.yml`); estos YAML son para un clúster real (minikube, kind,
+(`docker-compose.yml` de la raíz); estos YAML son para un clúster real (minikube, kind,
 k3d, EKS/GKE/AKS, etc.).
 
 **Estado de validación: desplegado y probado de punta a punta en un clúster real.** Como este
@@ -93,8 +93,8 @@ kubectl apply -f k8s/12-deployment-gateway.yaml
 kubectl apply -f k8s/13-service-gateway.yaml
 kubectl apply -f k8s/14-hpa-gateway.yaml
 
-# Paso 6.10: el monolito (backend) ya no se despliega. Sus manifiestos quedan archivados en
-# k8s/archivo-monolito/ (20-23) solo como referencia.
+# Paso 6.10: el monolito (backend) ya no se despliega. Sus manifiestos (20-23) se borraron al
+# retirarlo del repositorio; quedan en la etiqueta de git monolito-final.
 
 kubectl apply -f k8s/30-mongodb.yaml
 kubectl apply -f k8s/31-rabbitmq.yaml
@@ -142,7 +142,7 @@ kubectl logs -n andina-seguros deploy/api-gateway -f
 
 ## Relación con Docker Compose
 
-| Docker Compose (`Arquitectura-Clean/docker-compose.yml`) | Kubernetes (aquí) |
+| Docker Compose (`docker-compose.yml` de la raíz) | Kubernetes (aquí) |
 |---|---|
 | `environment:` con valores literales | `ConfigMap` (no sensible) + `Secret` (sensible) |
 | Nombre del servicio en la red de Compose (`http://backend:8080`) | Nombre del `Service` + DNS de Kubernetes (`http://backend-service.andina-seguros.svc.cluster.local:8080`) |

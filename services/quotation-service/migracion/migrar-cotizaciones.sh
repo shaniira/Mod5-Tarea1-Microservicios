@@ -1,4 +1,9 @@
 #!/usr/bin/env sh
+# HISTORICO (retiro del monolito, 2026-09-28): este script ya se ejecuto durante el corte y no se
+# puede volver a usar: lee el MongoDB del monolito (andina-clean-mongodb), que ya no esta en el
+# Compose. Se conserva como evidencia de la migracion. Para inspeccionar aquellos datos, restaurar
+# respaldos/monolito-andina_seguros_clean-2026-09-27.archive.gz (ver k_IMPACTO-EN-EL-MONOLITO.md).
+#
 # Pasos 5.2 y 5.5 de la ruta:
 #   1. Copia "tablas_tarifarias" y "cotizaciones" del MongoDB del backend a quotation_db y compara
 #      las copias (cantidad y huella SHA-256).
@@ -6,7 +11,7 @@
 #      backend guarda solo lo que necesita la tarificacion (fecha de nacimiento; dueno, tipo, uso y
 #      anio), con su version. Despues las mantienen customer.* y vehicle.registered.v1.
 #
-# Uso (desde cualquier carpeta, con el stack de Arquitectura-Clean levantado):
+# Uso (desde cualquier carpeta, con el stack del monolito levantado):
 #   sh services/quotation-service/migracion/migrar-cotizaciones.sh
 #
 # Se puede repetir: reemplaza tarifas y cotizaciones (--drop) y actualiza las proyecciones. La base

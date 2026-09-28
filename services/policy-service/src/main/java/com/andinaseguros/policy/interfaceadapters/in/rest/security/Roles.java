@@ -2,7 +2,7 @@ package com.andinaseguros.policy.interfaceadapters.in.rest.security;
 
 /**
  * Reglas de acceso por rol (riesgo S2), las mismas que tenía el monolito para pólizas, renovaciones
- * y "Mi cuenta" (Arquitectura-Clean/.../security/Roles.java).
+ * y "Mi cuenta" (su Roles.java está en la etiqueta de git monolito-final).
  */
 public final class Roles {
     private Roles() {}

@@ -263,7 +263,7 @@ app:
     # Fase 7: cada cuánto se refresca la copia local de revocaciones (se usa si Redis no responde).
     revocation-refresh: ${REVOCATION_REFRESH:5s}
     correlation-id-header: X-Correlation-Id
-    # Mismas rutas publicas que Arquitectura-Clean/SecurityConfig.java: /api/auth/** (login,
+    # Mismas rutas publicas que tenia el SecurityConfig del monolito: /api/auth/** (login,
     # register, google, facebook, mfa/verificar), swagger y el health del propio Gateway.
     public-paths:
       - /api/auth/**

@@ -1,4 +1,9 @@
 #!/usr/bin/env sh
+# HISTORICO (retiro del monolito, 2026-09-28): este script ya se ejecuto durante el corte y no se
+# puede volver a usar: lee el MongoDB del monolito (andina-clean-mongodb), que ya no esta en el
+# Compose. Se conserva como evidencia de la migracion. Para inspeccionar aquellos datos, restaurar
+# respaldos/monolito-andina_seguros_clean-2026-09-27.archive.gz (ver k_IMPACTO-EN-EL-MONOLITO.md).
+#
 # Pasos 6.2 y 6.7 de la ruta:
 #   1. Copia "polizas" y "propuestas_renovacion" del MongoDB del backend a policy_db y compara las
 #      copias (cantidad y huella SHA-256).
@@ -6,7 +11,7 @@
 #      documento por siniestro: abierto y responsable), y marca claim_ref como sincronizada: sin esa
 #      marca policy-service no evalua renovaciones (paso 6.5).
 #
-# Uso (desde cualquier carpeta, con el stack de Arquitectura-Clean levantado):
+# Uso (desde cualquier carpeta, con el stack del monolito levantado):
 #   sh services/policy-service/migracion/migrar-polizas.sh
 #
 # Se puede repetir mientras el monolito sea la fuente. Despues del corte no: las proyecciones las

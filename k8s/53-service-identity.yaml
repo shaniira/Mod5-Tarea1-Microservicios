@@ -1,4 +1,4 @@
-# ClusterIP: solo lo alcanzan el gateway (rutas /api/auth/** y /api/mfa/**) y el backend
+# ClusterIP: solo lo alcanzan el gateway (rutas /api/auth/** y /api/mfa/**) y los servicios
 # (descarga del JWKS). No se expone por el Ingress directamente.
 apiVersion: v1
 kind: Service

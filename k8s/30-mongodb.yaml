@@ -1,6 +1,6 @@
 # MongoDB de un solo Pod para este entorno de practica/demo: replica set de un nodo (transacciones
 # del Outbox, paso 0.7) con autenticacion obligatoria (paso 0.6) y una base y un usuario por
-# servicio (backend, identity, notification). Alta disponibilidad real (3 nodos u Operator) queda
+# servicio (identity, notification, customer, claims, quotation, policy). Alta disponibilidad real (3 nodos u Operator) queda
 # para la fase 7.
 #
 # Usa los mismos scripts que Docker Compose (infra/mongo). Crear el ConfigMap antes de aplicar:

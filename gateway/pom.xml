@@ -15,7 +15,7 @@
   <version>1.0.0</version>
   <name>Andina Seguros API Gateway</name>
   <description>
-    Edge service (Gateway Pattern) delante del backend Arquitectura-Clean. Fase 0 de la
+    Edge service (Gateway Pattern) delante de los microservicios (nacio en la fase 0 delante del monolito). Fase 0 de la
     migracion a microservicios: enrutamiento, CORS unico, Correlation-Id, rate limiting
     con Redis, circuit breaker/timeout/retry con Resilience4j y observabilidad con
     Actuator/Micrometer/Prometheus. No contiene logica de negocio ni Clean Architecture

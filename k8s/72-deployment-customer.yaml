@@ -1,5 +1,5 @@
-# customer-service (fase 3). Una replica: el relay del Outbox esta pensado para una sola instancia
-# (igual que el del backend). La cache de placas vive en Redis, no en memoria.
+# customer-service (fase 3). Una replica para la demo; desde la fase 7 el relay del Outbox usa un
+# lease (outbox_lock) y admite varias. La cache de placas vive en Redis, no en memoria.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

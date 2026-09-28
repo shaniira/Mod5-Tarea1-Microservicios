@@ -1,9 +1,14 @@
 #!/usr/bin/env sh
+# HISTORICO (retiro del monolito, 2026-09-28): este script ya se ejecuto durante el corte y no se
+# puede volver a usar: lee el MongoDB del monolito (andina-clean-mongodb), que ya no esta en el
+# Compose. Se conserva como evidencia de la migracion. Para inspeccionar aquellos datos, restaurar
+# respaldos/monolito-andina_seguros_clean-2026-09-27.archive.gz (ver k_IMPACTO-EN-EL-MONOLITO.md).
+#
 # Paso 2.7 de la ruta: copia la coleccion "usuarios" del MongoDB del backend a identity_db y
 # compara las dos copias. Los hashes BCrypt y los secretos MFA se copian tal cual (nadie tiene que
 # cambiar su contrasena ni volver a configurar MFA).
 #
-# Uso (desde cualquier carpeta, con el stack de Arquitectura-Clean levantado):
+# Uso (desde cualquier carpeta, con el stack del monolito levantado):
 #   sh services/identity-service/migracion/migrar-usuarios.sh
 #
 # Se puede repetir: cada ejecucion reemplaza la copia (--drop). La coleccion del backend no se

@@ -2,7 +2,7 @@ package com.andinaseguros.quotation.interfaceadapters.in.rest.security;
 
 /**
  * Reglas de acceso por rol (riesgo S2), las mismas que tenía el monolito para tarifas y
- * cotizaciones (Arquitectura-Clean/.../security/Roles.java).
+ * cotizaciones (su Roles.java está en la etiqueta de git monolito-final).
  */
 public final class Roles {
     private Roles() {}
