@@ -87,6 +87,15 @@ class OutboxRelayTest {
         assertThat(evento.lastError).contains("nack");
     }
 
+    @Test
+    void sinElTurnoNoPublicaNiLeeElOutbox() {
+        OutboxRelay sinTurno = new OutboxRelay(outbox, rabbit, 100, Duration.ofSeconds(1), clock, () -> false);
+
+        assertThat(sinTurno.publicarPendientes()).isZero();
+
+        verifyNoInteractions(outbox, rabbit);
+    }
+
     private static OutboxEventDocument pendiente(String id) {
         OutboxEventDocument d = new OutboxEventDocument();
         d.id = id;

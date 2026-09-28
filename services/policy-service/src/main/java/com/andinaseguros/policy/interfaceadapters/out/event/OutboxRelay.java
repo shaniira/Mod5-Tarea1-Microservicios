@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -23,8 +24,10 @@ import org.springframework.data.domain.PageRequest;
  * o no confirma, el evento se queda pendiente y se reintenta en la siguiente pasada; nada se
  * pierde. Se detiene en el primer fallo para no adelantar eventos posteriores del mismo agregado.
  *
- * <p>Pensado para una sola réplica de policy-service (así está en Compose y Kubernetes). Con
- * varias réplicas habría que reclamar cada evento antes de enviarlo.
+ * <p>Con varias réplicas solo publica la que tiene el turno ({@link MongoOutboxLease}): así no
+ * se envía el mismo evento dos veces a la vez ni se altera el orden. Si la dueña del turno se
+ * detiene a mitad de una pasada, otra puede reenviar un evento ya enviado; los consumidores son
+ * idempotentes (inbox o versión), así que no se aplica dos veces.
  */
 public class OutboxRelay {
     private static final Logger log = LoggerFactory.getLogger(OutboxRelay.class);
@@ -35,6 +38,7 @@ public class OutboxRelay {
     private final int batchSize;
     private final Duration confirmTimeout;
     private final Clock clock;
+    private final BooleanSupplier turno;
 
     public OutboxRelay(
             SpringDataOutboxMongoRepository outbox,
@@ -42,15 +46,29 @@ public class OutboxRelay {
             int batchSize,
             Duration confirmTimeout,
             Clock clock) {
+        this(outbox, rabbitTemplate, batchSize, confirmTimeout, clock, () -> true);
+    }
+
+    public OutboxRelay(
+            SpringDataOutboxMongoRepository outbox,
+            RabbitTemplate rabbitTemplate,
+            int batchSize,
+            Duration confirmTimeout,
+            Clock clock,
+            BooleanSupplier turno) {
         this.outbox = outbox;
         this.rabbitTemplate = rabbitTemplate;
         this.batchSize = batchSize;
         this.confirmTimeout = confirmTimeout;
         this.clock = clock;
+        this.turno = turno;
     }
 
     /** Devuelve cuántos eventos se enviaron en esta pasada. */
     public int publicarPendientes() {
+        if (!turno.getAsBoolean()) {
+            return 0;
+        }
         List<OutboxEventDocument> pendientes =
                 outbox.findByStatusOrderByCreatedAtAsc(
                         OutboxEventDocument.PENDING, PageRequest.of(0, batchSize));

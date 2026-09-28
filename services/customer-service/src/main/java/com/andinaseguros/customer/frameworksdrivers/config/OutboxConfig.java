@@ -1,6 +1,7 @@
 package com.andinaseguros.customer.frameworksdrivers.config;
 
 import com.andinaseguros.customer.interfaceadapters.out.event.IntegrationEventMapper;
+import com.andinaseguros.customer.interfaceadapters.out.event.MongoOutboxLease;
 import com.andinaseguros.customer.interfaceadapters.out.event.OutboxDomainEventPublisherAdapter;
 import com.andinaseguros.customer.interfaceadapters.out.event.OutboxRelay;
 import com.andinaseguros.customer.interfaceadapters.out.event.RabbitMqProperties;
@@ -16,6 +17,7 @@ import io.micrometer.tracing.Tracer;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.UUID;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,6 +77,8 @@ public class OutboxConfig {
             RabbitTemplate rabbitTemplate,
             @Value("${app.outbox.batch-size:100}") int batchSize,
             @Value("${app.outbox.confirm-timeout-ms:5000}") long confirmTimeoutMs,
+            @Value("${app.outbox.lease-seconds:15}") long leaseSeconds,
+            MongoTemplate mongoTemplate,
             MeterRegistry meterRegistry) {
         OutboxRelay relay =
                 new OutboxRelay(
@@ -82,7 +86,13 @@ public class OutboxConfig {
                         rabbitTemplate,
                         batchSize,
                         Duration.ofMillis(confirmTimeoutMs),
-                        Clock.systemUTC());
+                        Clock.systemUTC(),
+                        // Fase 7: con varias réplicas publica solo la que tiene el turno.
+                        new MongoOutboxLease(
+                                mongoTemplate,
+                                instancia(),
+                                Duration.ofSeconds(leaseSeconds),
+                                Clock.systemUTC()));
         // Alertas propuestas: eventos pendientes de más de 5 minutos (sección 7.2).
         Gauge.builder("outbox.events.pending", relay, OutboxRelay::pendientes)
                 .description("Eventos del Outbox aun no publicados en RabbitMQ")
@@ -108,6 +118,12 @@ public class OutboxConfig {
     @ConditionalOnProperty(name = "app.outbox.publish-enabled", havingValue = "true", matchIfMissing = true)
     OutboxRelayScheduler outboxRelayScheduler(OutboxRelay relay) {
         return new OutboxRelayScheduler(relay);
+    }
+
+    /** Nombre del contenedor o Pod (HOSTNAME) y un sufijo, para distinguir réplicas en los logs. */
+    private static String instancia() {
+        String host = System.getenv().getOrDefault("HOSTNAME", "local");
+        return host + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 
     static class OutboxRelayScheduler {
