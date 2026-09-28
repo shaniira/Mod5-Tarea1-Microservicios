@@ -1,0 +1,22 @@
+# Validación de los manifiestos de Kubernetes (fase 7): esquema de cada recurso contra la API de
+# Kubernetes, sin clúster. Un manifiesto inválido rompe el build.
+name: k8s
+
+on:
+  push:
+    paths:
+      - "k8s/**"
+      - ".github/workflows/k8s.yml"
+  pull_request:
+    paths:
+      - "k8s/**"
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: kubeconform
+        run: |
+          docker run --rm -v "$PWD/k8s:/k8s" ghcr.io/yannh/kubeconform:v0.6.7 \
+            -summary -strict -kubernetes-version 1.30.0 /k8s/*.yaml
