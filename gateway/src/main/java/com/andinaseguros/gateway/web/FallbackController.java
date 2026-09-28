@@ -9,18 +9,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 
 /**
- * Destino del filtro {@code CircuitBreaker} cuando el circuito hacia el backend esta abierto o
+ * Destino del filtro {@code CircuitBreaker} cuando el circuito hacia un servicio esta abierto o
  * la llamada agota el timeout. Responde siempre 503 con {@code Retry-After}, como define la
  * tabla de resiliencia de la propuesta de migracion (seccion 6.2,
  * doc/5. Microservicios/c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md).
  */
 @RestController
 public class FallbackController {
-
-    @RequestMapping("/fallback/backend")
-    public ResponseEntity<ErrorResponse> backendUnavailable(ServerWebExchange exchange) {
-        return noDisponible(exchange, "El backend", "/fallback/backend");
-    }
 
     @RequestMapping("/fallback/identity")
     public ResponseEntity<ErrorResponse> identityUnavailable(ServerWebExchange exchange) {

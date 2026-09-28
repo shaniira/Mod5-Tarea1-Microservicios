@@ -41,7 +41,7 @@ spring:
             exposed-headers: [Authorization, X-Correlation-Id]
             allow-credentials: true
             max-age: 3600
-      # Los servicios detras del gateway (el backend todavia) tambien responden cabeceras CORS: sin
+      # Los servicios detras del gateway tambien responden cabeceras CORS: sin
       # esto la respuesta llevaba Access-Control-Allow-Origin dos veces y el navegador la rechaza.
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary, RETAIN_FIRST
@@ -102,8 +102,8 @@ spring:
                 fallbackUri: forward:/fallback/identity
 
         # --- Corte de las fases 3 a 6: el negocio va a los microservicios ---
-        # Reversa: apuntar la URL de cada servicio al backend (por ejemplo
-        # CUSTOMER_SERVICE_URL=http://backend:8080) devuelve esa ruta al monolito.
+        # Reversa (mientras se conserve el respaldo): levantar el perfil "monolito" del Compose y
+        # apuntar la URL del servicio a http://backend:8080 (ver m_…, seccion 9).
         # Los siniestros cuelgan de /api/polizas: su ruta va ANTES que la de policy (paso 4.7).
         - id: claims
           uri: ${CLAIMS_SERVICE_URL:http://localhost:8086}
@@ -198,50 +198,11 @@ spring:
 
         # /api/mi-cuenta no es una ruta: lo compone MiCuentaController (customer + policy).
 
-        # --- Resto del API del backend (catch-all de la fase 0) ---
-        # Tras el corte ya no recibe el negocio; queda como reserva mientras el monolito siga en el
-        # Compose (paso 6.10).
-        - id: backend
-          uri: ${BACKEND_SERVICE_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**
-          filters:
-            - name: RequestRateLimiter
-              args:
-                key-resolver: "#{@ipKeyResolver}"
-                redis-rate-limiter.replenishRate: 50
-                redis-rate-limiter.burstCapacity: 100
-                redis-rate-limiter.requestedTokens: 1
-            - name: CircuitBreaker
-              args:
-                name: backendCB
-                fallbackUri: forward:/fallback/backend
-            # Retry SOLO en GET (lecturas idempotentes). Nunca en POST/PATCH de negocio
-            # (emitir poliza, registrar siniestro, etc.) sin una estrategia de idempotencia.
-            - name: Retry
-              args:
-                retries: 1
-                series: [SERVER_ERROR]
-                methods: [GET]
-                backoff:
-                  firstBackoff: 100ms
-                  maxBackoff: 500ms
-                  factor: 2
-                  basedOnPreviousValue: false
+        # Paso 6.10: ya no hay ruta de reserva al monolito; una ruta /api/** sin dueño responde 404.
 
 resilience4j:
   circuitbreaker:
     instances:
-      backendCB:
-        slidingWindowType: COUNT_BASED
-        slidingWindowSize: 20
-        minimumNumberOfCalls: 10
-        failureRateThreshold: 50
-        slowCallDurationThreshold: 3s
-        slowCallRateThreshold: 80
-        waitDurationInOpenState: 30s
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
       identityCB:
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 20
@@ -268,8 +229,6 @@ resilience4j:
       policyCB: *circuitoServicio
   timelimiter:
     instances:
-      backendCB:
-        timeoutDuration: 3s
       # La consulta de placas llama a JSON.pe con timeout de 5 s y un reintento.
       customerCB:
         timeoutDuration: 12s
