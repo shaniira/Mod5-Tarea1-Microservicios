@@ -465,7 +465,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      # Con el perfil tls: CORS_ALLOWED_ORIGINS=https://localhost:8443 (ver infra/tls/Caddyfile).
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     ports:
       - "8080:8080"
     # Paso 6.10: fuera de clean_network (la red del MongoDB del monolito). Llega a los servicios, y
@@ -484,13 +485,30 @@ services:
       args:
         # Fase 0: el frontend deja de llamar directo al backend (:8083) y pasa por el
         # gateway (:8080), unico punto de entrada de la API (patron Strangler Fig).
-        VITE_API_URL: http://localhost:8080/api
+        VITE_API_URL: ${FRONTEND_API_URL:-http://localhost:8080/api}
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     # Fase 7: nginx sin root escucha en 8080; API_ORIGIN va a la CSP (connect-src).
     environment:
       API_ORIGIN: ${FRONTEND_API_ORIGIN:-http://localhost:8080}
     ports: ["5173:8080"]
     restart: unless-stopped
+
+  # --- Fase 7: TLS local (hallazgo S6), opcional ------------------------------------------------
+  # HTTPS delante del frontend (8443) y del gateway (8444) con una CA local. Excepción documentada
+  # a "solo el gateway y el frontend publican puertos": son esos mismos dos, cifrados.
+  #   FRONTEND_API_URL=https://localhost:8444/api FRONTEND_API_ORIGIN=https://localhost:8444 \
+  #   CORS_ALLOWED_ORIGINS=https://localhost:8443 docker compose --profile tls up -d --build
+  tls-proxy:
+    image: caddy:2.8-alpine
+    container_name: tls-proxy
+    profiles: ["tls"]
+    restart: unless-stopped
+    volumes:
+      - ../infra/tls/Caddyfile:/etc/caddy/Caddyfile:ro
+      - tls_data:/data
+    ports: ["8443:8443", "8444:8444"]
+    networks: [default, gateway_network]
+    depends_on: [frontend, gateway]
 volumes:
   clean_mongo_data:
     name: andina_clean_mongo_data
@@ -511,6 +529,8 @@ volumes:
     name: quotation_mongo_data
   policy_mongo_data:
     name: policy_mongo_data
+  tls_data:
+    name: tls_data
 
 networks:
   clean_network:
