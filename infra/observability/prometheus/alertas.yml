@@ -10,10 +10,21 @@ groups:
         annotations:
           resumen: "{{ $labels.job }} ({{ $labels.instance }}) no responde a Prometheus"
 
+      # Fase 7 (paso 7.2): el proceso responde pero no puede atender (MongoDB, RabbitMQ o Redis
+      # inalcanzables). up == 0 cubre el proceso caído; esta, el servicio "vivo pero no listo".
+      - alert: ServicioNoListo
+        expr: probe_success{job="readiness"} == 0
+        for: 1m
+        labels: { severidad: critica }
+        annotations:
+          resumen: "{{ $labels.servicio }} no está listo (readiness): revisar su MongoDB, RabbitMQ o Redis"
+
+      # Fase 7: sin /actuator. Readiness responde 503 cuando cae una dependencia y el blackbox lo
+      # consulta: eso ya lo cubre ServicioNoListo, y aquí disparaba la alerta en todos los servicios.
       - alert: ErroresServidorAltos
         expr: |
-          sum by (application) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
-            / sum by (application) (rate(http_server_requests_seconds_count[5m])) > 0.05
+          sum by (application) (rate(http_server_requests_seconds_count{status=~"5..", uri!~"/actuator.*"}[5m]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m])) > 0.05
         for: 5m
         labels: { severidad: alta }
         annotations:

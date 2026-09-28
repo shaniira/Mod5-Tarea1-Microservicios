@@ -40,6 +40,14 @@ services:
     ports: ["9090:9090"]
     networks: [observability_network]
 
+  # Fase 7 (paso 7.2): consulta /actuator/health/readiness de cada servicio para la alerta
+  # ServicioNoListo (Prometheus no puede leer ese endpoint directamente).
+  blackbox:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: andina-blackbox
+    restart: unless-stopped
+    networks: [observability_network]
+
   loki:
     image: grafana/loki:3.1.1
     container_name: andina-loki

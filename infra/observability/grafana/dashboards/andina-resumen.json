@@ -42,7 +42,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (application) (rate(http_server_requests_seconds_count[1m]))",
+          "expr": "sum by (application) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\"}[1m]))",
           "legendFormat": "{{application}}"
         }
       ]
@@ -76,7 +76,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (application) (rate(http_server_requests_seconds_count{status=~\"5..\"}[1m]))",
+          "expr": "sum by (application) (rate(http_server_requests_seconds_count{status=~\"5..\", uri!~\"/actuator.*\"}[1m]))",
           "legendFormat": "{{application}}"
         }
       ]
@@ -316,6 +316,52 @@
           "refId": "A",
           "expr": "up",
           "legendFormat": "{{job}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Servicios listos (readiness)",
+      "description": "Fase 7: 1 = puede atender (MongoDB, RabbitMQ y Redis alcanzables). 0 dispara la alerta ServicioNoListo.",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "probe_success{job=\"readiness\"}",
+          "legendFormat": "{{servicio}}"
         }
       ]
     }

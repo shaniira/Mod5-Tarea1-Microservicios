@@ -59,6 +59,30 @@ scrape_configs:
     static_configs:
       - targets: ["rabbitmq:15692"]
 
+  # Fase 7 (paso 7.2): readiness de cada servicio (MongoDB, RabbitMQ y Redis alcanzables) vía el
+  # blackbox exporter. probe_success = 0 dispara la alerta ServicioNoListo.
+  - job_name: readiness
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://gateway:8080/actuator/health/readiness
+          - http://identity-service:8080/actuator/health/readiness
+          - http://notification-service:8080/actuator/health/readiness
+          - http://customer-service:8080/actuator/health/readiness
+          - http://claims-service:8080/actuator/health/readiness
+          - http://quotation-service:8080/actuator/health/readiness
+          - http://policy-service:8080/actuator/health/readiness
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        regex: "http://([^:]+):.*"
+        target_label: servicio
+      - target_label: __address__
+        replacement: blackbox:9115
+
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
