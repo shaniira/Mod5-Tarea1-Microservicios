@@ -44,7 +44,7 @@ onMounted(async () => {
         <h3>Aún no tienes datos registrados</h3>
         <p>
           No encontramos una cuenta de cliente asociada a tu correo. Contacta
-          a un agente de Andina Seguros para registrarte.
+          a un agente de Backend Seguros para registrarte.
         </p>
       </div>
 

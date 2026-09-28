@@ -24,7 +24,7 @@ const messagesByCode: Record<string, string> = {
   FACEBOOK_TICKET_INVALIDO: 'El enlace de acceso con Facebook no es válido o expiró. Intenta iniciar sesión nuevamente.',
   USUARIO_INACTIVO: 'Tu cuenta está inactiva. Contacta al administrador.',
   CLIENTE_NO_REGISTRADO:
-    'Tu correo no está registrado como cliente de Andina Seguros. Contacta a un agente para registrarte.',
+    'Tu correo no está registrado como cliente de Backend Seguros. Contacta a un agente para registrarte.',
   ACCESO_DENEGADO: 'No tienes permisos para realizar esta acción.',
   RECURSO_NO_ENCONTRADO: 'No se encontró la información solicitada.',
   VEHICULO_NO_PERTENECE: 'El vehículo seleccionado no pertenece al cliente.',

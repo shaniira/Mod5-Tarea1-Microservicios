@@ -7,10 +7,10 @@ afterEach(() => {
 
 describe('facebookAuth urls', () => {
   it('usa la URL configurada por variable de entorno', () => {
-    vi.stubEnv('VITE_FACEBOOK_API_URL', 'https://backend.andina.pe/api');
+    vi.stubEnv('VITE_FACEBOOK_API_URL', 'https://backend.backendseguros.pe/api');
 
-    expect(facebookLoginUrl()).toBe('https://backend.andina.pe/api/auth/facebook');
-    expect(facebookSessionUrl()).toBe('https://backend.andina.pe/api/auth/facebook/session');
+    expect(facebookLoginUrl()).toBe('https://backend.backendseguros.pe/api/auth/facebook');
+    expect(facebookSessionUrl()).toBe('https://backend.backendseguros.pe/api/auth/facebook/session');
   });
 
   it('usa localhost:8083 como valor por defecto en desarrollo', () => {

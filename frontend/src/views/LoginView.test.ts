@@ -55,7 +55,7 @@ describe('LoginView - Facebook', () => {
   });
 
   it('canjea un ticket válido y redirige a la página principal', async () => {
-    const token = fakeJwt({ sub: 'agente@andina.pe', rol: 'AGENTE' });
+    const token = fakeJwt({ sub: 'agente@backendseguros.pe', rol: 'AGENTE' });
     vi.mocked(api.post).mockResolvedValueOnce({ data: { token, tipo: 'Bearer', expiraEnSegundos: 28800 } });
 
     const router = makeRouter();

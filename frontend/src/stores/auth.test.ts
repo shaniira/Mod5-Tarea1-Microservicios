@@ -37,7 +37,7 @@ beforeEach(() => {
 
 describe('exchangeFacebookTicket', () => {
   it('canjea un ticket válido y deja la sesión iniciada', async () => {
-    const token = fakeJwt({ sub: 'cliente@andina.pe', rol: 'CLIENTE' });
+    const token = fakeJwt({ sub: 'cliente@backendseguros.pe', rol: 'CLIENTE' });
     vi.mocked(api.post).mockResolvedValueOnce({ data: { token, tipo: 'Bearer', expiraEnSegundos: 28800 } });
 
     const store = useAuthStore();
