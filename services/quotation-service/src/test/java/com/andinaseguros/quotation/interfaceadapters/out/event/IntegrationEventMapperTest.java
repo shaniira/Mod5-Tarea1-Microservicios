@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.andinaseguros.quotation.entities.event.CotizacionAceptadaEvent;
 import com.andinaseguros.quotation.entities.model.ResultadoTarificacion;
 import com.andinaseguros.quotation.entities.valueobject.Dinero;
+import com.andinaseguros.quotation.contratos.Contratos;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -55,6 +56,7 @@ class IntegrationEventMapperTest {
         assertThat(outbound.exchange()).isEqualTo("andina.events");
         assertThat(outbound.routingKey()).isEqualTo("quote.accepted.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("QuoteAccepted");
         assertThat(node.get("aggregateId").asText()).isEqualTo(cotizacionId.toString());
         assertThat(node.get("aggregateVersion").asLong()).isEqualTo(1);
@@ -63,7 +65,10 @@ class IntegrationEventMapperTest {
         assertThat(node.at("/data/customerId").asText()).isEqualTo(clienteId.toString());
         assertThat(node.at("/data/premium").decimalValue()).isEqualByComparingTo("1412.50");
         assertThat(node.at("/data/currency").asText()).isEqualTo("PEN");
-        assertThat(node.at("/data/expiresAt").asText()).isEqualTo("2026-10-12T10:00:00");
+        // Fase 7: con zona (RFC 3339), el mismo instante que la hora local del servicio.
+        assertThat(node.at("/data/expiresAt").asText()).endsWith("Z");
+        assertThat(java.time.Instant.parse(node.at("/data/expiresAt").asText()))
+                .isEqualTo(LocalDateTime.of(2026, 10, 12, 10, 0).atZone(java.time.ZoneId.systemDefault()).toInstant());
         assertThat(node.at("/data/breakdown/primaComercial/valor").decimalValue()).isEqualByComparingTo("1412.50");
     }
 }

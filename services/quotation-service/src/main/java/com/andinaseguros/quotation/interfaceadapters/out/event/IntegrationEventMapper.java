@@ -3,6 +3,10 @@ package com.andinaseguros.quotation.interfaceadapters.out.event;
 import com.andinaseguros.quotation.entities.event.CotizacionAceptadaEvent;
 import com.andinaseguros.quotation.entities.event.DomainEvent;
 import com.andinaseguros.quotation.interfaceadapters.out.event.IntegrationEventMessage.QuoteAcceptedData;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 /** Traduce un evento de dominio al mensaje del catálogo, con su exchange y routing key. */
 public class IntegrationEventMapper {
@@ -43,8 +47,17 @@ public class IntegrationEventMapper {
                                 e.prima(),
                                 e.moneda(),
                                 e.tablaTarifariaId(),
-                                e.creada(),
-                                e.expira(),
+                                enUtc(e.creada()),
+                                enUtc(e.expira()),
                                 e.desglose())));
+    }
+
+    /**
+     * Fase 7 (encontrado por la prueba de contrato): createdAt y expiresAt salían sin zona
+     * ("2026-10-12T10:00:00"), y el contrato pide date-time RFC 3339. El dominio usa hora local
+     * del servicio; se publica el mismo instante en UTC ("...Z"). policy-service lo sigue leyendo.
+     */
+    private static OffsetDateTime enUtc(LocalDateTime local) {
+        return local == null ? null : local.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneOffset.UTC).toOffsetDateTime();
     }
 }

@@ -3,7 +3,7 @@ package com.andinaseguros.quotation.interfaceadapters.out.event;
 import com.andinaseguros.quotation.entities.model.ResultadoTarificacion;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /** Sobre estándar de los eventos (contracts/events) con los datos de quote.accepted.v1. */
@@ -26,7 +26,7 @@ public record IntegrationEventMessage(
             BigDecimal premium,
             String currency,
             UUID tariffTableId,
-            LocalDateTime createdAt,
-            LocalDateTime expiresAt,
+            OffsetDateTime createdAt,
+            OffsetDateTime expiresAt,
             ResultadoTarificacion breakdown) {}
 }
