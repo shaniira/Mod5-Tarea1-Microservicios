@@ -1,366 +1,395 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1440" width="1900" height="1440" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
-<defs>
-<marker id="m-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#1f6fd0"/></marker>
-<marker id="m-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#1e9e54"/></marker>
-<marker id="m-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#d62828"/></marker>
-<marker id="m-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#f08c00"/></marker>
-<marker id="m-gray" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#6b7280"/></marker>
-<marker id="m-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#7c3aed"/></marker>
-</defs>
-<rect width="1900" height="1440" fill="#f8fafc"/>
-<text x="20" y="38" font-size="28" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Sistema de Seguro Vehicular</text>
-<text x="20" y="64" font-size="14.5" font-weight="normal" fill="#4b5a78" text-anchor="start" style="">Arquitectura objetivo (TO BE) – 6 microservicios + API Gateway, orquestados con Docker Compose</text>
-<rect x="20" y="150" width="230" height="110" rx="8" fill="#f3e9fc" stroke="#8e5fc9" stroke-width="1.5"/>
-<text x="36" y="174" font-size="16" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Usuarios</text>
-<text x="36" y="194" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Roles: ADMIN · AGENTE</text>
-<text x="36" y="210" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">       ACTUARIO · CLIENTE</text>
-<text x="36" y="232" font-size="10" font-weight="normal" fill="#4b5563" text-anchor="start" style="">MFA con Google Authenticator</text>
-<circle cx="222" cy="176" r="9" fill="#3b2a78"/><path d="M205,204 Q222,182 239,204 Z" fill="#3b2a78"/>
-<path d="M135,260 V300" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#m-gray)"/>
-<text x="145" y="284" font-size="10" font-weight="normal" fill="#374151" text-anchor="start" style="">usan</text>
-<rect x="20" y="300" width="230" height="190" rx="8" fill="#e7f1fd" stroke="#3b82c4" stroke-width="1.5"/>
-<text x="36" y="324" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Cliente Web (Navegador)</text>
-<text x="40" y="346" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Vue 3.5 (SPA) · TypeScript</text>
-<text x="40" y="362" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Pinia · Vue Router · Axios</text>
-<rect x="32" y="384" width="206" height="96" rx="6" fill="#fff" stroke="#a7c4e4" stroke-width="1"/>
-<text x="40" y="402" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Habla solo con el Gateway</text>
-<text x="40" y="416" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(JWT, timeout 15 s).</text>
-<text x="40" y="430" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Recibe X-Correlation-Id en</text>
-<text x="40" y="444" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">cada respuesta (soporte).</text>
-<rect x="1400" y="290" width="480" height="118" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
-<text x="1416" y="312" font-size="13.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Proveedores de identidad</text>
-<text x="1416" y="332" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Google Identity (ID token, JWKS)</text>
-<text x="1416" y="347" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Facebook OAuth + Graph API v22.0</text>
-<text x="1416" y="362" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• HTTPS · usados por identity-service</text>
-<text x="1416" y="377" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  y por el navegador (botón / redirección)</text>
-<rect x="1400" y="418" width="480" height="118" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
-<text x="1416" y="440" font-size="13.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">JSON.pe – Consulta de placas</text>
-<text x="1416" y="460" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• https://api.json.pe · POST /api/placa</text>
-<text x="1416" y="475" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Bearer token · HTTPS</text>
-<text x="1416" y="490" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Usado por customer-service</text>
-<rect x="1400" y="930" width="480" height="118" rx="8" fill="#fff7e0" stroke="#e0a030" stroke-width="1.5"/>
-<text x="1416" y="952" font-size="13.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">JSON.pe – WhatsApp</text>
-<text x="1416" y="972" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• https://api.whatsapp.json.pe · POST /send/text</text>
-<text x="1416" y="987" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Bearer token · HTTPS</text>
-<text x="1416" y="1002" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Usado por notification-service</text>
-<path d="M20,420 H8 V100 H1640 V290" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
-<text x="300" y="94" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">botón de Google / redirección OAuth de Facebook (desde el navegador)</text>
-<rect x="285" y="130" width="1060" height="1115" rx="10" fill="none" stroke="#6b8fb5" stroke-width="1.6" stroke-dasharray="9 6"/>
-<rect x="300" y="138" width="16" height="12" rx="2" fill="#2a7de1"/><rect x="304" y="134" width="4" height="4" fill="#2a7de1"/>
-<text x="324" y="149" font-size="13" font-weight="bold" fill="#1d5fa8" text-anchor="start" style="">Orquestador: Docker Compose (infra/docker-compose.yml)</text>
-<rect x="300" y="165" width="200" height="110" rx="8" fill="#fff" stroke="#2e9e8f" stroke-width="2"/>
-<text x="312" y="186" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Frontend (Nginx)</text>
-<text x="312" y="203" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Puerto 5173 → 80 (HTTP)</text>
-<text x="312" y="217" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">SPA Vue estática. No llama</text>
-<text x="312" y="231" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">a los servicios: apunta</text>
-<text x="312" y="245" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">al Gateway.</text>
-<text x="490" y="268" font-size="9" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">edge</text>
-<path d="M250,330 H275 V220 H300" fill="none" stroke="#1f6fd0" stroke-width="2" marker-start="url(#m-blue)" marker-end="url(#m-blue)"/>
-<rect x="300" y="290" width="200" height="540" rx="8" fill="#e9f2ff" stroke="#3b82c4" stroke-width="2"/>
-<text x="312" y="312" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">API Gateway</text>
-<text x="312" y="328" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Spring Cloud Gateway</text>
-<rect x="312" y="336" width="150" height="15" rx="4" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="1"/>
-<text x="387" y="347" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Puerto 8080 → 8080</text>
-<text x="312" y="366" font-size="9.5" font-weight="bold" fill="#c81e1e" text-anchor="start" style="">Único puerto de API expuesto</text>
-<text x="312" y="388" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Valida JWT (RS256 / JWKS)</text>
-<text x="312" y="404" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Enruta /api/** a cada</text>
-<text x="312" y="420" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  servicio</text>
-<text x="312" y="436" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• CORS único</text>
-<text x="312" y="452" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Rate limiting (Redis)</text>
-<text x="312" y="468" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Circuit breaker + timeout</text>
-<text x="312" y="484" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  3 s por ruta</text>
-<text x="312" y="500" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Genera y propaga</text>
-<text x="312" y="516" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  X-Correlation-Id y</text>
-<text x="312" y="532" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  traceparent</text>
-<text x="312" y="548" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Compone "Mi cuenta"</text>
-<text x="312" y="564" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  (respuesta parcial)</text>
-<text x="312" y="580" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Métricas y trazas</text>
-<text x="490" y="822" font-size="9" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">edge + services</text>
-<path d="M250,410 H300" fill="none" stroke="#1f6fd0" stroke-width="2" marker-start="url(#m-blue)" marker-end="url(#m-blue)"/>
-<text x="275" y="402" font-size="9.5" font-weight="bold" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTP :8080</text>
-<text x="275" y="425" font-size="9.5" font-weight="normal" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">/api (JWT)</text>
-<rect x="300" y="850" width="200" height="198" rx="8" fill="#fdebeb" stroke="#d94848" stroke-width="2"/>
-<text x="312" y="872" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Redis</text>
-<rect x="312" y="880" width="120" height="15" rx="4" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="1"/>
-<text x="372" y="891" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Interno (sin puerto)</text>
-<text x="312" y="912" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Rate limit del Gateway</text>
-<text x="312" y="928" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Estado efímero de identity:</text>
-<text x="312" y="944" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  state OAuth, tickets de</text>
-<text x="312" y="960" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  login, desafíos MFA</text>
-<text x="312" y="976" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Caché de placas y de las</text>
-<text x="312" y="992" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  claves públicas de Google</text>
-<text x="312" y="1008" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  (TTL)</text>
-<text x="490" y="1040" font-size="9" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">services + data</text>
-<path d="M400,850 V830" fill="none" stroke="#6b7280" stroke-width="2"/>
-<text x="410" y="843" font-size="9" font-weight="normal" fill="#374151" text-anchor="start" style="">rate limit</text>
-<rect x="1030" y="262" width="180" height="802" rx="8" fill="none" stroke="#1e9e54" stroke-width="1.4" stroke-dasharray="6 4"/>
-<text x="1120" y="276" font-size="10" font-weight="bold" fill="#1b6e3f" text-anchor="middle" style="">MongoDB (replica set)</text>
-<text x="1120" y="288" font-size="8.5" font-weight="normal" fill="#1b6e3f" text-anchor="middle" style="">1 BD + 1 usuario por servicio</text>
-<rect x="570" y="290" width="440" height="118" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
-<text x="584" y="310" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">identity-service</text>
-<text x="1000" y="306" font-size="8.5" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">services + data + messaging</text>
-<text x="584" y="328" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Dominio: usuarios, autenticación, MFA, login Google/Facebook</text>
-<text x="584" y="342" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">API: /api/auth/** · /api/mfa/**  (JWT RS256, publica JWKS)</text>
-<text x="584" y="356" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Consume: customer.registered/updated → índice de correos</text>
-<text x="584" y="370" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Externos: Google/Facebook (CB + timeout) · estado en Redis</text>
-<rect x="584" y="388" width="38" height="15" rx="4" fill="#bfdbfe" stroke="#5b95d6" stroke-width="1"/>
-<text x="603" y="399" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Inbox</text>
-<rect x="628" y="388" width="38" height="15" rx="4" fill="#fecaca" stroke="#d9707c" stroke-width="1"/>
-<text x="647" y="399" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">CB</text>
-<rect x="834" y="388" width="166" height="15" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="917" y="399" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">logs · métricas · trazas</text>
-<rect x="1042" y="300" width="156" height="48" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1.4"/>
-<text x="1120" y="320" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">identity_db</text>
-<text x="1120" y="335" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">BD propia</text>
-<path d="M1010,324 H1042" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
-<path d="M1250,394 H1010" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-red)"/>
-<text x="1034" y="389" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">consume: customer.*</text>
-<rect x="760" y="298" width="84" height="15" rx="4" fill="#ffedd5" stroke="#d62828" stroke-width="1"/>
-<text x="802" y="309" font-size="8.5" font-weight="bold" fill="#991b1b" text-anchor="middle" style="">SOLO CONSUME</text>
-<rect x="570" y="418" width="440" height="118" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
-<text x="584" y="438" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">customer-service</text>
-<text x="1000" y="434" font-size="8.5" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">services + data + messaging</text>
-<text x="584" y="456" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Dominio: clientes, vehículos, consulta de placas</text>
-<text x="584" y="470" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">API: /api/clientes/** · /api/vehiculos/informacion-externa</text>
-<text x="584" y="484" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Publica: customer.registered/updated · vehicle.registered</text>
-<text x="584" y="498" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Externo: JSON.pe placas (CB + retry + bulkhead + caché Redis 24 h)</text>
-<rect x="584" y="516" width="46" height="15" rx="4" fill="#fde68a" stroke="#d4a017" stroke-width="1"/>
-<text x="607" y="527" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Outbox</text>
-<rect x="636" y="516" width="38" height="15" rx="4" fill="#fecaca" stroke="#d9707c" stroke-width="1"/>
-<text x="655" y="527" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">CB</text>
-<rect x="834" y="516" width="166" height="15" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="917" y="527" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">logs · métricas · trazas</text>
-<rect x="1042" y="428" width="156" height="48" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1.4"/>
-<text x="1120" y="448" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">customer_db</text>
-<text x="1120" y="463" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">BD propia</text>
-<path d="M1010,452 H1042" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
-<path d="M1010,522 H1250" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
-<text x="1034" y="517" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">publica: customer.*, vehicle.registered</text>
-<rect x="760" y="426" width="84" height="15" rx="4" fill="#fee2e2" stroke="#d62828" stroke-width="1"/>
-<text x="802" y="437" font-size="8.5" font-weight="bold" fill="#991b1b" text-anchor="middle" style="">SOLO PUBLICA</text>
-<rect x="570" y="546" width="440" height="118" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
-<text x="584" y="566" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">quotation-service</text>
-<text x="1000" y="562" font-size="8.5" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">services + data + messaging</text>
-<text x="584" y="584" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Dominio: tablas tarifarias, cotizaciones, motor de tarificación</text>
-<text x="584" y="598" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">API: /api/tablas-tarifarias/** · /api/cotizaciones/**</text>
-<text x="584" y="612" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Publica: quote.accepted · Consume: customer.*, vehicle.*, policy.issued</text>
-<text x="584" y="626" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Proyecciones: customer_ref, vehicle_ref (+ read-through con CB)</text>
-<rect x="584" y="644" width="46" height="15" rx="4" fill="#fde68a" stroke="#d4a017" stroke-width="1"/>
-<text x="607" y="655" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Outbox</text>
-<rect x="636" y="644" width="38" height="15" rx="4" fill="#bfdbfe" stroke="#5b95d6" stroke-width="1"/>
-<text x="655" y="655" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Inbox</text>
-<rect x="680" y="644" width="38" height="15" rx="4" fill="#fecaca" stroke="#d9707c" stroke-width="1"/>
-<text x="699" y="655" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">CB</text>
-<rect x="834" y="644" width="166" height="15" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="917" y="655" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">logs · métricas · trazas</text>
-<rect x="1042" y="556" width="156" height="48" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1.4"/>
-<text x="1120" y="576" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">quotation_db</text>
-<text x="1120" y="591" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">BD propia</text>
-<path d="M1010,580 H1042" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
-<path d="M1010,642 H1250" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
-<text x="1034" y="637" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">publica: quote.accepted</text>
-<path d="M1250,656 H1010" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-red)"/>
-<text x="1034" y="666" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">consume: customer.*, vehicle.*, policy.issued</text>
-<rect x="760" y="554" width="112" height="15" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
-<text x="816" y="565" font-size="8.5" font-weight="bold" fill="#991b1b" text-anchor="middle" style="">PUBLICA + CONSUME</text>
-<rect x="570" y="674" width="440" height="118" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
-<text x="584" y="694" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">policy-service</text>
-<text x="1000" y="690" font-size="8.5" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">services + data + messaging</text>
-<text x="584" y="712" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Dominio: pólizas, emisión y renovaciones</text>
-<text x="584" y="726" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">API: /api/polizas/** · /api/renovaciones/**</text>
-<text x="584" y="740" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Publica: policy.issued/renewed/expired/cancelled</text>
-<text x="584" y="754" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Consume: quote.accepted, claim.* → accepted_quotes, open_claims</text>
-<rect x="584" y="772" width="46" height="15" rx="4" fill="#fde68a" stroke="#d4a017" stroke-width="1"/>
-<text x="607" y="783" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Outbox</text>
-<rect x="636" y="772" width="38" height="15" rx="4" fill="#bfdbfe" stroke="#5b95d6" stroke-width="1"/>
-<text x="655" y="783" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Inbox</text>
-<rect x="834" y="772" width="166" height="15" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="917" y="783" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">logs · métricas · trazas</text>
-<rect x="1042" y="684" width="156" height="48" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1.4"/>
-<text x="1120" y="704" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">policy_db</text>
-<text x="1120" y="719" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">BD propia</text>
-<path d="M1010,708 H1042" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
-<path d="M1010,770 H1250" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
-<text x="1034" y="765" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">publica: policy.*</text>
-<path d="M1250,784 H1010" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-red)"/>
-<text x="1034" y="794" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">consume: quote.accepted, claim.*</text>
-<rect x="760" y="682" width="112" height="15" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
-<text x="816" y="693" font-size="8.5" font-weight="bold" fill="#991b1b" text-anchor="middle" style="">PUBLICA + CONSUME</text>
-<rect x="570" y="802" width="440" height="118" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
-<text x="584" y="822" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">claims-service</text>
-<text x="1000" y="818" font-size="8.5" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">services + data + messaging</text>
-<text x="584" y="840" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Dominio: siniestros</text>
-<text x="584" y="854" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">API: /api/polizas/{id}/siniestros/**</text>
-<text x="584" y="868" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Publica: claim.registered · claim.status-changed</text>
-<text x="584" y="882" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Consume: policy.* → policy_ref (existencia y vigencia)</text>
-<rect x="584" y="900" width="46" height="15" rx="4" fill="#fde68a" stroke="#d4a017" stroke-width="1"/>
-<text x="607" y="911" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Outbox</text>
-<rect x="636" y="900" width="38" height="15" rx="4" fill="#bfdbfe" stroke="#5b95d6" stroke-width="1"/>
-<text x="655" y="911" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Inbox</text>
-<rect x="834" y="900" width="166" height="15" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="917" y="911" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">logs · métricas · trazas</text>
-<rect x="1042" y="812" width="156" height="48" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1.4"/>
-<text x="1120" y="832" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">claims_db</text>
-<text x="1120" y="847" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">BD propia</text>
-<path d="M1010,836 H1042" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
-<path d="M1010,898 H1250" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
-<text x="1034" y="893" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">publica: claim.*</text>
-<path d="M1250,912 H1010" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-red)"/>
-<text x="1034" y="922" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">consume: policy.*</text>
-<rect x="760" y="810" width="112" height="15" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
-<text x="816" y="821" font-size="8.5" font-weight="bold" fill="#991b1b" text-anchor="middle" style="">PUBLICA + CONSUME</text>
-<rect x="570" y="930" width="440" height="118" rx="8" fill="#fff" stroke="#3b82c4" stroke-width="2"/>
-<text x="584" y="950" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="start" style="">notification-service</text>
-<text x="1000" y="946" font-size="8.5" font-weight="normal" fill="#6b7280" text-anchor="end" style="font-style:italic;">data + messaging</text>
-<text x="584" y="968" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Dominio: notificaciones (worker sin API HTTP y sin puerto)</text>
-<text x="584" y="982" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Consume: policy.issued/renewed · claim.status-changed · customer.*</text>
-<text x="584" y="996" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Proyección: customer_contacts (ya no lee la BD de otro servicio)</text>
-<text x="584" y="1010" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Externo: WhatsApp (CB + pausa del listener + DLQ con reproceso)</text>
-<rect x="584" y="1028" width="38" height="15" rx="4" fill="#bfdbfe" stroke="#5b95d6" stroke-width="1"/>
-<text x="603" y="1039" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Inbox</text>
-<rect x="628" y="1028" width="38" height="15" rx="4" fill="#fecaca" stroke="#d9707c" stroke-width="1"/>
-<text x="647" y="1039" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">CB</text>
-<rect x="834" y="1028" width="166" height="15" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="917" y="1039" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">logs · métricas · trazas</text>
-<rect x="1042" y="940" width="156" height="48" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1.4"/>
-<text x="1120" y="960" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">notification_db</text>
-<text x="1120" y="975" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">BD propia</text>
-<path d="M1010,964 H1042" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-green)" marker-end="url(#m-green)"/>
-<path d="M1250,1034 H1010" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-red)"/>
-<text x="1034" y="1019" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">consume: policy.issued/renewed,</text>
-<text x="1034" y="1029" font-size="8.5" font-weight="bold" fill="#b91c1c" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">claim.status-changed, customer.*</text>
-<rect x="760" y="938" width="84" height="15" rx="4" fill="#ffedd5" stroke="#d62828" stroke-width="1"/>
-<text x="802" y="949" font-size="8.5" font-weight="bold" fill="#991b1b" text-anchor="middle" style="">SOLO CONSUME</text>
-<path d="M500,320 H570" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
-<path d="M500,448 H570" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
-<path d="M500,576 H570" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
-<path d="M500,704 H570" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
-<path d="M500,832 H570" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
-<text x="535" y="312" font-size="8.5" font-weight="normal" fill="#1f6fd0" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTP + JWT</text>
-<path d="M1010,370 H1400" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
-<text x="1305" y="362" font-size="9.5" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTPS</text>
-<path d="M1010,498 H1244 a6,6 0 0 1 12,0 H1400" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
-<text x="1272" y="490" font-size="9.5" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTPS</text>
-<path d="M1010,1010 H1244 a6,6 0 0 1 12,0 H1400" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
-<text x="1272" y="1002" font-size="9.5" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">HTTPS</text>
-<path d="M1250,396 V1090" fill="none" stroke="#d62828" stroke-width="4"/>
-<text x="1236" y="700" font-size="10" font-weight="bold" fill="#d62828" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;" transform="rotate(-90 1236 700)">bus de eventos: Outbox → RabbitMQ → Inbox (AMQP)</text>
-<rect x="570" y="1090" width="750" height="138" rx="8" fill="#fff" stroke="#d94848" stroke-width="2"/>
-<text x="584" y="1112" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="start" style="">RabbitMQ 3.13</text>
-<text x="700" y="1112" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">exchange topic  andina.events   ·   routing key  &lt;contexto&gt;.&lt;evento&gt;.v&lt;n&gt;</text>
-<text x="584" y="1128" font-size="9.5" font-weight="normal" fill="#6b7280" text-anchor="start" style="">Sin puertos en el host (consola solo por túnel/red interna) · messaging</text>
-<text x="584" y="1148" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">customer.registered.v1 · customer.updated.v1</text>
-<text x="584" y="1163" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">vehicle.registered.v1 · quote.accepted.v1</text>
-<text x="584" y="1178" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">policy.issued.v1 · policy.renewed.v1</text>
-<text x="860" y="1148" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">policy.expired.v1 · policy.cancelled.v1</text>
-<text x="860" y="1163" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">claim.registered.v1</text>
-<text x="860" y="1178" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">claim.status-changed.v1</text>
-<text x="1085" y="1148" font-size="10" font-weight="bold" fill="#a12a2a" text-anchor="start" style="">Cola propia por consumidor</text>
-<text x="1085" y="1163" font-size="10" font-weight="bold" fill="#a12a2a" text-anchor="start" style="">+ cola de reintento (TTL)</text>
-<text x="1085" y="1178" font-size="10" font-weight="bold" fill="#a12a2a" text-anchor="start" style="">+ DLQ con alerta y reproceso</text>
-<rect x="584" y="1198" width="725" height="22" rx="4" fill="#fff5ef" stroke="#f0b39a" stroke-width="1"/>
-<text x="596" y="1213" font-size="9.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Cada evento lleva eventId · eventType · eventVersion · occurredAt · aggregateId · correlationId · traceparent</text>
-<rect x="1400" y="552" width="480" height="213" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
-<text x="1416" y="574" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Leyenda</text>
-<path d="M1416,594 H1462" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-blue)"/>
-<text x="1472" y="598" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">HTTP síncrono (navegador → Gateway → servicio)</text>
-<path d="M1416,613 H1462" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-blue)"/>
-<text x="1472" y="617" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">HTTPS con proveedores externos (Internet)</text>
-<path d="M1416,632 H1462" fill="none" stroke="#1e9e54" stroke-width="2" marker-end="url(#m-green)"/>
-<text x="1472" y="636" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Acceso a la BD propia del servicio (MongoDB)</text>
-<path d="M1416,651 H1462" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-red)"/>
-<text x="1472" y="655" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Publica un evento (servicio → RabbitMQ, con Outbox)</text>
-<path d="M1416,670 H1462" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m-red)"/>
-<text x="1472" y="674" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Consume un evento (RabbitMQ → servicio, con Inbox)</text>
-<path d="M1416,689 H1462" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-purple)"/>
-<text x="1472" y="693" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Telemetría de todos los contenedores</text>
-<rect x="1416" y="720" width="46" height="15" rx="4" fill="#fde68a" stroke="#d4a017" stroke-width="1"/>
-<text x="1439" y="731" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Outbox</text>
-<text x="1470" y="732" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">guarda el evento en la misma transacción</text>
-<rect x="1416" y="738" width="38" height="15" rx="4" fill="#bfdbfe" stroke="#5b95d6" stroke-width="1"/>
-<text x="1435" y="749" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Inbox</text>
-<text x="1462" y="750" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">descarta eventos repetidos</text>
-<rect x="1700" y="738" width="24" height="15" rx="4" fill="#fecaca" stroke="#d9707c" stroke-width="1"/>
-<text x="1712" y="749" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">CB</text>
-<text x="1730" y="750" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">circuit breaker</text>
-<rect x="1400" y="775" width="480" height="140" rx="8" fill="#e8f0ff" stroke="#3b82c4" stroke-width="1.5"/>
-<text x="1416" y="798" font-size="13" font-weight="bold" fill="#1d4f91" text-anchor="start" style="">Reglas de la arquitectura</text>
-<text x="1416" y="818" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• 6 microservicios + 1 API Gateway + Frontend</text>
-<text x="1416" y="833" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Una BD por servicio; ningún servicio lee la BD de otro</text>
-<text x="1416" y="848" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Sincronización: eventos + proyecciones locales;</text>
-<text x="1416" y="863" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  llamada síncrona solo como excepción (con CB)</text>
-<text x="1416" y="878" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• Emisión de póliza = saga por coreografía:</text>
-<text x="1416" y="893" font-size="10.5" font-weight="normal" fill="#1f2937" text-anchor="start" style="">  quote.accepted → policy.issued → quotation/claims/notification</text>
-<rect x="1400" y="1070" width="480" height="175" rx="8" fill="#f5f0ff" stroke="#7c3aed" stroke-width="1.8"/>
-<text x="1416" y="1090" font-size="12" font-weight="bold" fill="#5b21b6" text-anchor="start" style="">Observabilidad (infra/docker-compose.observability.yml)</text>
-<rect x="1412" y="1100" width="118" height="36" rx="5" fill="#fff" stroke="#a78bfa" stroke-width="1"/>
-<text x="1471" y="1114" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Promtail</text>
-<text x="1471" y="1127" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">logs JSON + correlationId</text>
-<rect x="1412" y="1142" width="118" height="36" rx="5" fill="#fff" stroke="#a78bfa" stroke-width="1"/>
-<text x="1471" y="1156" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">OTel Collector</text>
-<text x="1471" y="1169" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">trazas OTLP</text>
-<text x="1412" y="1194" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="start" style="">Prometheus: scrape de</text>
-<text x="1412" y="1206" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="start" style="">/actuator/prometheus</text>
-<text x="1412" y="1218" font-size="9" font-weight="normal" fill="#4b5563" text-anchor="start" style="">de cada servicio</text>
-<rect x="1560" y="1100" width="100" height="36" rx="5" fill="#fff" stroke="#a78bfa" stroke-width="1"/>
-<text x="1610" y="1114" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Loki</text>
-<text x="1610" y="1127" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">almacén de logs</text>
-<rect x="1560" y="1142" width="100" height="36" rx="5" fill="#fff" stroke="#a78bfa" stroke-width="1"/>
-<text x="1610" y="1156" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Jaeger</text>
-<text x="1610" y="1169" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">almacén de trazas</text>
-<rect x="1560" y="1184" width="100" height="36" rx="5" fill="#fff" stroke="#a78bfa" stroke-width="1"/>
-<text x="1610" y="1198" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Prometheus</text>
-<text x="1610" y="1211" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">métricas</text>
-<rect x="1730" y="1100" width="140" height="120" rx="5" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="1800" y="1114" font-size="10.5" font-weight="bold" fill="#1f2937" text-anchor="middle" style="">Grafana</text>
-<text x="1800" y="1127" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">paneles · logs · trazas</text>
-<text x="1800" y="1160" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">búsqueda por correlationId</text>
-<text x="1800" y="1176" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">Puertos locales: 3000 (UI),</text>
-<text x="1800" y="1188" font-size="8.5" font-weight="normal" fill="#4b5563" text-anchor="middle" style="">16686 (Jaeger), 9090</text>
-<path d="M1530,1118 H1560" fill="none" stroke="#7c3aed" stroke-width="2" marker-end="url(#m-purple)"/>
-<path d="M1530,1160 H1560" fill="none" stroke="#7c3aed" stroke-width="2" marker-end="url(#m-purple)"/>
-<path d="M1660,1118 H1730" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#m-purple)"/>
-<path d="M1660,1160 H1730" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#m-purple)"/>
-<path d="M1660,1202 H1730" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#m-purple)"/>
-<path d="M1345,1120 H1400" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#m-purple)"/>
-<text x="1372" y="1108" font-size="9" font-weight="normal" fill="#7c3aed" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">telemetría</text>
-<text x="1372" y="1136" font-size="9" font-weight="normal" fill="#7c3aed" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">de todos</text>
-<text x="1372" y="1148" font-size="9" font-weight="normal" fill="#7c3aed" text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;">los servicios</text>
-<rect x="20" y="1275" width="1180" height="145" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
-<text x="36" y="1298" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Redes Docker (segmentación) y publicación de puertos</text>
-<rect x="36" y="1310" width="216" height="100" rx="6" fill="#e3effb" stroke="#3b82c4" stroke-width="1"/>
-<text x="46" y="1328" font-size="11.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">edge_network</text>
-<text x="46" y="1344" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• frontend</text>
-<text x="46" y="1358" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• gateway</text>
-<text x="46" y="1402" font-size="9.5" font-weight="normal" fill="#4b5563" text-anchor="start" style="font-style:italic;">Publica: 5173 y 8080</text>
-<rect x="264" y="1310" width="216" height="100" rx="6" fill="#dcf5e6" stroke="#2e9e5b" stroke-width="1"/>
-<text x="274" y="1328" font-size="11.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">services_network</text>
-<text x="274" y="1344" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• gateway</text>
-<text x="274" y="1358" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• identity · customer</text>
-<text x="274" y="1372" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• quotation · policy · claims</text>
-<text x="274" y="1402" font-size="9.5" font-weight="normal" fill="#4b5563" text-anchor="start" style="font-style:italic;">Sin puertos en el host</text>
-<rect x="492" y="1310" width="216" height="100" rx="6" fill="#efe7fb" stroke="#8b5cc7" stroke-width="1"/>
-<text x="502" y="1328" font-size="11.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">data_network</text>
-<text x="502" y="1344" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• 6 servicios</text>
-<text x="502" y="1358" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• mongodb · redis</text>
-<text x="502" y="1402" font-size="9.5" font-weight="normal" fill="#4b5563" text-anchor="start" style="font-style:italic;">Sin puertos en producción</text>
-<rect x="720" y="1310" width="216" height="100" rx="6" fill="#fbe4e4" stroke="#d94848" stroke-width="1"/>
-<text x="730" y="1328" font-size="11.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">messaging_network</text>
-<text x="730" y="1344" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• 6 servicios</text>
-<text x="730" y="1358" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• rabbitmq</text>
-<text x="730" y="1402" font-size="9.5" font-weight="normal" fill="#4b5563" text-anchor="start" style="font-style:italic;">Sin puertos en el host</text>
-<rect x="948" y="1310" width="216" height="100" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-<text x="958" y="1328" font-size="11.5" font-weight="bold" fill="#1f2937" text-anchor="start" style="">observability_network</text>
-<text x="958" y="1344" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• servicios y gateway</text>
-<text x="958" y="1358" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• otel · prometheus · loki</text>
-<text x="958" y="1372" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">• jaeger · grafana</text>
-<text x="958" y="1402" font-size="9.5" font-weight="normal" fill="#4b5563" text-anchor="start" style="font-style:italic;">Publica: 3000 (Grafana)</text>
-<rect x="1220" y="1275" width="160" height="145" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
-<text x="1232" y="1298" font-size="13" font-weight="bold" fill="#1f2937" text-anchor="start" style="">Orquestador</text>
-<text x="1232" y="1318" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">Docker Compose</text>
-<text x="1232" y="1332" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">(por ahora).</text>
-<text x="1232" y="1346" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">depends_on +</text>
-<text x="1232" y="1360" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">healthchecks:</text>
-<text x="1232" y="1374" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">infra → servicios</text>
-<text x="1232" y="1388" font-size="10" font-weight="normal" fill="#1f2937" text-anchor="start" style="">→ gateway</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1600" width="1900" height="1600" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="m-azul" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#1f6fd0"/></marker><marker id="m-verde" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#1e9e54"/></marker><marker id="m-rojo" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#d62828"/></marker><marker id="m-naranja" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#f08c00"/></marker><marker id="m-gris" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#6b7280"/></marker><marker id="m-morado" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse"><path d="M0,1 L11,6 L0,11 z" fill="#7c3aed"/></marker></defs>
+<rect x="0" y="0" width="1900" height="1600" rx="0" fill="#f8fafc" stroke="#f8fafc" stroke-width="1.6"/>
+<text x="20" y="38" font-size="28" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Backend Seguros — Arquitectura de microservicios implementada</text>
+<text x="20" y="64" font-size="14.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">6 microservicios + API Gateway · Docker Compose (docker-compose.yml en la raíz) y manifiestos de Kubernetes (k8s/) · estado al 2026-09-28: migración terminada y monolito retirado</text>
+<rect x="20" y="150" width="230" height="110" rx="8" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="34" y="174" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Usuarios</text>
+<text x="34" y="194" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Roles: ADMIN · AGENTE</text>
+<text x="34" y="209" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">ACTUARIO · CLIENTE</text>
+<text x="34" y="224" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="34" y="239" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">MFA con Google Authenticator</text>
+<path d="M135,260 L135,298" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#m-gris)"/>
+<text x="145" y="283" font-size="10" font-weight="normal" fill="#64748b" text-anchor="start" style="">usan</text>
+<rect x="20" y="300" width="230" height="200" rx="8" fill="#e8f1fd" stroke="#6d9fe0" stroke-width="1.6"/>
+<text x="34" y="324" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Cliente web (navegador)</text>
+<text x="34" y="344" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Vue 3.5 (SPA) · TypeScript</text>
+<text x="34" y="359" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Pinia · Vue Router · Axios</text>
+<text x="34" y="374" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="34" y="389" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Habla solo con el gateway.</text>
+<text x="34" y="404" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Recibe X-Correlation-Id en</text>
+<text x="34" y="419" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">cada respuesta (soporte).</text>
+<text x="34" y="434" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Con el perfil tls: HTTPS local</text>
+<text x="34" y="449" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">(proxy Caddy 8443 / 8444).</text>
+<path d="M10,420 L10,100 L1640,100 L1640,288" fill="none" stroke="#1f6fd0" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-azul)"/>
+<text x="300" y="94" font-size="10" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="">botón de Google / redirección OAuth de Facebook (desde el navegador)</text>
+<rect x="285" y="130" width="1060" height="1135" rx="12" fill="none" stroke="#7a93bd" stroke-width="1.6" stroke-dasharray="8,5"/>
+<text x="300" y="150" font-size="12.5" font-weight="bold" fill="#2a5aa0" text-anchor="start" style="">Docker Compose · proyecto andina-clean · solo el frontend (5173) y el gateway (8080) publican puertos</text>
+<rect x="300" y="165" width="200" height="105" rx="8" fill="#e9f8ef" stroke="#46b37a" stroke-width="1.6"/>
+<text x="314" y="189" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Frontend (Nginx)</text>
+<text x="314" y="209" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Puerto 5173 → 80</text>
+<text x="314" y="224" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">SPA Vue compilada;</text>
+<text x="314" y="239" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">llama solo al gateway</text>
+<text x="314" y="254" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">(VITE_API_URL).</text>
+<path d="M250,330 L275,330 L275,215 L298,215" fill="none" stroke="#1f6fd0" stroke-width="1.6" marker-end="url(#m-azul)"/>
+<path d="M250,405 L298,405" fill="none" stroke="#1f6fd0" stroke-width="2" marker-start="url(#m-azul)" marker-end="url(#m-azul)"/>
+<text x="253" y="398" font-size="9.5" font-weight="bold" fill="#1f6fd0" text-anchor="start" style="">HTTP :8080</text>
+<text x="256" y="423" font-size="9.5" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="">/api + JWT</text>
+<rect x="300" y="285" width="200" height="555" rx="8" fill="#eaf2fd" stroke="#6d9fe0" stroke-width="1.6"/>
+<text x="314" y="309" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">API Gateway</text>
+<text x="314" y="329" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Spring Cloud Gateway</text>
+<text x="314" y="343.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">OAuth2 Resource Server</text>
+<text x="314" y="358" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="314" y="372.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Único puerto de API: 8080</text>
+<text x="314" y="387" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="314" y="401.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Valida JWT RS256 (JWKS</text>
+<text x="314" y="416" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  de identity)</text>
+<text x="314" y="430.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Rechaza tokens revocados:</text>
+<text x="314" y="445" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  Redis + copia local cada 5 s</text>
+<text x="314" y="459.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  (AP: sigue si Redis cae)</text>
+<text x="314" y="474" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Enruta /api/** al servicio</text>
+<text x="314" y="488.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  dueño (siniestros antes</text>
+<text x="314" y="503" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  que pólizas)</text>
+<text x="314" y="517.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Circuit breaker y timeout</text>
+<text x="314" y="532" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  por servicio (3–12 s);</text>
+<text x="314" y="546.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  503 + Retry-After</text>
+<text x="314" y="561" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Límite de peticiones (Redis)</text>
+<text x="314" y="575.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  estricto en login y MFA</text>
+<text x="314" y="590" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Genera X-Correlation-Id y</text>
+<text x="314" y="604.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  propaga traceparent</text>
+<text x="314" y="619" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Compone "Mi cuenta"</text>
+<text x="314" y="633.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  (customer + policy,</text>
+<text x="314" y="648" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  respuesta parcial)</text>
+<text x="314" y="662.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• CORS único</text>
+<text x="314" y="677" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Redis sin bloqueo: 2 s</text>
+<text x="314" y="691.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• 2 réplicas en Kubernetes</text>
+<text x="488" y="832" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">edge + services</text>
+<rect x="300" y="870" width="200" height="200" rx="8" fill="#fdecec" stroke="#e07a7a" stroke-width="1.6"/>
+<text x="314" y="894" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Redis</text>
+<text x="314" y="914" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Interno (sin puerto)</text>
+<text x="314" y="928.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="314" y="943" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Límite de peticiones</text>
+<text x="314" y="957.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Lista de revocaciones</text>
+<text x="314" y="972" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Estado efímero de identity:</text>
+<text x="314" y="986.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  state OAuth, tickets de login,</text>
+<text x="314" y="1001" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  desafíos MFA (GETDEL)</text>
+<text x="314" y="1015.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">• Caché de placas (24 h)</text>
+<text x="314" y="1030" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">  y de claves de Google</text>
+<path d="M400,842 L400,868" fill="none" stroke="#6b7280" stroke-width="2" marker-start="url(#m-gris)" marker-end="url(#m-gris)"/>
+<rect x="570" y="290" width="440" height="122" rx="8" fill="#ffffff" stroke="#1f5fb8" stroke-width="1.8"/>
+<text x="584" y="312" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">identity-service</text>
+<rect x="760" y="299" width="91.6" height="16" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
+<text x="805.8" y="311" font-size="9.5" font-weight="bold" fill="#b42318" text-anchor="middle" style="">SOLO CONSUME</text>
+<text x="1000" y="310" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">Clean Architecture + ArchUnit</text>
+<text x="584" y="330" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Usuarios, login (contraseña, Google, Facebook), MFA, revocación (logout/baja)</text>
+<text x="584" y="344.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Firma JWT RS256 (clave privada solo aquí) y publica /.well-known/jwks.json</text>
+<text x="584" y="359" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Consume customer.registered/updated → customer_email_index</text>
+<text x="584" y="373.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Externos: Google y Facebook (CB + bulkhead + timeout); estado en Redis</text>
+<rect x="584" y="390" width="48" height="16" rx="4" fill="#dcebfd" stroke="#5b8fd6" stroke-width="1"/>
+<text x="608" y="402" font-size="10" font-weight="bold" fill="#1f5fb8" text-anchor="middle" style="">Inbox</text>
+<rect x="638" y="390" width="28.8" height="16" rx="4" fill="#fde2e2" stroke="#e07a7a" stroke-width="1"/>
+<text x="652.4" y="402" font-size="10" font-weight="bold" fill="#b42318" text-anchor="middle" style="">CB</text>
+<rect x="672.8" y="390" width="67.2" height="16" rx="4" fill="#e9f8ef" stroke="#46b37a" stroke-width="1"/>
+<text x="706.4" y="402" font-size="10" font-weight="bold" fill="#1b7a45" text-anchor="middle" style="">Bulkhead</text>
+<rect x="830" y="390" width="168" height="16" rx="4" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1"/>
+<text x="914" y="402" font-size="10" font-weight="bold" fill="#5b3aa0" text-anchor="middle" style="">logs · métricas · trazas</text>
+<path d="M500,312 L568,312" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-azul)"/>
+<rect x="570" y="420" width="440" height="122" rx="8" fill="#ffffff" stroke="#1f5fb8" stroke-width="1.8"/>
+<text x="584" y="442" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">customer-service</text>
+<rect x="760" y="429" width="91.6" height="16" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
+<text x="805.8" y="441" font-size="9.5" font-weight="bold" fill="#b42318" text-anchor="middle" style="">SOLO PUBLICA</text>
+<text x="1000" y="440" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">Clean Architecture + ArchUnit</text>
+<text x="584" y="460" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Clientes, vehículos, consulta de placas</text>
+<text x="584" y="474.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">API: /api/clientes/** · /api/vehiculos/informacion-externa</text>
+<text x="584" y="489" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica customer.registered/updated · vehicle.registered</text>
+<text x="584" y="503.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">JSON.pe placas: CB + reintento + bulkhead + caché Redis (24 h)</text>
+<rect x="584" y="520" width="54.400000000000006" height="16" rx="4" fill="#fff4cc" stroke="#e0b000" stroke-width="1"/>
+<text x="611.2" y="532" font-size="10" font-weight="bold" fill="#8a6d00" text-anchor="middle" style="">Outbox</text>
+<rect x="644.4" y="520" width="28.8" height="16" rx="4" fill="#fde2e2" stroke="#e07a7a" stroke-width="1"/>
+<text x="658.8" y="532" font-size="10" font-weight="bold" fill="#b42318" text-anchor="middle" style="">CB</text>
+<rect x="679.1999999999999" y="520" width="67.2" height="16" rx="4" fill="#e9f8ef" stroke="#46b37a" stroke-width="1"/>
+<text x="712.8" y="532" font-size="10" font-weight="bold" fill="#1b7a45" text-anchor="middle" style="">Bulkhead</text>
+<rect x="830" y="520" width="168" height="16" rx="4" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1"/>
+<text x="914" y="532" font-size="10" font-weight="bold" fill="#5b3aa0" text-anchor="middle" style="">logs · métricas · trazas</text>
+<path d="M500,442 L568,442" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-azul)"/>
+<rect x="570" y="550" width="440" height="122" rx="8" fill="#ffffff" stroke="#1f5fb8" stroke-width="1.8"/>
+<text x="584" y="572" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">quotation-service</text>
+<rect x="760" y="559" width="123.1" height="16" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
+<text x="821.55" y="571" font-size="9.5" font-weight="bold" fill="#b42318" text-anchor="middle" style="">PUBLICA + CONSUME</text>
+<text x="1000" y="570" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">Clean Architecture + ArchUnit</text>
+<text x="584" y="590" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Tablas tarifarias, motor de tarificación, cotizaciones</text>
+<text x="584" y="604.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica quote.accepted · Consume customer.*, vehicle.registered,</text>
+<text x="584" y="619" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">policy.issued (→ EMITIDA), policy.issuance-rejected (compensación)</text>
+<text x="584" y="633.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Proyecciones customer_ref, vehicle_ref + lectura de refuerzo a customer</text>
+<rect x="584" y="650" width="54.400000000000006" height="16" rx="4" fill="#fff4cc" stroke="#e0b000" stroke-width="1"/>
+<text x="611.2" y="662" font-size="10" font-weight="bold" fill="#8a6d00" text-anchor="middle" style="">Outbox</text>
+<rect x="644.4" y="650" width="48" height="16" rx="4" fill="#dcebfd" stroke="#5b8fd6" stroke-width="1"/>
+<text x="668.4" y="662" font-size="10" font-weight="bold" fill="#1f5fb8" text-anchor="middle" style="">Inbox</text>
+<rect x="698.4" y="650" width="28.8" height="16" rx="4" fill="#fde2e2" stroke="#e07a7a" stroke-width="1"/>
+<text x="712.8" y="662" font-size="10" font-weight="bold" fill="#b42318" text-anchor="middle" style="">CB</text>
+<rect x="830" y="650" width="168" height="16" rx="4" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1"/>
+<text x="914" y="662" font-size="10" font-weight="bold" fill="#5b3aa0" text-anchor="middle" style="">logs · métricas · trazas</text>
+<path d="M500,572 L568,572" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-azul)"/>
+<rect x="570" y="680" width="440" height="122" rx="8" fill="#ffffff" stroke="#1f5fb8" stroke-width="1.8"/>
+<text x="584" y="702" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">policy-service</text>
+<rect x="760" y="689" width="123.1" height="16" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
+<text x="821.55" y="701" font-size="9.5" font-weight="bold" fill="#b42318" text-anchor="middle" style="">PUBLICA + CONSUME</text>
+<text x="1000" y="700" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">Clean Architecture + ArchUnit</text>
+<text x="584" y="720" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Pólizas, Saga de emisión (índice único por cotización), renovaciones</text>
+<text x="584" y="734.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica policy.issued · policy.renewed · policy.issuance-rejected</text>
+<text x="584" y="749" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Consume quote.accepted → accepted_quotes · claim.* → claim_ref</text>
+<text x="584" y="763.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Al generar la renovada confirma siniestros con claims (CP: 503 si cae)</text>
+<rect x="584" y="780" width="54.400000000000006" height="16" rx="4" fill="#fff4cc" stroke="#e0b000" stroke-width="1"/>
+<text x="611.2" y="792" font-size="10" font-weight="bold" fill="#8a6d00" text-anchor="middle" style="">Outbox</text>
+<rect x="644.4" y="780" width="48" height="16" rx="4" fill="#dcebfd" stroke="#5b8fd6" stroke-width="1"/>
+<text x="668.4" y="792" font-size="10" font-weight="bold" fill="#1f5fb8" text-anchor="middle" style="">Inbox</text>
+<rect x="698.4" y="780" width="28.8" height="16" rx="4" fill="#fde2e2" stroke="#e07a7a" stroke-width="1"/>
+<text x="712.8" y="792" font-size="10" font-weight="bold" fill="#b42318" text-anchor="middle" style="">CB</text>
+<rect x="830" y="780" width="168" height="16" rx="4" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1"/>
+<text x="914" y="792" font-size="10" font-weight="bold" fill="#5b3aa0" text-anchor="middle" style="">logs · métricas · trazas</text>
+<path d="M500,702 L568,702" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-azul)"/>
+<rect x="570" y="810" width="440" height="122" rx="8" fill="#ffffff" stroke="#1f5fb8" stroke-width="1.8"/>
+<text x="584" y="832" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">claims-service</text>
+<rect x="760" y="819" width="123.1" height="16" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
+<text x="821.55" y="831" font-size="9.5" font-weight="bold" fill="#b42318" text-anchor="middle" style="">PUBLICA + CONSUME</text>
+<text x="1000" y="830" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">Clean Architecture + ArchUnit</text>
+<text x="584" y="850" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Siniestros</text>
+<text x="584" y="864.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">API: /api/polizas/{id}/siniestros/** · /api/siniestros/eventos/reenvio</text>
+<text x="584" y="879" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica claim.registered · claim.status-changed</text>
+<text x="584" y="893.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Consume policy.issued/renewed/expired/cancelled → policy_ref</text>
+<rect x="584" y="910" width="54.400000000000006" height="16" rx="4" fill="#fff4cc" stroke="#e0b000" stroke-width="1"/>
+<text x="611.2" y="922" font-size="10" font-weight="bold" fill="#8a6d00" text-anchor="middle" style="">Outbox</text>
+<rect x="644.4" y="910" width="48" height="16" rx="4" fill="#dcebfd" stroke="#5b8fd6" stroke-width="1"/>
+<text x="668.4" y="922" font-size="10" font-weight="bold" fill="#1f5fb8" text-anchor="middle" style="">Inbox</text>
+<rect x="830" y="910" width="168" height="16" rx="4" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1"/>
+<text x="914" y="922" font-size="10" font-weight="bold" fill="#5b3aa0" text-anchor="middle" style="">logs · métricas · trazas</text>
+<path d="M500,832 L568,832" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-azul)"/>
+<rect x="570" y="940" width="440" height="122" rx="8" fill="#ffffff" stroke="#1f5fb8" stroke-width="1.8"/>
+<text x="584" y="962" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">notification-service</text>
+<rect x="760" y="949" width="91.6" height="16" rx="4" fill="#fde2e2" stroke="#d62828" stroke-width="1"/>
+<text x="805.8" y="961" font-size="9.5" font-weight="bold" fill="#b42318" text-anchor="middle" style="">SOLO CONSUME</text>
+<text x="1000" y="960" font-size="9" font-weight="normal" fill="#64748b" text-anchor="end" style="font-style:italic">Clean Architecture + ArchUnit</text>
+<text x="584" y="980" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Notificaciones: worker sin API HTTP ni puerto</text>
+<text x="584" y="994.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Consume policy.issued → WhatsApp · customer.* → customer_contacts</text>
+<text x="584" y="1009" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">CB de WhatsApp abierto → pausa el listener (los mensajes esperan</text>
+<text x="584" y="1023.5" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">en la cola, no van a la DLQ); DLQ con alerta y reproceso</text>
+<rect x="584" y="1040" width="48" height="16" rx="4" fill="#dcebfd" stroke="#5b8fd6" stroke-width="1"/>
+<text x="608" y="1052" font-size="10" font-weight="bold" fill="#1f5fb8" text-anchor="middle" style="">Inbox</text>
+<rect x="638" y="1040" width="28.8" height="16" rx="4" fill="#fde2e2" stroke="#e07a7a" stroke-width="1"/>
+<text x="652.4" y="1052" font-size="10" font-weight="bold" fill="#b42318" text-anchor="middle" style="">CB</text>
+<rect x="830" y="1040" width="168" height="16" rx="4" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1"/>
+<text x="914" y="1052" font-size="10" font-weight="bold" fill="#5b3aa0" text-anchor="middle" style="">logs · métricas · trazas</text>
+<text x="505" y="305" font-size="9.5" font-weight="normal" fill="#1f6fd0" text-anchor="start" style="">HTTP + JWT</text>
+<path d="M570,640 L548,640 L548,500 L568,500" fill="none" stroke="#f08c00" stroke-width="2.2" marker-end="url(#m-naranja)"/>
+<text x="543" y="606" font-size="9" font-weight="bold" fill="#b36200" text-anchor="end" style="">lectura de</text>
+<text x="543" y="618" font-size="9" font-weight="bold" fill="#b36200" text-anchor="end" style="">refuerzo</text>
+<text x="543" y="630" font-size="9" font-weight="normal" fill="#b36200" text-anchor="end" style="">2 s · CB</text>
+<path d="M570,772 L548,772 L548,890 L568,890" fill="none" stroke="#f08c00" stroke-width="2.2" marker-end="url(#m-naranja)"/>
+<text x="543" y="740" font-size="9" font-weight="bold" fill="#b36200" text-anchor="end" style="">confirma</text>
+<text x="543" y="752" font-size="9" font-weight="bold" fill="#b36200" text-anchor="end" style="">siniestros</text>
+<text x="543" y="764" font-size="9" font-weight="normal" fill="#b36200" text-anchor="end" style="">CP·2 s·CB</text>
+<rect x="1030" y="262" width="180" height="818" rx="8" fill="none" stroke="#46b37a" stroke-width="1.5" stroke-dasharray="6,4"/>
+<text x="1120" y="276" font-size="10.5" font-weight="bold" fill="#1b7a45" text-anchor="middle" style="">MongoDB 8 (replica set rs0)</text>
+<text x="1120" y="289" font-size="9.5" font-weight="normal" fill="#1b7a45" text-anchor="middle" style="">1 instancia + 1 usuario por servicio</text>
+<rect x="1042" y="304" width="156" height="58" rx="8" fill="#efe7fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="1120" y="327" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">identity_db</text>
+<text x="1120" y="344" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">identity-mongodb</text>
+<text x="1120" y="356" font-size="8.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">red propia · sin puerto</text>
+<path d="M1012,333 L1040,333" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-verde)" marker-end="url(#m-verde)"/>
+<rect x="1042" y="434" width="156" height="58" rx="8" fill="#efe7fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="1120" y="457" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">customer_db</text>
+<text x="1120" y="474" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">customer-mongodb</text>
+<text x="1120" y="486" font-size="8.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">red propia · sin puerto</text>
+<path d="M1012,463 L1040,463" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-verde)" marker-end="url(#m-verde)"/>
+<rect x="1042" y="564" width="156" height="58" rx="8" fill="#efe7fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="1120" y="587" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">quotation_db</text>
+<text x="1120" y="604" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">quotation-mongodb</text>
+<text x="1120" y="616" font-size="8.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">red propia · sin puerto</text>
+<path d="M1012,593 L1040,593" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-verde)" marker-end="url(#m-verde)"/>
+<rect x="1042" y="694" width="156" height="58" rx="8" fill="#efe7fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="1120" y="717" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">policy_db</text>
+<text x="1120" y="734" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">policy-mongodb</text>
+<text x="1120" y="746" font-size="8.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">red propia · sin puerto</text>
+<path d="M1012,723 L1040,723" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-verde)" marker-end="url(#m-verde)"/>
+<rect x="1042" y="824" width="156" height="58" rx="8" fill="#efe7fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="1120" y="847" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">claims_db</text>
+<text x="1120" y="864" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">claims-mongodb</text>
+<text x="1120" y="876" font-size="8.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">red propia · sin puerto</text>
+<path d="M1012,853 L1040,853" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-verde)" marker-end="url(#m-verde)"/>
+<rect x="1042" y="954" width="156" height="58" rx="8" fill="#efe7fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="1120" y="977" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">notification_db</text>
+<text x="1120" y="994" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">notification-mongodb</text>
+<text x="1120" y="1006" font-size="8.5" font-weight="normal" fill="#64748b" text-anchor="middle" style="">red propia · sin puerto</text>
+<path d="M1012,983 L1040,983" fill="none" stroke="#1e9e54" stroke-width="2" marker-start="url(#m-verde)" marker-end="url(#m-verde)"/>
+<path d="M1260,330 L1260,1098" fill="none" stroke="#d62828" stroke-width="3" marker-end="url(#m-rojo)"/>
+<text x="1280" y="740" font-size="10.5" font-weight="bold" fill="#d62828" text-anchor="middle" transform="rotate(-90 1280 740)">bus de eventos: Outbox → RabbitMQ → Inbox (AMQP)</text>
+<path d="M1258,382 L1014,382" fill="none" stroke="#d62828" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-rojo)"/>
+<text x="1016" y="379" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">consume: customer.*</text>
+<path d="M1012,512 L1258,512" fill="none" stroke="#d62828" stroke-width="1.6" marker-end="url(#m-rojo)"/>
+<text x="1016" y="509" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">publica: customer.*, vehicle.registered</text>
+<path d="M1012,642 L1258,642" fill="none" stroke="#d62828" stroke-width="1.6" marker-end="url(#m-rojo)"/>
+<text x="1016" y="639" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">publica: quote.accepted</text>
+<path d="M1258,658 L1014,658" fill="none" stroke="#d62828" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-rojo)"/>
+<text x="1016" y="655" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">consume: customer.*, vehicle.*, policy.*</text>
+<path d="M1012,772 L1258,772" fill="none" stroke="#d62828" stroke-width="1.6" marker-end="url(#m-rojo)"/>
+<text x="1016" y="769" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">publica: policy.*</text>
+<path d="M1258,788 L1014,788" fill="none" stroke="#d62828" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-rojo)"/>
+<text x="1016" y="785" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">consume: quote.accepted, claim.*</text>
+<path d="M1012,902 L1258,902" fill="none" stroke="#d62828" stroke-width="1.6" marker-end="url(#m-rojo)"/>
+<text x="1016" y="899" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">publica: claim.*</text>
+<path d="M1258,918 L1014,918" fill="none" stroke="#d62828" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-rojo)"/>
+<text x="1016" y="915" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">consume: policy.*</text>
+<path d="M1258,1032 L1014,1032" fill="none" stroke="#d62828" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-rojo)"/>
+<text x="1016" y="1029" font-size="8.8" font-weight="bold" fill="#b42318" text-anchor="start" style="">consume: policy.issued, customer.*</text>
+<rect x="570" y="1100" width="760" height="150" rx="8" fill="#fff5f5" stroke="#d62828" stroke-width="1.6"/>
+<text x="584" y="1124" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">RabbitMQ 3.13 · exchange topic andina.events · DLX andina.events.dlx</text>
+<text x="584" y="1144" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Sin puertos en el host · hostname fijo (colas y mensajes sobreviven a recrear el contenedor) · 11 contratos en contracts/events</text>
+<text x="584" y="1160" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">customer.registered.v1 · customer.updated.v1 · vehicle.registered.v1 · quote.accepted.v1 · policy.issued.v1 · policy.renewed.v1</text>
+<text x="584" y="1176" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">policy.issuance-rejected.v1 · claim.registered.v1 · claim.status-changed.v1 · (policy.expired/cancelled.v1: contrato sin productor)</text>
+<text x="584" y="1192" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Cada consumidor: su cola &lt;servicio&gt;.&lt;origen&gt;.events + su DLQ &lt;cola&gt;.dlq (alerta y reproceso con infra/rabbitmq/reprocesar-dlq.sh)</text>
+<text x="584" y="1208" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Sobre de cada evento: eventId · eventType · eventVersion · occurredAt · aggregateId · aggregateVersion · correlationId · traceparent</text>
+<rect x="1400" y="290" width="480" height="118" rx="8" fill="#fff8e1" stroke="#e0b43a" stroke-width="1.6"/>
+<text x="1414" y="314" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Proveedores de identidad</text>
+<text x="1414" y="334" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• Google Identity (ID token, JWKS con caché)</text>
+<text x="1414" y="349" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• Facebook OAuth + Graph API v22.0 (sin reintentos: código de un uso)</text>
+<text x="1414" y="364" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• HTTPS · usados por identity-service y por el navegador</text>
+<path d="M1012,298 L1398,298" fill="none" stroke="#1f6fd0" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-azul)"/>
+<rect x="1400" y="420" width="480" height="100" rx="8" fill="#fff8e1" stroke="#e0b43a" stroke-width="1.6"/>
+<text x="1414" y="444" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">JSON.pe — consulta de placas</text>
+<text x="1414" y="464" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• POST /api/placa · Bearer token · HTTPS</text>
+<text x="1414" y="479" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• Usado por customer-service; simulado con --profile jsonpe-mock</text>
+<path d="M1012,428 L1398,428" fill="none" stroke="#1f6fd0" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-azul)"/>
+<rect x="1400" y="940" width="480" height="100" rx="8" fill="#fff8e1" stroke="#e0b43a" stroke-width="1.6"/>
+<text x="1414" y="964" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">JSON.pe — WhatsApp</text>
+<text x="1414" y="984" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• POST /send/text · Bearer token · HTTPS</text>
+<text x="1414" y="999" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">• Usado por notification-service; simulado con --profile whatsapp-mock</text>
+<path d="M1012,948 L1398,948" fill="none" stroke="#1f6fd0" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-azul)"/>
+<rect x="1400" y="535" width="480" height="205" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+<text x="1414" y="559" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Leyenda</text>
+<path d="M1414,582 L1462,582" fill="none" stroke="#1f6fd0" stroke-width="2" marker-end="url(#m-azul)"/>
+<text x="1472" y="586" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">HTTP síncrono (navegador → gateway → servicio)</text>
+<path d="M1414,601 L1462,601" fill="none" stroke="#1f6fd0" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#m-azul)"/>
+<text x="1472" y="605" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">HTTPS con proveedores externos (Internet)</text>
+<path d="M1414,620 L1462,620" fill="none" stroke="#1e9e54" stroke-width="2" marker-end="url(#m-verde)"/>
+<text x="1472" y="624" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">Acceso a la base propia del servicio (MongoDB)</text>
+<path d="M1414,639 L1462,639" fill="none" stroke="#d62828" stroke-width="2" marker-end="url(#m-rojo)"/>
+<text x="1472" y="643" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica un evento (servicio → RabbitMQ, con Outbox)</text>
+<path d="M1414,658 L1462,658" fill="none" stroke="#d62828" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#m-rojo)"/>
+<text x="1472" y="662" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">Consume un evento (RabbitMQ → servicio, con Inbox)</text>
+<path d="M1414,677 L1462,677" fill="none" stroke="#f08c00" stroke-width="2" marker-end="url(#m-naranja)"/>
+<text x="1472" y="681" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">Llamada síncrona entre servicios (excepción, con CB)</text>
+<path d="M1414,696 L1462,696" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#m-morado)"/>
+<text x="1472" y="700" font-size="11" font-weight="normal" fill="#334155" text-anchor="start" style="">Telemetría de todos los contenedores</text>
+<rect x="1414" y="716" width="54.400000000000006" height="16" rx="4" fill="#fff4cc" stroke="#e0b000" stroke-width="1"/>
+<text x="1441.2" y="728" font-size="10" font-weight="bold" fill="#8a6d00" text-anchor="middle" style="">Outbox</text>
+<text x="1474.4" y="728" font-size="9.5" font-weight="normal" fill="#334155" text-anchor="start" style="">evento en la misma transacción</text>
+<rect x="1650" y="716" width="48" height="16" rx="4" fill="#dcebfd" stroke="#5b8fd6" stroke-width="1"/>
+<text x="1674" y="728" font-size="10" font-weight="bold" fill="#1f5fb8" text-anchor="middle" style="">Inbox</text>
+<text x="1704" y="728" font-size="9.5" font-weight="normal" fill="#334155" text-anchor="start" style="">descarta repetidos</text>
+<rect x="1400" y="752" width="480" height="175" rx="8" fill="#eaf2fd" stroke="#6d9fe0" stroke-width="1.6"/>
+<text x="1414" y="776" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Consistencia elegida por operación (CAP)</text>
+<text x="1414" y="796" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Emitir póliza: Saga por coreografía; índice único por cotización</text>
+<text x="1414" y="811" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">  → una sola póliza aunque lleguen 2 pedidos a la vez; compensación</text>
+<text x="1414" y="826" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">  con policy.issuance-rejected</text>
+<text x="1414" y="841" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Generar renovada: CP — confirma siniestros con claims (503 si cae)</text>
+<text x="1414" y="856" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Revocar tokens: AP — copia local en el gateway (≤ 5 s) si Redis cae</text>
+<text x="1414" y="871" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Proyecciones: consistencia eventual con aggregateVersion +</text>
+<text x="1414" y="886" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">  reconciliación (infra/operacion/reconciliar.sh)</text>
+<rect x="1400" y="1060" width="480" height="205" rx="8" fill="#f6f0ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="1414" y="1082" font-size="13" font-weight="bold" fill="#5b3aa0" text-anchor="start" style="">Observabilidad (infra/observability/, archivo -f aparte)</text>
+<rect x="1414" y="1095" width="132" height="38" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1480" y="1111" font-size="11" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">Promtail</text>
+<text x="1480" y="1125" font-size="9" font-weight="normal" fill="#64748b" text-anchor="middle" style="">logs JSON + correlationId</text>
+<rect x="1560" y="1095" width="132" height="38" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1626" y="1111" font-size="11" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">Loki</text>
+<text x="1626" y="1125" font-size="9" font-weight="normal" fill="#64748b" text-anchor="middle" style="">almacén de logs</text>
+<rect x="1414" y="1140" width="132" height="38" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1480" y="1156" font-size="11" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">OTel Collector</text>
+<text x="1480" y="1170" font-size="9" font-weight="normal" fill="#64748b" text-anchor="middle" style="">trazas OTLP</text>
+<rect x="1560" y="1140" width="132" height="38" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1626" y="1156" font-size="11" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">Jaeger</text>
+<text x="1626" y="1170" font-size="9" font-weight="normal" fill="#64748b" text-anchor="middle" style="">:16686</text>
+<rect x="1414" y="1185" width="132" height="38" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1480" y="1201" font-size="11" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">Prometheus :9090</text>
+<text x="1480" y="1215" font-size="9" font-weight="normal" fill="#64748b" text-anchor="middle" style="">métricas + alertas</text>
+<rect x="1560" y="1185" width="132" height="38" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1626" y="1201" font-size="11" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">Alertmanager :9093</text>
+<text x="1626" y="1215" font-size="9" font-weight="normal" fill="#64748b" text-anchor="middle" style="">correo por Gmail</text>
+<path d="M1546,1114 L1558,1114" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#m-morado)"/>
+<path d="M1546,1159 L1558,1159" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#m-morado)"/>
+<path d="M1546,1204 L1558,1204" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#m-morado)"/>
+<rect x="1712" y="1095" width="155" height="128" rx="5" fill="#ffffff" stroke="#b89be6" stroke-width="1.2"/>
+<text x="1790" y="1113" font-size="11.5" font-weight="bold" fill="#1e2a4a" text-anchor="middle" style="">Grafana :3000</text>
+<text x="1722" y="1131" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">tablero Resumen</text>
+<text x="1722" y="1145" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">logs · métricas · trazas</text>
+<text x="1722" y="1159" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">búsqueda por</text>
+<text x="1722" y="1173" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">correlationId</text>
+<text x="1722" y="1187" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">blackbox: readiness</text>
+<text x="1722" y="1201" font-size="9.5" font-weight="normal" fill="#64748b" text-anchor="start" style="">de cada servicio</text>
+<path d="M1694,1114 L1710,1114" fill="none" stroke="#7c3aed" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#m-morado)"/>
+<path d="M1694,1159 L1710,1159" fill="none" stroke="#7c3aed" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#m-morado)"/>
+<text x="1414" y="1245" font-size="9.5" font-weight="normal" fill="#5b3aa0" text-anchor="start" style="">Un emitir póliza = una traza: gateway → policy → RabbitMQ → notification, claims, quotation</text>
+<path d="M1347,1180 L1398,1180" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#m-morado)"/>
+<text x="1352" y="1172" font-size="9" font-weight="normal" fill="#7c3aed" text-anchor="start" style="">telemetría</text>
+<rect x="20" y="1285" width="900" height="300" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+<text x="36" y="1310" font-size="14" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Redes Docker (segmentación real del Compose) y puertos publicados</text>
+<rect x="36" y="1325" width="166" height="120" rx="6" fill="#e8f1fd" stroke="#6d9fe0" stroke-width="1.6"/>
+<text x="46" y="1345" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">gateway_network</text>
+<text x="46" y="1363" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">gateway · redis</text>
+<text x="46" y="1377.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">proxy tls (perfil)</text>
+<text x="46" y="1392" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="46" y="1406.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica: 8080</text>
+<rect x="212" y="1325" width="166" height="120" rx="6" fill="#e9f8ef" stroke="#46b37a" stroke-width="1.6"/>
+<text x="222" y="1345" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">services_network</text>
+<text x="222" y="1363" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">gateway · identity</text>
+<text x="222" y="1377.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">customer · quotation</text>
+<text x="222" y="1392" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">policy · claims</text>
+<text x="222" y="1406.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">Sin puertos</text>
+<rect x="388" y="1325" width="166" height="120" rx="6" fill="#fdecec" stroke="#e07a7a" stroke-width="1.6"/>
+<text x="398" y="1345" font-size="12" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">rabbitmq_network</text>
+<text x="398" y="1363" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">rabbitmq · los 6</text>
+<text x="398" y="1377.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">servicios</text>
+<text x="398" y="1392" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style=""></text>
+<text x="398" y="1406.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">Sin puertos</text>
+<rect x="564" y="1325" width="166" height="120" rx="6" fill="#f1e8fb" stroke="#9b72cf" stroke-width="1.6"/>
+<text x="574" y="1345" font-size="10" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">&lt;servicio&gt;_data_network ×6</text>
+<text x="574" y="1363" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">cada servicio con</text>
+<text x="574" y="1377.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">SU MongoDB (identity</text>
+<text x="574" y="1392" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">y customer, además Redis)</text>
+<text x="574" y="1406.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">Nadie llega a otra base</text>
+<rect x="740" y="1325" width="166" height="120" rx="6" fill="#f6f0ff" stroke="#b89be6" stroke-width="1.6"/>
+<text x="750" y="1345" font-size="10" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">observability_network</text>
+<text x="750" y="1363" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">servicios · gateway</text>
+<text x="750" y="1377.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">rabbitmq · stack de</text>
+<text x="750" y="1392" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">observabilidad</text>
+<text x="750" y="1406.5" font-size="10" font-weight="normal" fill="#334155" text-anchor="start" style="">Publica 3000/9090/16686/9093</text>
+<text x="36" y="1468" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">default: frontend (publica 5173). Perfil tls: proxy Caddy con CA local (publica 8443 y 8444).</text>
+<text x="36" y="1484" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Secretos solo por variables de entorno (.env en la raíz, nunca versionado). Cada servicio valida el JWT y aplica rol y propietario (customerId).</text>
+<text x="36" y="1500" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Contenedores sin root; healthchecks de MongoDB y RabbitMQ espaciados (5 s al arrancar, luego 30 s); cada servicio se "calienta" antes de declararse listo.</text>
+<text x="36" y="1516" font-size="10.5" font-weight="normal" fill="#334155" text-anchor="start" style="">Monolito retirado: código en la etiqueta de git monolito-final; su base, en respaldos/ (no versionado).</text>
+<rect x="935" y="1285" width="470" height="300" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+<text x="949" y="1309" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Calidad y operación (verificado)</text>
+<text x="949" y="1329" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• 272 pruebas automáticas + ArchUnit en cada servicio</text>
+<text x="949" y="1346" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Pruebas de contrato: 11 esquemas de eventos y 5 OpenAPI (CI)</text>
+<text x="949" y="1363" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• 8 pipelines de GitHub Actions (6 servicios, gateway, k8s)</text>
+<text x="949" y="1380" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Caos: infra/operacion/caos.sh apaga cada servicio, RabbitMQ,</text>
+<text x="949" y="1397" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">  Redis o una base y comprueba degradación y cero eventos perdidos</text>
+<text x="949" y="1414" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Reconciliación de las 7 proyecciones contra su fuente</text>
+<text x="949" y="1431" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Respaldo de las 6 bases con prueba de restauración</text>
+<text x="949" y="1448" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Carga con k6 (infra/carga/carga.js)</text>
+<text x="949" y="1465" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Relay del Outbox con turno (lease en MongoDB): varias réplicas</text>
+<text x="949" y="1482" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Alertas: servicio caído o no listo, CB abierto, DLQ, Outbox</text>
+<text x="949" y="1499" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">  atrasado, 5xx, copia de revocaciones atrasada</text>
+<rect x="1420" y="1285" width="460" height="300" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+<text x="1434" y="1309" font-size="15" font-weight="bold" fill="#1e2a4a" text-anchor="start" style="">Kubernetes (k8s/, objetivo de despliegue)</text>
+<text x="1434" y="1329" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Namespace, ConfigMap y Secret (ejemplos) por servicio</text>
+<text x="1434" y="1346" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Deployment + Service ClusterIP para los 6 servicios y el gateway</text>
+<text x="1434" y="1363" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Gateway: 2 réplicas + HPA; identity: 2 réplicas</text>
+<text x="1434" y="1380" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Ingress NGINX con TLS delante del gateway</text>
+<text x="1434" y="1397" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• MongoDB replica set con autenticación</text>
+<text x="1434" y="1414" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• RabbitMQ como StatefulSet con volumen persistente</text>
+<text x="1434" y="1431" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Probes liveness / readiness / startup con timeoutSeconds</text>
+<text x="1434" y="1448" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Validados con kubeconform en CI y --dry-run=server</text>
+<text x="1434" y="1465" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">• Probados en kind (fase 0) y Minikube (MongoDB);</text>
+<text x="1434" y="1482" font-size="10.8" font-weight="normal" fill="#334155" text-anchor="start" style="">  los de los servicios nuevos, sin aplicar todavía</text>
 </svg>

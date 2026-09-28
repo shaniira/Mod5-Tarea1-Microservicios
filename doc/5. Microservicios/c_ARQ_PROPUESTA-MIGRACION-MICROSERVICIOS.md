@@ -1,10 +1,12 @@
-# Andina Seguros — Propuesta de migración a microservicios
+# Backend Seguros — Propuesta de migración a microservicios
 
 Objetivo: convertir el sistema actual (un backend monolítico en capas Clean + un worker de notificaciones) en **microservicios reales**: cada servicio con su propio dominio, su propia base de datos y su propio despliegue, sin acceder nunca a los datos de otro.
 
 Documentos relacionados: [ARQUITECTURA-ACTUAL.md](a_ARQUITECTURA-ACTUAL.md) (estado actual) y [ANALISIS-RIESGOS-ARQUITECTURA.md](b_ANALISIS-RIESGOS-ARQUITECTURA.md) (riesgos que esta migración debe resolver).
 
-> **Decisiones confirmadas.** Se migra a **6 microservicios de negocio + 1 API Gateway** (sección 3.1), con **Redis**, observabilidad completa (**logs con correlationId, métricas y trazas con OpenTelemetry**, sección 7.2) y **Docker Compose** como orquestador por ahora. La sección 3.4 (variante de 4 servicios) queda solo como referencia descartada. El diagrama de esta arquitectura está en [c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg).
+> **Decisiones confirmadas.** Se migra a **6 microservicios de negocio + 1 API Gateway** (sección 3.1), con **Redis**, observabilidad completa (**logs con correlationId, métricas y trazas con OpenTelemetry**, sección 7.2) y **Docker Compose** como orquestador por ahora. La sección 3.4 (variante de 4 servicios) queda solo como referencia descartada.
+
+> **Estado (2026-09-28): propuesta implementada por completo.** Las 8 fases de la ruta están cerradas y el monolito se retiró del repositorio. El diagrama [c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg) ([PNG](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.png)) muestra la arquitectura **tal como quedó implementada**; se genera con `diagramas/generar-diagrama-microservicios.js`. Este documento conserva el diseño original. Donde la implementación se apartó, lo indica una nota **Implementado:**, y la [sección 13](#13-cómo-quedó-implementada-2026-09-28) resume todas las diferencias y sus motivos.
 
 ---
 
@@ -90,7 +92,7 @@ flowchart LR
     GW --> QU[quotation-service]
     GW --> PO[policy-service]
     GW --> CL[claims-service]
-    GW -.->|limitador de tasa, caché| RD[(Redis)]
+    GW -.->|limitador de tasa, revocaciones| RD[(Redis)]
 
     ID --> DBI[(identity_db)]
     CU --> DBC[(customer_db)]
@@ -99,6 +101,9 @@ flowchart LR
     CL --> DBL[(claims_db)]
     NO[notification-service] --> DBN[(notification_db)]
     ID -.-> RD
+    CU -.->|caché de placas| RD
+    QU -->|lectura de refuerzo<br/>2 s + CB| CU
+    PO -->|confirma siniestros al renovar<br/>CP: 503 si no responde| CL
 
     CU & QU & PO & CL -->|publican eventos<br/>vía Outbox| MQ{{RabbitMQ<br/>andina.events}}
     MQ -.->|consumen eventos<br/>vía Inbox| ID & QU & PO & CL & NO
@@ -109,9 +114,10 @@ flowchart LR
     NO -->|POST /send/text| EXT3[(JSON.pe WhatsApp)]
 
     GW & ID & CU & QU & PO & CL & NO -.->|logs JSON, métricas, trazas OTLP| OBS[Observabilidad<br/>Promtail · Loki · Prometheus<br/>OTel Collector · Jaeger · Grafana]
+    OBS -->|alertas por correo| AM[Alertmanager → Gmail]
 ```
 
-Reglas de la figura: solo el gateway recibe tráfico externo; cada flecha a una base de datos es exclusiva de su servicio; los servicios no se llaman entre sí salvo en los casos síncronos justificados de la sección 5.4. Por eventos: **customer** solo publica; **identity** y **notification** solo consumen; **quotation**, **policy** y **claims** publican y consumen. El diagrama completo, con puertos, redes y Docker Compose, está en [c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg).
+Reglas de la figura: solo el gateway recibe tráfico externo; cada flecha a una base de datos es exclusiva de su servicio; los servicios no se llaman entre sí salvo en los casos síncronos justificados de la sección 5.4. **Implementado:** quotation → customer y, desde la fase 7, policy → claims al generar una renovación. Por eventos: **customer** solo publica; **identity** y **notification** solo consumen; **quotation**, **policy** y **claims** publican y consumen. El diagrama completo, con puertos, redes y Docker Compose, está en [c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg).
 
 ### 3.4 Variante mínima: 4 servicios
 
@@ -167,7 +173,7 @@ Cada servicio guarda una copia mínima, de solo lectura, de los datos ajenos que
 | quotation | Cliente y vehículo (validar que existen y sus atributos) | `customer.*`, `vehicle.registered` | `customer_ref`, `vehicle_ref` | `ClienteRepository`, `VehiculoRepository` |
 | policy | Cotización aceptada (para emitir la póliza) | `quote.accepted` | `accepted_quotes` | `CotizacionRepository` |
 | claims | Póliza (existencia y vigencia) | `policy.issued/renewed/expired/cancelled` | `policy_ref` | `PolizaRepository` |
-| policy | Siniestros abiertos por póliza (bloquean renovar) | `claim.registered/status-changed` | `open_claims_by_policy` (contador) | `SiniestroRepository` |
+| policy | Siniestros abiertos por póliza (bloquean renovar) | `claim.registered/status-changed` | `open_claims_by_policy` (contador). **Implementado:** proyección `claim_ref` (un documento por siniestro) y, al generar la póliza renovada, confirmación síncrona con claims-service (sección 13) | `SiniestroRepository` |
 | identity | Correos de clientes (para decidir el acceso de un CLIENTE) | `customer.*` | `customer_email_index` | `ClienteRepository` |
 
 Condiciones para que funcione:
@@ -221,7 +227,7 @@ quotation-service  ◄──────────  policy.issued.v1  ──�
 - **Paso que puede fallar:** policy-service rechaza la cotización (ya vencida o ya emitida). Compensación: publica `policy.issuance-rejected.v1` y quotation devuelve la cotización a "ACEPTADA" con el motivo.
 - **Protección contra doble emisión:** policy-service guarda un índice único por `quoteId`; una segunda emisión de la misma cotización se rechaza aunque llegue simultáneamente desde dos réplicas.
 
-**Saga de renovación:** vive casi entera dentro de policy-service (evaluar, aprobar, generar). La única dependencia externa es el contador de siniestros abiertos (`open_claims_by_policy`). Si el contador estuviera desactualizado, la evaluación falla por seguridad (se trata como "hay pendientes") y se reintenta.
+**Saga de renovación:** vive casi entera dentro de policy-service (evaluar, aprobar, generar). La única dependencia externa es el contador de siniestros abiertos (`open_claims_by_policy`). Si el contador estuviera desactualizado, la evaluación falla por seguridad (se trata como "hay pendientes") y se reintenta. **Implementado:** además, al generar la póliza renovada (el paso irreversible), policy confirma los siniestros con claims-service. Si claims no responde, devuelve 503 `SINIESTROS_NO_DISPONIBLE` (decisión CP, `n_…` sección 10.1).
 
 ---
 
@@ -245,7 +251,7 @@ Se usa **Resilience4j** (integra con Spring Boot y con Spring Cloud Gateway). Un
 
 | Llamada | Timeout | Circuit breaker | Reintentos | Fallback |
 |---|---|---|---|---|
-| Gateway → servicio interno | 3 s | Sí, uno por servicio | No en POST/PATCH; 1 en GET | `503` con `Retry-After` y mensaje uniforme |
+| Gateway → servicio interno | 3 s. **Implementado:** un valor por servicio, de 3 s en claims a 12 s en identity y customer, según lo que tarda cada operación | Sí, uno por servicio | No en POST/PATCH; 1 en GET | `503` con `Retry-After` y mensaje uniforme |
 | customer → JSON.pe (placas) | 5 s (ya existe) | Sí | 1, con jitter | Caché de placas consultadas (TTL 24 h); si no hay, permitir ingreso manual de los datos del vehículo |
 | identity → Google (verificar ID token) | 3 s | Sí | 1 | Caché de las claves públicas de Google; si caen, rechazar el login social y ofrecer contraseña |
 | identity → Facebook Graph | 5 s | Sí | **No** (el código OAuth es de un solo uso) | Mensaje de error y login por contraseña |
@@ -328,11 +334,11 @@ En un consumidor de mensajes, "abrir el circuito" significa **dejar de consumir*
 - **Cambio del JWT de HS256 a RS256.** Hoy el secreto simétrico permite firmar y verificar. Si lo conocen 6 servicios, el robo de uno compromete a todos. Con RS256 solo identity firma y los demás verifican con la clave pública.
 - **Doble validación:** el gateway valida el token y **cada servicio vuelve a validar** (defensa en profundidad), aplicando roles y propiedad del recurso. Esto corrige S1 y S2, que en un sistema distribuido serían más graves.
 - **Claims útiles en el token:** `sub`, `roles`, `customerId` (para que claims y policy filtren por propietario sin consultar a identity).
-- **Segmentación de redes Docker:** `edge` (frontend y gateway), `services` (gateway y servicios), `data` (servicios, MongoDB y Redis), `messaging` (servicios y RabbitMQ) y `observability` (servicios, gateway y el stack de observabilidad). Solo el gateway, el frontend y Grafana publican puertos en el host.
+- **Segmentación de redes Docker:** `edge` (frontend y gateway), `services` (gateway y servicios), `data` (servicios, MongoDB y Redis), `messaging` (servicios y RabbitMQ) y `observability` (servicios, gateway y el stack de observabilidad). Solo el gateway, el frontend y Grafana publican puertos en el host. **Implementado:** las redes son `gateway_network`, `services_network`, `rabbitmq_network`, una `<servicio>_data_network` por servicio (con su MongoDB) y `observability_network`. En local también publican puerto Prometheus, Jaeger y Alertmanager.
 
 ### 7.2 Observabilidad (decidida): logs con correlationId, métricas y trazas con OpenTelemetry
 
-Tres señales, una herramienta para cada una y Grafana como punto de consulta. Corre en un archivo aparte (`infra/docker-compose.observability.yml`) para poder levantar el sistema con o sin él.
+Tres señales, una herramienta para cada una y Grafana como punto de consulta. Corre en un archivo aparte (**implementado:** `infra/observability/docker-compose.observability.yml`) para poder levantar el sistema con o sin él.
 
 | Señal | Cómo se produce | Recolección | Almacén | Consulta |
 |---|---|---|---|---|
@@ -359,7 +365,7 @@ Tres señales, una herramienta para cada una y Grafana como punto de consulta. C
 | Negocio | Pólizas emitidas, cotizaciones aceptadas, notificaciones enviadas y fallidas |
 | Infraestructura | Estado de MongoDB, RabbitMQ y Redis; JVM (memoria, hilos, GC) |
 
-**Alertas iniciales:** circuit breaker abierto más de 2 minutos; DLQ con mensajes; Outbox con eventos pendientes de más de 5 minutos; tasa de errores 5xx superior al 5 %; servicio sin *readiness*.
+**Alertas iniciales:** circuit breaker abierto más de 2 minutos; DLQ con mensajes; Outbox con eventos pendientes de más de 5 minutos; tasa de errores 5xx superior al 5 %; servicio sin *readiness*. **Implementado:** todas, más "notificaciones pausadas" y "copia de revocaciones atrasada". Alertmanager las envía por correo (`n_…` sección 11).
 
 **Puertos locales:** Grafana 3000, Jaeger UI 16686, Prometheus 9090. Loki y el OTel Collector quedan solo en la red interna `observability`.
 
@@ -402,6 +408,27 @@ Servicios del `docker-compose.yml` objetivo:
 **Orquestador:** Docker Compose por ahora (`docker-compose.yml` + `docker-compose.observability.yml`), con `depends_on` y *healthchecks* en este orden: MongoDB, RabbitMQ y Redis → servicios → gateway → frontend. Si más adelante se necesitan réplicas, autoescalado o despliegues sin corte, el siguiente paso natural es Kubernetes; los servicios ya quedan preparados (sin estado, con *readiness*, configuración por entorno).
 
 El frontend cambia su `VITE_API_URL` para apuntar al gateway (`http://localhost:8080/api`); no llama a ningún servicio directamente.
+
+**Implementado (estructura real del repositorio):**
+
+```
+├── docker-compose.yml, docker-compose.debug.yml, .env.example   # stack completo, en la raíz
+├── contracts/            # 11 esquemas de eventos + 5 OpenAPI, verificados en CI
+├── gateway/
+├── services/<6 servicios>/   # Clean Architecture + ArchUnit; migracion/ (scripts históricos)
+├── frontend/
+├── infra/
+│   ├── mongo/            # arranque con replica set y usuarios, respaldo y prueba de restauración
+│   ├── rabbitmq/         # plugins y reproceso de DLQ
+│   ├── observability/    # Compose aparte: Prometheus (alertas), Alertmanager, Loki, Promtail, Grafana, OTel
+│   ├── operacion/        # caos.sh y reconciliar.sh
+│   ├── carga/            # prueba de carga k6
+│   └── tls/              # proxy HTTPS local (perfil tls)
+├── k8s/                  # manifiestos (validados con kubeconform)
+└── .github/workflows/    # 8 pipelines
+```
+
+En lugar de una instancia de MongoDB con una base por servicio, cada servicio tiene **su propia instancia** (replica set de un nodo con autenticación). Así el aislamiento no depende solo de los permisos.
 
 ---
 
@@ -449,19 +476,19 @@ Migrar cuesta. Conviene asumir estos costos con conciencia:
 
 ## 11. Criterios de aceptación (definición de "terminado")
 
-La migración se considera completa cuando se cumple todo esto:
+La migración se considera completa cuando se cumple todo esto. **Estado (2026-09-28): todos cumplidos** (evidencias en `n_…`, sección 4):
 
-- [ ] Cada servicio tiene **su propia base de datos** y ninguna consulta cruza a otra base (verificable por credenciales: cada usuario de Mongo solo accede a su base).
-- [ ] No existe ningún acceso directo del consumer a `clientes`; notification funciona solo con su proyección.
-- [ ] Todo evento se publica mediante **Outbox** y todo consumidor usa **Inbox**; apagar RabbitMQ durante una emisión no pierde ningún evento.
-- [ ] Toda llamada síncrona entre componentes tiene **timeout, circuit breaker y fallback documentado**; se comprobó apagando el destino.
-- [ ] Con el circuit breaker de WhatsApp abierto, los mensajes **no llegan a la DLQ**: se retienen y se envían al recuperarse.
-- [ ] El sistema funciona con **2 réplicas** de cada servicio (sin estado en memoria).
-- [ ] El JWT se firma con **RS256**; solo identity posee la clave privada.
-- [ ] Ningún servicio expone puertos al host salvo el gateway y el frontend; la consola de RabbitMQ y MongoDB no son accesibles desde fuera.
-- [ ] Existen **pruebas de contrato** para cada API y cada evento, ejecutadas en CI.
-- [ ] Una petición de "emitir póliza" se puede **seguir de punta a punta con un solo `correlationId`** en logs y trazas.
-- [ ] Los hallazgos S1 a S11 y A1 a A6 de [ANALISIS-RIESGOS-ARQUITECTURA.md](b_ANALISIS-RIESGOS-ARQUITECTURA.md) están resueltos o tienen una decisión documentada.
+- [x] Cada servicio tiene **su propia base de datos** y ninguna consulta cruza a otra base (verificable por credenciales: cada usuario de Mongo solo accede a su base). *(Una instancia de MongoDB por servicio, en su propia red; cada usuario solo accede a su base.)*
+- [x] No existe ningún acceso directo del consumer a `clientes`; notification funciona solo con su proyección. *(Fase 1: proyección `customer_contacts`.)*
+- [x] Todo evento se publica mediante **Outbox** y todo consumidor usa **Inbox**; apagar RabbitMQ durante una emisión no pierde ningún evento. *(Caso de caos `rabbitmq`: 0 eventos perdidos.)*
+- [x] Toda llamada síncrona entre componentes tiene **timeout, circuit breaker y fallback documentado**; se comprobó apagando el destino. *(Casos de caos por servicio: 503 con `Retry-After` y degradación planificada.)*
+- [x] Con el circuit breaker de WhatsApp abierto, los mensajes **no llegan a la DLQ**: se retienen y se envían al recuperarse. *(Fase 1 y caso de caos `whatsapp`.)*
+- [x] El sistema funciona con **2 réplicas** de cada servicio (sin estado en memoria). *(Relay del Outbox con turno; caso de caos `replicas`.)*
+- [x] El JWT se firma con **RS256**; solo identity posee la clave privada. *(Fase 2.)*
+- [x] Ningún servicio expone puertos al host salvo el gateway y el frontend; la consola de RabbitMQ y MongoDB no son accesibles desde fuera. *(Solo 5173 y 8080; el resto, con `docker-compose.debug.yml` o el Compose de observabilidad.)*
+- [x] Existen **pruebas de contrato** para cada API y cada evento, ejecutadas en CI. *(JSON Schema y OpenAPI, obligatorias en CI.)*
+- [x] Una petición de "emitir póliza" se puede **seguir de punta a punta con un solo `correlationId`** en logs y trazas. *(Una traza en Jaeger y el mismo `correlationId` en Loki.)*
+- [x] Los hallazgos S1 a S11 y A1 a A6 de [ANALISIS-RIESGOS-ARQUITECTURA.md](b_ANALISIS-RIESGOS-ARQUITECTURA.md) están resueltos o tienen una decisión documentada. *(`n_…` sección 5.)*
 
 ---
 
@@ -473,6 +500,63 @@ La migración se considera completa cuando se cumple todo esto:
 | Broker y base de datos | Se mantienen **RabbitMQ** y **MongoDB**; MongoDB pasa a *replica set* para el Outbox transaccional |
 | Estado compartido | **Redis** (rate limit, estado efímero de identity, caché) |
 | Observabilidad | Logs JSON con **correlationId**, **métricas** (Micrometer + Prometheus) y **trazas con OpenTelemetry** (Collector + Jaeger), consultables en Grafana |
-| Orquestación | **Docker Compose** por ahora; Kubernetes queda como evolución futura |
+| Orquestación | **Docker Compose** por ahora; Kubernetes queda como evolución futura. **Implementado:** manifiestos completos en `k8s/`, validados en CI, sin aplicar a un clúster |
+| Consistencia por operación (fase 7) | Renovar: **CP** (confirma con claims). Revocación de tokens: **AP** (copia local en el gateway). Resto: consistencia eventual con reconciliación |
+| Alertas | Alertmanager con correo (Gmail) |
+| Monolito | Retirado del repositorio el 2026-09-28 (etiqueta `monolito-final`, [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md)) |
 
 **Pendiente de decidir más adelante:** almacén de trazas definitivo si el volumen crece (Jaeger o Tempo) y estrategia de despliegue continuo por servicio.
+
+---
+
+## 13. Cómo quedó implementada (2026-09-28)
+
+La arquitectura de las secciones 3 a 8 se construyó en las fases 0 a 7 de la [ruta](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md). Cada fase tiene su documento (`e_` a `n_`) con lo que se hizo, las decisiones, los **errores encontrados y cómo se resolvieron** y la verificación. El retiro del monolito está en [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
+![Arquitectura implementada](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.png)
+
+### 13.1 Lo que se implementó como se propuso
+
+- 6 microservicios + API Gateway, cada uno con Clean Architecture y su prueba ArchUnit.
+- Una base por servicio, sin lecturas cruzadas. Los datos ajenos se copian en proyecciones con `aggregateVersion`.
+- Outbox transaccional (MongoDB en replica set), inbox e idempotencia, y una cola con DLQ por consumidor.
+- Un exchange único, `andina.events`; el heredado se retiró en el paso 6.11.
+- Saga de emisión por coreografía, con compensación (`policy.issuance-rejected`) e índice único por cotización.
+- JWT RS256 con JWKS y doble validación: el gateway valida el token, y cada servicio vuelve a validarlo y aplica rol y propietario.
+- Resilience4j:
+  - timeout y circuit breaker;
+  - reintentos solo en operaciones idempotentes;
+  - bulkhead hacia JSON.pe, Google y Facebook;
+  - caché de placas y de claves de Google.
+- notification-service pausa el listener cuando el circuito de WhatsApp está abierto.
+- Observabilidad: logs JSON con `correlationId`, métricas y trazas OpenTelemetry que atraviesan RabbitMQ.
+- Redis para el estado efímero y el límite de peticiones.
+- Solo el gateway y el frontend publican puertos.
+
+### 13.2 Diferencias con la propuesta y por qué
+
+| Propuesta | Implementado | Por qué |
+|---|---|---|
+| Una instancia de MongoDB con una base y un usuario por servicio | **Una instancia por servicio**, cada una en su propia red | Aislamiento real: ningún servicio puede siquiera resolver el nombre de otra base |
+| `open_claims_by_policy` (contador) para bloquear renovaciones | Proyección `claim_ref` (un documento por siniestro) + **confirmación síncrona con claims** al generar la póliza renovada | Un contador no se puede reconciliar ni corregir por siniestro. Además, renovar mal es un error de dinero: se eligió CP en el paso irreversible (`n_…` 10.1) |
+| Revocación de tokens (no estaba en la propuesta) | Lista en Redis + **copia local en el gateway**, refrescada cada 5 s | Con Redis caído, rechazar todo habría convertido a Redis en un punto único de fallo; aceptar todo habría dejado pasar tokens revocados. Se eligió AP acotado (`n_…` 10.2) |
+| Timeout del gateway de 3 s para todos los servicios | Uno por servicio: 3 s claims, 5 s policy, 6 s quotation, 12 s identity y customer | Las pruebas de caos y de carga mostraron operaciones legítimas más largas: Facebook, JSON.pe con reintento y la emisión con reintento por `WriteConflict` |
+| Cola de reintento con espera (TTL) | Reintentos del listener + DLQ con alerta y script de reproceso | Más simple de operar; la pausa del listener de notification cubre el caso de un proveedor caído |
+| Token de servicio (*client credentials*) entre servicios | **Se reenvía el token del usuario** (quotation → customer, policy → claims) | Las dos llamadas se hacen en nombre del usuario, y así el servicio destino aplica sus mismas reglas de rol y propietario |
+| Pruebas de contrato con Pact o Spring Cloud Contract | Esquemas JSON (networknt) para los eventos y comparación con el OpenAPI, obligatorias en CI | Cubren lo mismo (productor contra contrato) sin un *broker* de contratos |
+| Testcontainers para pruebas de extremo a extremo | Pruebas de caos y reconciliación contra el stack real (`infra/operacion/`) | Prueban la degradación real (apagar contenedores), que Testcontainers no cubre |
+| Consumidor de auditoría para `audit.queue` | Se eliminó la cola | Nadie la usaba (paso 7.9) |
+| Redes `edge`, `services`, `data`, `messaging` y `observability` | `gateway_network`, `services_network`, `rabbitmq_network`, una red de datos por servicio y `observability_network` | Una red de datos por servicio es más estricta que una red `data` compartida |
+| Compose en `infra/` | Compose en la raíz | Es el punto de entrada del proyecto. El overlay de observabilidad sí está en `infra/observability/` |
+| Relay del Outbox para una sola réplica | **Turno entre réplicas** (lease en MongoDB, renovado antes de cada evento) | Lo exige el criterio "2 réplicas"; el defecto se encontró en la fase 7 |
+| Kubernetes como evolución futura | Manifiestos completos (Deployment, Service, HPA, Ingress, StatefulSet de RabbitMQ), validados en CI | Quedan listos para desplegar; no se aplicaron a un clúster por los recursos del equipo |
+| HTTPS delante del gateway "fuera de local" | Proxy Caddy con CA local (perfil `tls`) | Permite probar HTTPS en local |
+
+### 13.3 Lo que quedó fuera, como decisión documentada
+
+Detalle en `n_…`, secciones 5 y 6:
+- Permisos de RabbitMQ por servicio y TLS interno (S5).
+- Token en cookie `HttpOnly` con renovación (S8).
+- MongoDB y RabbitMQ de 3 nodos (A5).
+- `policy.expired` y `policy.cancelled`: tienen contrato, pero ninguna operación del sistema vence ni cancela pólizas.
+- Rotación automática de la clave de firma de identity.
