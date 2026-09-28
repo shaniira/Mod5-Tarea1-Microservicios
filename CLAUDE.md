@@ -9,7 +9,7 @@ Sistema de seguros vehiculares (cotizaciones, pólizas, siniestros, renovaciones
 
 - `doc/5. Microservicios/c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md`: arquitectura objetivo, contratos de eventos, resiliencia y observabilidad.
 - `doc/5. Microservicios/d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md`: fases con sus pasos y criterios de salida (los cumplidos están marcados).
-- `doc/5. Microservicios/f_…` (fase 1), `g_…` (fase 2), `h_CIERRE-PENDIENTES.md`, `i_…` (fase 3), `j_…` (fase 4), `l_…` (fase 5), `m_…` (fase 6 y corte): qué se implementó, decisiones y evidencias.
+- `doc/5. Microservicios/f_…` (fase 1), `g_…` (fase 2), `h_CIERRE-PENDIENTES.md`, `i_…` (fase 3), `j_…` (fase 4), `l_…` (fase 5), `m_…` (fase 6, corte y retiro del monolito): qué se implementó, decisiones y evidencias.
 - `doc/5. Microservicios/k_IMPACTO-EN-EL-MONOLITO.md`: qué se cambió en el monolito en cada fase y commit, y qué haría falta para cada corte.
 - `contracts/`: esquemas de eventos y OpenAPI. Todo evento nuevo se define aquí primero.
 - `doc/0. STANDAR-COMMITS.md`: estándar de commits.
@@ -24,12 +24,12 @@ Sistema de seguros vehiculares (cotizaciones, pólizas, siniestros, renovaciones
 | 3. customer-service                                        | ✅ Cerrada (corte 2026-09-27) | Shanira |
 | 4. claims-service                                          | ✅ Cerrada (corte 2026-09-27) | Shanira |
 | 5. quotation-service                                       | ✅ Cerrada (corte 2026-09-27) | Shanira |
-| 6. policy-service (Saga de emisión, se apaga el monolito) | 🟡 Corte hecho; falta retirar el monolito (6.10, 6.11) y observabilidad | Shanira |
+| 6. policy-service (Saga de emisión, se apaga el monolito) | ✅ Cerrada (monolito retirado 2026-09-27) | Shanira |
 | 7. Endurecimiento                                          | ⏳ Pendiente | —          |
 
 Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotation`), con PRs pequeños.
 
-**Monolito congelado (desde 2026-09-27):** no se modifica el código de `Arquitectura-Clean` (`src`, `pom.xml`, `Dockerfile`). Desde el corte (2026-09-27) el gateway envía todo el negocio a customer, claims, quotation y policy, que publican sus eventos (`*_EVENTS_PUBLISH_ENABLED=true`); el monolito sigue en el Compose sin tráfico, como reversa (apuntar las `*_SERVICE_URL` del gateway a `http://backend:8080`). En `docker-compose.yml` y `.env.example` solo se agregan entradas. Los nombres nuevos (imágenes, contenedores, volúmenes, redes, documentos) van sin el prefijo de la empresa.
+**Monolito retirado (2026-09-27):** el código de `Arquitectura-Clean` (`src`, `pom.xml`, `Dockerfile`) queda archivado sin cambios. El gateway envía todo el negocio a customer, claims, quotation y policy, que publican sus eventos (`*_EVENTS_PUBLISH_ENABLED=true`). `backend` y su MongoDB solo arrancan con `--profile monolito` (reversa durante el periodo de seguridad); su base está respaldada en `respaldos/` (no versionado) y el volumen `andina_clean_mongo_data` se conserva. Los nombres nuevos (imágenes, contenedores, volúmenes, redes, documentos) van sin el prefijo de la empresa.
 
 ### Acuerdos entre fases
 
@@ -37,13 +37,13 @@ Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotat
 - ✅ **`quote.accepted.v1`**: publicado por quotation-service y consumido por policy-service (`accepted_quotes`).
 - ✅ **Emisión de póliza**: cotizaciones y pólizas se cortaron juntas; la saga (quote.accepted → policy.issued / policy.issuance-rejected) ya no pasa por el monolito.
 - ✅ **claims ↔ policy:** policy-service consume `claim.*` (`claim_ref`) y publica `policy.renewed`; `policy.expired/cancelled` tienen contrato pero ninguna operación los produce todavía.
-- Archivos que tocan varias fases (hacer cambios chicos e integrar seguido): `gateway/src/main/resources/application.yml` (rutas), `Arquitectura-Clean/docker-compose.yml`, `k8s/`, `contracts/`, `UseCaseConfig` del backend.
+- Archivos que tocan varios servicios (hacer cambios chicos e integrar seguido): `gateway/src/main/resources/application.yml` (rutas), `Arquitectura-Clean/docker-compose.yml`, `infra/observability/`, `k8s/`, `contracts/`.
 
 ## Estructura
 
 | Carpeta                            | Qué es                                                                                                             |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `Arquitectura-Clean/`            | Monolito (Spring Boot 3.3, Java 21, Clean Architecture) y el`docker-compose.yml` del stack completo               |
+| `Arquitectura-Clean/`            | Monolito archivado (perfil `monolito`) y el `docker-compose.yml` del stack completo                               |
 | `gateway/`                       | API Gateway: Spring Cloud Gateway, Spring Security OAuth2 Resource Server (JWT RS256 por JWKS), Redis, Resilience4j |
 | `services/identity-service/`     | Usuarios, login (contraseña, Google, Facebook), MFA, emisión de JWT RS256, revocación en Redis                   |
 | `services/notification-service/` | WhatsApp de póliza emitida; proyección`customer_contacts`; circuit breaker que pausa el listener                |
@@ -55,14 +55,15 @@ Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotat
 | `contracts/`                     | Esquemas JSON de eventos y OpenAPI                                                                                  |
 | `infra/mongo/`                   | Arranque de MongoDB con replica set y autenticación (Compose y Kubernetes)                                         |
 | `infra/observability/`           | OTel Collector, Jaeger, Prometheus (alertas), Loki, Promtail, Grafana                                               |
-| `k8s/`                           | Manifiestos de Kubernetes (ver`k8s/README.md`)                                                                    |
+| `k8s/`                           | Manifiestos de Kubernetes (ver `k8s/README.md`); los del monolito, en `k8s/archivo-monolito/`                     |
+| `respaldos/`                     | Respaldos de bases (no versionado): la del monolito tomada al retirarlo                                            |
 
 ## Reglas del proyecto
 
 - Cada servicio: carpetas `entities`, `usecases`, `interfaceadapters`, `frameworksdrivers` y prueba ArchUnit (plantilla en la sección 3 de la ruta).
 - **Database per service**: ningún servicio lee la base de otro. Los datos ajenos se copian con eventos (proyecciones con `aggregateVersion` para descartar eventos viejos).
 - Publicar eventos siempre con **Outbox**; consumir con **inbox/idempotencia**; cada consumidor es dueño de sus colas y su DLQ.
-- Exchange nuevo `andina.events`; `policy.issued.v1` sigue en `andina.insurance.events` (heredado). Las colas escuchan ambos durante la transición.
+- Todos los eventos van por `andina.events` (DLX `andina.events.dlx`). El heredado `andina.insurance.events` se retiró en el paso 6.11; solo queda `andina.insurance.events.dlx` como DLX de la cola `andina.policy.notification.queue` (sus argumentos no se pueden cambiar sin recrearla).
 - Seguridad: cada servicio valida el JWT (RS256, JWKS de identity) y aplica rol y propietario (`customerId` del token). Reglas por rol del backend en `interfaceadapters/in/rest/security/Roles.java`.
 - Solo el gateway (8080) y el frontend (5173) publican puertos. Secretos solo por variables de entorno (`.env`, nunca versionado).
 - Comentarios y documentación en español.
@@ -81,7 +82,7 @@ docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.ob
 WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mock up -d   # WhatsApp simulado
 ```
 
-- Primera vez: `sh services/identity-service/migracion/migrar-usuarios.sh` y el backfill `POST /api/clientes/eventos/reenvio` (ADMIN). Detalle en `DOCKER-EJECUCION.md`.
+- Datos: identity y customer arrancan con datos demo; el resto sale de `services/*/migracion/migrar-*.sh` (leen la base del monolito: levantar antes `--profile monolito`). Backfill de proyecciones: `POST /api/clientes/eventos/reenvio` y `POST /api/siniestros/eventos/reenvio` (ADMIN). Detalle en `DOCKER-EJECUCION.md`.
 - Pruebas: Maven no está instalado en el host; se usan en Docker, por ejemplo:
   `docker run --rm -v "<ruta>:/app" -v "$HOME/.m2:/root/.m2" -w /app maven:3.9.9-eclipse-temurin-21 mvn -q test`. Las imágenes también corren las pruebas al construirse.
 - Usuarios de prueba: `doc/0. USUARIOS-DE-PRUEBA.md` (`admin2`/`admin2` es ADMIN sin MFA; `admin` tiene MFA). El login tiene rate limit de 1 por segundo (ráfaga de 5).
@@ -114,12 +115,13 @@ Al terminar:
 
 ## Siguiente trabajo
 
-Las fases 3 a 6 están implementadas y el corte está hecho (ver `m_…`, sección 7). Lo que sigue:
+Las fases 0 a 6 están cerradas: el monolito se retiró (ver `m_…`, secciones 7 y 9). Lo que sigue es la **fase 7** (ruta, sección 11), con estos puntos ya identificados:
 
-1. **Paso 6.10:** respaldar `andina_clean_mongo_data` y retirar `backend` del Compose (y su ruta de reserva del gateway).
-2. **Paso 6.11:** quitar los enlaces a `andina.insurance.events` en notification, claims y quotation cuando nadie publique ahí.
-3. **Observabilidad:** sumar customer, claims, quotation y policy a Prometheus y al Compose de observabilidad (criterio 3 de la fase 6).
-4. **Kubernetes:** manifiestos de los 4 servicios nuevos y del gateway validados con `--dry-run=server` (`k8s/70`–`98`); falta cargar las imágenes y aplicarlos.
-5. **Fase 7:** caos, carga, reconciliación, cola de auditoría sin consumidor.
+1. **Kubernetes:** manifiestos de los servicios nuevos y del gateway validados con `--dry-run=server` (`k8s/70`–`98`); falta cargar las imágenes y aplicarlos. El clúster kind local todavía corre el despliegue de la fase 0 (con backend) y sobrecarga el equipo. RabbitMQ usa `emptyDir` (pierde mensajes al reiniciar).
+2. **Auditoría:** `andina.policy.audit.queue` ya no existe en el nodo actual; sus 6 mensajes antiguos quedaron en el directorio del nodo anterior de RabbitMQ. Definir un consumidor de auditoría sobre `andina.events`.
+3. **Renovación y siniestros recientes:** la sincronización de `claim_ref` no ve eventos en el Outbox de claims ni mensajes sin confirmar (`m_…`, sección 5).
+4. **Ids que no son UUID** responden 500 (como el monolito); deberían dar 400.
+5. **DLX heredada** `andina.insurance.events.dlx` de la cola de notificación de pólizas (renombrar implica recrear la cola).
+6. Caos, carga y reconciliación (criterios de la fase 7). Pasado el periodo de seguridad, borrar el volumen `andina_clean_mongo_data`.
 
 Para probar localmente: `--profile jsonpe-mock` con `JSONPE_BASE_URL=http://jsonpe-mock:8080` simula JSON.pe, y `--profile whatsapp-mock` con `WHATSAPP_BASE_URL=http://whatsapp-mock:8080` simula WhatsApp.

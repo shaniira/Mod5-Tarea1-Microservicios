@@ -1,12 +1,8 @@
-# Ejecución Docker — API Gateway, backend Clean, identity-service y notification-service
+# Ejecución Docker — API Gateway y microservicios
 
-Las arquitecturas Onion y Hexagonal se retiraron del compose (ver commit `chore(docker): elimina servicios Onion y Hexagonal del compose raíz`). Hoy el stack local es: **frontend, API Gateway, backend Clean, identity-service, notification-service, un MongoDB por servicio (backend, identity, notification), RabbitMQ y Redis**, definidos en [Arquitectura-Clean/docker-compose.yml](Arquitectura-Clean/docker-compose.yml).
+Desde el cierre de la fase 6 (2026-09-27) el stack local es: **frontend, API Gateway, identity-service, notification-service, customer-service, claims-service, quotation-service y policy-service, un MongoDB por servicio, RabbitMQ y Redis**, definidos en [Arquitectura-Clean/docker-compose.yml](Arquitectura-Clean/docker-compose.yml). El monolito (`backend`) y su MongoDB ya no arrancan: quedan en el perfil `monolito` solo para una reversa (ver más abajo).
 
-Detalle de cada fase de la migración a microservicios:
-
-- Fase 0, API Gateway: [doc/5. Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md](doc/5.%20Microservicios/e_IMPLEMENTACION-API-GATEWAY-FASE0.md).
-- Fase 1, notification-service: [doc/5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md](doc/5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).
-- Fase 2, identity-service: [doc/5. Microservicios/g_IMPLEMENTACION-IDENTITY-SERVICE-FASE2.md](doc/5.%20Microservicios/g_IMPLEMENTACION-IDENTITY-SERVICE-FASE2.md).
+Detalle de cada fase de la migración: [doc/5. Microservicios/](doc/5.%20Microservicios/) (`e_` fase 0, `f_` fase 1, `g_` fase 2, `i_` fase 3, `j_` fase 4, `l_` fase 5, `m_` fase 6 y retiro del monolito).
 
 ## Puertos publicados al host
 
@@ -15,13 +11,13 @@ Solo el frontend y el gateway exponen puertos (paso 0.6 de la ruta). Todo lo dem
 | Servicio | URL | Notas |
 |---|---|---|
 | **Frontend** | http://localhost:5173 | Único punto de entrada pensado para el usuario final |
-| **API Gateway** | http://localhost:8080/api | Único punto de entrada de la API. Swagger del backend en `http://localhost:8080/swagger-ui.html` (solo en local) |
-| Backend, MongoDB, RabbitMQ, identity-service, notification-service, Redis | sin puerto en el host | Para depurar, ver "Abrir puertos internos" más abajo |
+| **API Gateway** | http://localhost:8080/api | Único punto de entrada de la API. Los contratos de cada servicio están en [contracts/openapi](contracts/openapi) |
+| Servicios, bases MongoDB, RabbitMQ, Redis | sin puerto en el host | Para depurar, ver "Abrir puertos internos" más abajo |
 | Grafana / Jaeger / Prometheus | http://localhost:3000 · http://localhost:16686 · http://localhost:9090 | Solo con el stack de observabilidad (ver abajo) |
 
-Cada servicio tiene su propia base con su propio usuario (`readWrite` solo sobre ella): `andina_seguros_clean` (usuario `andina`, replica set `rs0`), `identity_db` (`identity`) y `notification_db` (`notification`). Las claves por defecto sirven solo en local; se cambian en `Arquitectura-Clean/.env` (ver `.env.example`).
+Cada servicio tiene su propia base con su propio usuario (`readWrite` solo sobre ella): `identity_db`, `notification_db`, `customer_db`, `claims_db`, `quotation_db` y `policy_db`. Las claves por defecto sirven solo en local; se cambian en `Arquitectura-Clean/.env` (ver `.env.example`).
 
-> Nota: el `docker-compose.yml` de la raíz del repositorio es un subconjunto reducido (solo `clean-mongodb` + `clean-backend`, sin gateway ni RabbitMQ) pensado para levantar el backend a solas; para el stack completo usar siempre el de `Arquitectura-Clean/`.
+> Nota: el `docker-compose.yml` de la raíz del repositorio es un subconjunto antiguo (solo el monolito y su MongoDB). Para el stack completo usar siempre el de `Arquitectura-Clean/`.
 
 ## Levantar el stack completo
 
@@ -29,38 +25,28 @@ Cada servicio tiene su propia base con su propio usuario (`readWrite` solo sobre
 cd Arquitectura-Clean
 docker compose up -d --build
 docker compose ps
+docker compose logs -f gateway policy-service notification-service
 ```
 
-Ver logs (incluye el gateway):
+identity-service y customer-service arrancan con usuarios y clientes de demostración. Las tablas tarifarias, cotizaciones, pólizas y siniestros no: vienen de los scripts `services/*/migracion/migrar-*.sh`, que copian la base del monolito (requieren levantar antes el perfil `monolito`, ver abajo), o se crean por la API (`POST /api/tablas-tarifarias`, ADMIN). Si alguna proyección quedó vacía, se vuelve a poblar con los backfill (usuario ADMIN):
 
 ```bash
-docker compose logs -f gateway backend notification-service
+curl -X POST http://localhost:8080/api/clientes/eventos/reenvio  -H "Authorization: Bearer <token>"
+curl -X POST http://localhost:8080/api/siniestros/eventos/reenvio -H "Authorization: Bearer <token>"
 ```
 
-La primera vez con identity-service (fase 2), copiar los usuarios que ya existían en el backend (los que se crearon antes de la fase 2):
-
-```bash
-sh services/identity-service/migracion/migrar-usuarios.sh   # desde la raíz del repositorio
-```
-
-Después, poblar las proyecciones de notification-service (contactos) e identity-service (correos de clientes) con los clientes que ya existen (backfill, requiere un usuario ADMIN):
-
-```bash
-curl -X POST http://localhost:8080/api/clientes/eventos/reenvio -H "Authorization: Bearer <token>"
-```
-
-Probar sin enviar WhatsApp reales (WhatsApp simulado con WireMock):
+Probar sin enviar WhatsApp reales ni consultar JSON.pe:
 
 ```bash
 WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mock up -d
+JSONPE_BASE_URL=http://jsonpe-mock:8080 docker compose --profile jsonpe-mock up -d
 ```
 
 ### Abrir puertos internos (solo para depurar)
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
-# MongoDB del backend: mongodb://root:<BACKEND_MONGO_ROOT_PASSWORD>@localhost:27020/?directConnection=true
-# RabbitMQ: http://localhost:15672 · Backend directo: http://localhost:8083
+# RabbitMQ: http://localhost:15672
 ```
 
 ### Observabilidad (Grafana, Prometheus, Loki, Jaeger)
@@ -70,8 +56,8 @@ docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.ob
 ```
 
 - **Grafana** (http://localhost:3000, usuario `admin`, clave `GRAFANA_ADMIN_PASSWORD` o `grafana-local`): tablero "Andina Seguros — Resumen" y, en Explore, los logs de todos los servicios. Para seguir una petición: `{service=~".+"} |= "<X-Correlation-Id>"`; desde cada log, el `traceId` abre la traza en Jaeger.
-- **Jaeger** (http://localhost:16686): una sola traza recorre gateway → backend → RabbitMQ → identity-service / notification-service.
-- **Prometheus** (http://localhost:9090): métricas y alertas (circuito abierto, DLQ con mensajes, Outbox atrasado, 5xx, servicio caído, notificaciones pausadas).
+- **Jaeger** (http://localhost:16686): una emisión es una sola traza: gateway → policy-service → RabbitMQ → notification-service, claims-service y quotation-service.
+- **Prometheus** (http://localhost:9090): métricas de los 7 servicios y de RabbitMQ (mensajes por cola), y alertas: circuito abierto, DLQ con mensajes (de cualquier servicio), Outbox atrasado, 5xx, servicio caído y notificaciones pausadas.
 
 Detener sin borrar datos:
 
@@ -79,12 +65,21 @@ Detener sin borrar datos:
 docker compose down
 ```
 
+## Monolito retirado (reversa)
+
+El monolito se retiró en el paso 6.10. Su base está respaldada en `respaldos/` (no versionado) y el volumen `andina_clean_mongo_data` se conserva. Para volver a levantarlo durante el periodo de seguridad:
+
+```bash
+docker compose --profile monolito up -d mongodb backend
+# y, para devolverle una ruta, apuntar la URL del servicio en el gateway, por ejemplo:
+POLICY_SERVICE_URL=http://backend:8080 docker compose up -d gateway
+```
+
+Las escrituras hechas después del corte están solo en los microservicios: antes de una reversa hay que copiarlas al monolito.
+
 ## Aislamiento
 
-- Backend ↔ MongoDB del backend: red `andina_clean_network`.
-- notification-service ↔ su MongoDB: red `andina_notification_data_network`. notification-service **no** está en `andina_clean_network`: no puede llegar a la base del backend.
-- Backend / notification-service ↔ RabbitMQ: red `rabbitmq_network`.
-- Gateway ↔ Backend: `andina_clean_network`. Gateway ↔ Redis: `andina_gateway_network`.
-- Volúmenes: `andina_clean_mongo_data`, `andina_notification_mongo_data`, `rabbitmq_data`.
-
-No ejecutar a la vez el Compose de la raíz y el de `Arquitectura-Clean/`: ambos usan el mismo nombre de red y de contenedor para Mongo y backend.
+- Cada servicio ↔ su MongoDB: una red propia (`customer_data_network`, `claims_data_network`, `quotation_data_network`, `policy_data_network`, `andina_identity_data_network`, `andina_notification_data_network`). Ningún servicio llega a la base de otro.
+- Servicios ↔ RabbitMQ: red `rabbitmq_network`. Gateway ↔ servicios: `andina_services_network`. Gateway ↔ Redis: `andina_gateway_network`.
+- RabbitMQ tiene `hostname: rabbitmq`: al recrear el contenedor conserva colas y mensajes.
+- Volúmenes: uno por base (`customer_mongo_data`, `claims_mongo_data`, `quotation_mongo_data`, `policy_mongo_data`, `andina_identity_mongo_data`, `andina_notification_mongo_data`), `rabbitmq_data` y, del monolito retirado, `andina_clean_mongo_data`.
