@@ -1,5 +1,7 @@
 # Login con Google — cómo funciona hoy en el proyecto
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](../5.%20Microservicios/q_RETIRO-DEL-MONOLITO.md).
+
 > Analizado directamente sobre el código de `Arquitectura-Clean` (backend) y `frontend`, rama `feature/auth-social-mfa`.
 
 ## 1. Explicación en términos simples
@@ -71,7 +73,7 @@ sequenceDiagram
             UC->>DB: guardar(usuario con googleSubject vinculado, mismo rol)
         else No existe ningún Usuario con ese email
             UC->>DB: clientes.buscarPorCorreo(email)
-            alt No es cliente registrado de Andina Seguros
+            alt No es cliente registrado de Backend Seguros
                 UC-->>BE: 403 CLIENTE_NO_REGISTRADO
             else Sí es cliente registrado
                 UC->>DB: guardar(Usuario nuevo, rol=CLIENTE)
@@ -106,7 +108,7 @@ sequenceDiagram
    - **Busca al usuario por `googleSubject`** (el identificador **estable** de Google, nunca cambia aunque la persona cambie su email). Si ya existe, se usa directamente.
    - Si no existe, intenta **vincular por correo** (`vincularOCrearUsuario`):
      - Si ya hay un `Usuario` (de cualquier origen) cuyo campo `email` coincide, se **vincula automáticamente** ese `googleSubject` a esa cuenta existente, **conservando su rol actual** (`vincularGoogleAUsuarioExistente`) — sin pedir contraseña ni ninguna confirmación adicional, solo confiando en que Google verificó ese correo.
-     - Si no hay ningún `Usuario` con ese correo, se consulta `ClienteRepository.buscarPorCorreo(email)`: **solo si la persona ya es cliente registrado de Andina Seguros** se le crea una cuenta nueva (`RolUsuario.CLIENTE`, activa, sin password, sin MFA). Si no es cliente, se rechaza con `CLIENTE_NO_REGISTRADO` (403) y un mensaje que la invita a contactar a un agente.
+     - Si no hay ningún `Usuario` con ese correo, se consulta `ClienteRepository.buscarPorCorreo(email)`: **solo si la persona ya es cliente registrado de Backend Seguros** se le crea una cuenta nueva (`RolUsuario.CLIENTE`, activa, sin password, sin MFA). Si no es cliente, se rechaza con `CLIENTE_NO_REGISTRADO` (403) y un mensaje que la invita a contactar a un agente.
    - Verifica que la cuenta esté activa (`USUARIO_INACTIVO`, 401 si no).
    - Genera el JWT y responde con `TokenResponse`.
 
@@ -128,7 +130,7 @@ A diferencia de Facebook, **no hace falta ningún secreto de servidor** (`client
 |---|---|---|
 | `GOOGLE_TOKEN_INVALIDO` | 401 | Firma inválida, expirado, `iss`/`aud` incorrectos, o cualquier error inesperado al decodificar |
 | `GOOGLE_EMAIL_NO_VERIFICADO` | 401 | `email_verified` es `false` en el token de Google |
-| `CLIENTE_NO_REGISTRADO` | 403 | El correo de Google no corresponde a ningún cliente de Andina Seguros |
+| `CLIENTE_NO_REGISTRADO` | 403 | El correo de Google no corresponde a ningún cliente de Backend Seguros |
 | `USUARIO_INACTIVO` | 401 | El usuario encontrado/vinculado/creado está desactivado |
 
 ## 6. Inconsistencias y posibles errores detectados

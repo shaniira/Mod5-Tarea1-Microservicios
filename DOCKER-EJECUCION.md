@@ -1,8 +1,8 @@
 # Ejecución Docker — API Gateway y microservicios
 
-Desde el cierre de la fase 6 (2026-09-27) el stack local es: **frontend, API Gateway, identity-service, notification-service, customer-service, claims-service, quotation-service y policy-service, un MongoDB por servicio, RabbitMQ y Redis**, definidos en [Arquitectura-Clean/docker-compose.yml](Arquitectura-Clean/docker-compose.yml). El monolito (`backend`) y su MongoDB ya no arrancan: quedan en el perfil `monolito` solo para una reversa (ver más abajo).
+El stack local es: **frontend, API Gateway, identity-service, notification-service, customer-service, claims-service, quotation-service y policy-service, un MongoDB por servicio, RabbitMQ y Redis**, definidos en [docker-compose.yml](docker-compose.yml) en la raíz del repositorio. Todos los comandos de esta guía se ejecutan **desde la raíz**. El monolito se retiró del repositorio el 2026-09-28 (ver "Monolito retirado" al final).
 
-Detalle de cada fase de la migración: [doc/5. Microservicios/](doc/5.%20Microservicios/) (`e_` fase 0, `f_` fase 1, `g_` fase 2, `i_` fase 3, `j_` fase 4, `l_` fase 5, `m_` fase 6 y retiro del monolito).
+Detalle de cada fase de la migración: [doc/5. Microservicios/](doc/5.%20Microservicios/) (`e_` fase 0, `f_` fase 1, `g_` fase 2, `i_` fase 3, `j_` fase 4, `l_` fase 5, `m_` fase 6, `n_` fase 7 y `q_` retiro del monolito).
 
 ## Puertos publicados al host
 
@@ -15,20 +15,23 @@ Solo el frontend y el gateway exponen puertos (paso 0.6 de la ruta). Todo lo dem
 | Servicios, bases MongoDB, RabbitMQ, Redis | sin puerto en el host | Para depurar, ver "Abrir puertos internos" más abajo |
 | Grafana / Jaeger / Prometheus | http://localhost:3000 · http://localhost:16686 · http://localhost:9090 | Solo con el stack de observabilidad (ver abajo) |
 
-Cada servicio tiene su propia base con su propio usuario (`readWrite` solo sobre ella): `identity_db`, `notification_db`, `customer_db`, `claims_db`, `quotation_db` y `policy_db`. Las claves por defecto sirven solo en local; se cambian en `Arquitectura-Clean/.env` (ver `.env.example`).
-
-> Nota: el `docker-compose.yml` de la raíz del repositorio es un subconjunto antiguo (solo el monolito y su MongoDB). Para el stack completo usar siempre el de `Arquitectura-Clean/`.
+Cada servicio tiene su propia base con su propio usuario (`readWrite` solo sobre ella): `identity_db`, `notification_db`, `customer_db`, `claims_db`, `quotation_db` y `policy_db`. Las claves por defecto sirven solo en local; se cambian en el `.env` de la raíz (plantilla: [.env.example](.env.example); `.env` nunca se versiona).
 
 ## Levantar el stack completo
 
 ```bash
-cd Arquitectura-Clean
 docker compose up -d --build
 docker compose ps
 docker compose logs -f gateway policy-service notification-service
 ```
 
-identity-service y customer-service arrancan con usuarios y clientes de demostración. Las tablas tarifarias, cotizaciones, pólizas y siniestros no: vienen de los scripts `services/*/migracion/migrar-*.sh`, que copian la base del monolito (requieren levantar antes el perfil `monolito`, ver abajo), o se crean por la API (`POST /api/tablas-tarifarias`, ADMIN). Si alguna proyección quedó vacía, se vuelve a poblar con los backfill (usuario ADMIN):
+Una instalación nueva no necesita el monolito (`APP_DEMO_DATA_ENABLED=true` en Compose; si los datos ya existen no se tocan):
+
+- identity-service crea el usuario `admin` / `Admin123*` (ADMIN, sin MFA en una base nueva). Los demás usuarios de [doc/0. USUARIOS-DE-PRUEBA.md](doc/0.%20USUARIOS-DE-PRUEBA.md) (`admin2`, la cuenta CLIENTE y la AGENTE) están en el volumen de `identity_db` porque llegaron con la migración; en una base nueva se crean por la API (`POST /api/auth/register`: CLIENTE sin sesión, personal con un ADMIN).
+- customer-service crea los clientes y vehículos demo.
+- quotation-service crea las 3 tablas tarifarias demo (las mismas del monolito, con los mismos ids).
+
+Con eso ya se puede cotizar, aceptar, emitir, registrar siniestros y renovar por la API. Si alguna proyección quedó vacía, se vuelve a poblar con los backfill (usuario ADMIN):
 
 ```bash
 curl -X POST http://localhost:8080/api/clientes/eventos/reenvio  -H "Authorization: Bearer <token>"
@@ -71,13 +74,13 @@ docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
 ### Observabilidad (Grafana, Prometheus, Loki, Jaeger)
 
 ```bash
-docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d
+docker compose -f docker-compose.yml -f infra/observability/docker-compose.observability.yml up -d
 ```
 
-- **Grafana** (http://localhost:3000, usuario `admin`, clave `GRAFANA_ADMIN_PASSWORD` o `grafana-local`): tablero "Andina Seguros — Resumen" y, en Explore, los logs de todos los servicios. Para seguir una petición: `{service=~".+"} |= "<X-Correlation-Id>"`; desde cada log, el `traceId` abre la traza en Jaeger.
+- **Grafana** (http://localhost:3000, usuario `admin`, clave `GRAFANA_ADMIN_PASSWORD` o `grafana-local`): tablero "Backend Seguros — Resumen" y, en Explore, los logs de todos los servicios. Para seguir una petición: `{service=~".+"} |= "<X-Correlation-Id>"`; desde cada log, el `traceId` abre la traza en Jaeger.
 - **Jaeger** (http://localhost:16686): una emisión es una sola traza: gateway → policy-service → RabbitMQ → notification-service, claims-service y quotation-service.
 - **Prometheus** (http://localhost:9090): métricas de los 7 servicios y de RabbitMQ (mensajes por cola), readiness de cada servicio (blackbox) y alertas: servicio caído o no listo, circuito abierto, DLQ con mensajes (de cualquier servicio), Outbox atrasado, 5xx y notificaciones pausadas.
-- **Alertmanager** (http://localhost:9093): envía las alertas por correo a ramirezlisset361@gmail.com (Gmail), con el cuerpo predeterminado. Requiere la contraseña de aplicación de Google en `Arquitectura-Clean/.env` como `ALERTMANAGER_SMTP_PASSWORD`; configuración en `infra/observability/alertmanager/alertmanager.yml`. Detalle en la [guía de operación](doc/5.%20Microservicios/o_GUIA-OPERACION.md), sección 3.1.
+- **Alertmanager** (http://localhost:9093): envía las alertas por correo a ramirezlisset361@gmail.com (Gmail), con el cuerpo predeterminado. Requiere la contraseña de aplicación de Google en el `.env` de la raíz como `ALERTMANAGER_SMTP_PASSWORD`; configuración en `infra/observability/alertmanager/alertmanager.yml`. Detalle en la [guía de operación](doc/5.%20Microservicios/o_GUIA-OPERACION.md), sección 3.1.
 
 Detener sin borrar datos:
 
@@ -85,21 +88,20 @@ Detener sin borrar datos:
 docker compose down
 ```
 
-## Monolito retirado (reversa)
+## Monolito retirado
 
-El monolito se retiró en el paso 6.10. Su base está respaldada en `respaldos/` (no versionado) y el volumen `andina_clean_mongo_data` se conserva. Para volver a levantarlo durante el periodo de seguridad:
+El monolito (`Arquitectura-Clean`) dejó de recibir tráfico en el corte (2026-09-27), se sacó del Compose en el paso 6.10 y **se retiró del repositorio el 2026-09-28** ([q_RETIRO-DEL-MONOLITO.md](doc/5.%20Microservicios/q_RETIRO-DEL-MONOLITO.md)). Ya no hay reversa automática; lo que queda es:
 
-```bash
-docker compose --profile monolito up -d mongodb backend
-# y, para devolverle una ruta, apuntar la URL del servicio en el gateway, por ejemplo:
-POLICY_SERVICE_URL=http://backend:8080 docker compose up -d gateway
-```
-
-Las escrituras hechas después del corte están solo en los microservicios: antes de una reversa hay que copiarlas al monolito.
+| Qué | Dónde |
+|---|---|
+| Código del monolito (último estado) | Etiqueta de git `monolito-final`: `git checkout monolito-final` o `git worktree add ../monolito monolito-final` |
+| Datos de su MongoDB | `respaldos/monolito-andina_seguros_clean-2026-09-27.archive.gz` (no versionado); se restaura con `mongorestore --archive --gzip` en un MongoDB temporal |
+| Scripts de migración | `services/*/migracion/migrar-*.sh`, marcados como históricos (leían la base del monolito) |
 
 ## Aislamiento
 
 - Cada servicio ↔ su MongoDB: una red propia (`customer_data_network`, `claims_data_network`, `quotation_data_network`, `policy_data_network`, `andina_identity_data_network`, `andina_notification_data_network`). Ningún servicio llega a la base de otro.
 - Servicios ↔ RabbitMQ: red `rabbitmq_network`. Gateway ↔ servicios: `andina_services_network`. Gateway ↔ Redis: `andina_gateway_network`.
 - RabbitMQ tiene `hostname: rabbitmq`: al recrear el contenedor conserva colas y mensajes.
-- Volúmenes: uno por base (`customer_mongo_data`, `claims_mongo_data`, `quotation_mongo_data`, `policy_mongo_data`, `andina_identity_mongo_data`, `andina_notification_mongo_data`), `rabbitmq_data` y, del monolito retirado, `andina_clean_mongo_data`.
+- Volúmenes: uno por base (`customer_mongo_data`, `claims_mongo_data`, `quotation_mongo_data`, `policy_mongo_data`, `andina_identity_mongo_data`, `andina_notification_mongo_data`), y `rabbitmq_data`. El volumen del monolito (`andina_clean_mongo_data`) se borró al retirarlo, tras comprobar el respaldo.
+- El nombre del proyecto de Compose sigue siendo `andina-clean` (`name:` en `docker-compose.yml`): cambiarlo renombraría contenedores (`andina-clean-rabbitmq-1`...), redes y el volumen de RabbitMQ, y rompería los scripts de operación y el filtro de Promtail.

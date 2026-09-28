@@ -1,5 +1,7 @@
 # Indicaciones de implementación: Login con Google (Backend Clean + Frontend Vue)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](../5.%20Microservicios/q_RETIRO-DEL-MONOLITO.md).
+
 **Alcance:** `Arquitectura-Clean/` (backend) y `frontend/` (Vue 3 + Pinia + Vue Router)
 **Objetivo:** agregar "Iniciar sesión con Google" como segunda vía de autenticación, sin romper el login local ni la Clean Architecture.
 **Base de este documento:** verificación línea por línea del código actual (no solo el análisis teórico previo). Todo lo listado abajo como "estado actual" fue leído directamente de los archivos del repo en esta fecha (2026-09-07).
@@ -68,11 +70,11 @@ Frontend (botón "Continuar con Google")
    → AuthController → AutenticarConGoogleUseCase
    → GoogleIdentityVerifierPort.verificar(idToken) → GoogleIdentity(sub, email, emailVerified, name)
    → UsuarioRepository (buscar por googleSubject / email; crear si no existe, rol=CLIENTE)
-   → TokenGeneratorPort (JwtTokenAdapter, sin cambios) → JWT Andina
+   → TokenGeneratorPort (JwtTokenAdapter, sin cambios) → JWT de Backend Seguros
    → TokenResponse { token, tipo, expiraEnSegundos } — mismo contrato que /login
 ```
 
-Tres tokens, no confundir: **Google ID Token** (prueba de identidad, solo en el login) vs **Google Access Token** (no se usa, no consumimos APIs de Google) vs **JWT Andina** (el único que viaja en `Authorization` en el resto de la API).
+Tres tokens, no confundir: **Google ID Token** (prueba de identidad, solo en el login) vs **Google Access Token** (no se usa, no consumimos APIs de Google) vs **JWT de Backend Seguros** (el único que viaja en `Authorization` en el resto de la API).
 
 ---
 

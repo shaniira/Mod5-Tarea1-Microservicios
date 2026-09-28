@@ -2,7 +2,7 @@
 
 ## 1. Propósito
 
-Este documento explica cómo funciona la autenticación del proyecto Andina Seguros. Está dirigido a personas que recién comienzan con seguridad de aplicaciones, pero también introduce los términos técnicos necesarios para comprender y mantener la solución.
+Este documento explica cómo funciona la autenticación del proyecto Backend Seguros. Está dirigido a personas que recién comienzan con seguridad de aplicaciones, pero también introduce los términos técnicos necesarios para comprender y mantener la solución.
 
 El sistema ofrece dos formas de ingreso:
 
@@ -128,14 +128,14 @@ El teléfono no necesita conexión a Internet para generar el código. Sí neces
 flowchart TD
     I[Pantalla de login] --> M{Método elegido}
     M -->|Google| G[Validar ID Token con Google]
-    G --> J1[Emitir JWT de Andina]
+    G --> J1[Emitir JWT de Backend Seguros]
     M -->|Usuario y contraseña| L[Validar credenciales locales]
     L --> Q{MFA habilitado?}
-    Q -->|No| J2[Emitir JWT de Andina]
+    Q -->|No| J2[Emitir JWT de Backend Seguros]
     Q -->|Sí| D[Crear desafío temporal]
     D --> T[Solicitar código TOTP]
     T --> V[Validar Google Authenticator]
-    V -->|Correcto| J3[Emitir JWT de Andina]
+    V -->|Correcto| J3[Emitir JWT de Backend Seguros]
     V -->|Incorrecto o vencido| R[Rechazar acceso]
 ```
 
@@ -165,7 +165,7 @@ sequenceDiagram
     B->>DB: Busca usuario por googleSubject o email
     DB-->>B: Usuario existente o resultado vacío
     B->>DB: Crea o vincula usuario cuando corresponde
-    B-->>F: JWT propio de Andina Seguros
+    B-->>F: JWT propio de Backend Seguros
     F->>F: Guarda sesión y redirige según el rol
 ```
 
@@ -421,7 +421,7 @@ El `challengeToken` se guarda en `sessionStorage`; el JWT definitivo se guarda c
 
 La implementación aplica las siguientes reglas:
 
-- La contraseña de Google nunca llega a Andina Seguros.
+- La contraseña de Google nunca llega a Backend Seguros.
 - El backend verifica criptográficamente el ID Token.
 - El rol no se toma del frontend.
 - El JWT definitivo no se emite antes del segundo factor en el login local con MFA.
@@ -519,7 +519,7 @@ Esta segunda parte conecta explícitamente lo implementado (Partes 1 a 13) con l
 | Atributo                   | ¿Cómo lo protege esta implementación?                                                                                                                                                                                                                          | Evidencia                 |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | **Confidencialidad** | El`mfaSecret` y el código TOTP nunca se registran en logs; el secreto solo se devuelve una vez, en `/api/mfa/configurar`. El ID Token de Google nunca se reenvía a otro servicio.                                                                           | §5, §11                 |
-| **Integridad**       | El JWT de Andina y el ID Token de Google están firmados — cualquier alteración invalida la firma y`JwtAuthenticationFilter`/`GoogleIdentityVerifierAdapter` la rechazan.                                                                                   | §4.2,`JwtTokenAdapter` |
+| **Integridad**       | El JWT de Backend Seguros y el ID Token de Google están firmados — cualquier alteración invalida la firma y`JwtAuthenticationFilter`/`GoogleIdentityVerifierAdapter` la rechazan.                                                                                   | §4.2,`JwtTokenAdapter` |
 | **Disponibilidad**   | El desafío MFA expira solo (5 min) para no acumular estado indefinidamente; el filtro JWT falla rápido (sin llamadas de red) al validar localmente la firma.                                                                                                    | §6.2                     |
 | **Autenticidad**     | Google demuestra la identidad social verificando firma/`iss`/`aud`; el backend demuestra la propia emitiendo un JWT firmado con una clave que solo él conoce.                                                                                                | §4.2, §2.4              |
 | **No repudio**       | *(Gap identificado, ver §21)* Hoy no existe un registro de auditoría explícito de "quién inició sesión, cuándo y por qué método" ni de intentos fallidos de MFA — solo los logs genéricos de la aplicación. Es la casilla más débil de las cinco. | —                        |
@@ -666,7 +666,7 @@ Este proyecto ya tiene `CleanArchitectureTest`, `HexagonalArchitectureTest` y `O
 
 ## 22. Checklist del arquitecto  
 
-| #  | Pregunta                                                           | Respuesta para Andina Seguros                                                                                                                                                                                                                                                                            |
+| #  | Pregunta                                                           | Respuesta para Backend Seguros                                                                                                                                                                                                                                                                            |
 | -- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1  | ¿Dónde están los trust boundaries y qué cruza cada uno?        | Navegador↔Backend (JWT/ID Token), Backend↔Google (ID Token), Backend↔MongoDB (credenciales de conexión) — ver §17.                                                                                                                                                                                 |
 | 2  | ¿Qué identidad presenta cada componente y cómo se verifica?     | El usuario presenta un JWT propio o un ID Token de Google; ambos se verifican por firma criptográfica, nunca por confianza implícita.                                                                                                                                                                  |
@@ -676,7 +676,7 @@ Este proyecto ya tiene `CleanArchitectureTest`, `HexagonalArchitectureTest` y `O
 | 6  | ¿Qué pasa si falla el IdP, el KMS o el motor de políticas?      | Si Google no responde, el login social simplemente falla (`GOOGLE_TOKEN_INVALIDO`) sin afectar el login local — no hay dependencia dura de Google para el resto del sistema.                                                                                                                          |
 | 7  | ¿Qué se registra para reconstruir un incidente?                  | Hoy, logs genéricos de la aplicación;**no** hay un log de auditoría dedicado a eventos de seguridad (gap de "No repudio", §14 y §20).                                                                                                                                                         |
 | 8  | ¿Qué dependencias y artefactos entran, y cómo se verifican?     | Dependencias Maven declaradas en`pom.xml`; sin SCA automatizado todavía (§21).                                                                                                                                                                                                                       |
-| 9  | ¿Cómo se aísla un tenant, un servicio o una carga comprometida? | No aplica multi-tenancy en este proyecto (una sola organización, Andina Seguros); la única "partición" relevante es entre roles/usuarios, resuelta por RBAC + verificación de propiedad (§18.2).                                                                                                    |
+| 9  | ¿Cómo se aísla un tenant, un servicio o una carga comprometida? | No aplica multi-tenancy en este proyecto (una sola organización, Backend Seguros); la única "partición" relevante es entre roles/usuarios, resuelta por RBAC + verificación de propiedad (§18.2).                                                                                                    |
 | 10 | ¿Qué prueba automatizada verifica cada respuesta anterior?       | `CleanArchitectureTest`/`HexagonalArchitectureTest`/`OnionArchitectureTest` verifican 3, 8 (parcialmente) y la separación de capas en general; el resto de respuestas todavía no tiene una prueba automatizada dedicada — es la lista de trabajo pendiente más concreta que deja este informe. |
 
 ---
@@ -687,7 +687,7 @@ La solución separa correctamente tres responsabilidades:
 
 1. **Google verifica la identidad social** y entrega un ID Token.
 2. **Google Authenticator genera el segundo factor TOTP** para el login local.
-3. **Andina Seguros emite su propio JWT**, aplica roles y protege sus endpoints.
+3. **Backend Seguros emite su propio JWT**, aplica roles y protege sus endpoints.
 
 El punto más importante es que un ID Token, un desafío MFA y un JWT de sesión no son intercambiables. Cada elemento tiene una finalidad, duración y nivel de confianza diferente. Clean Architecture mantiene estas decisiones de negocio separadas de los detalles técnicos, haciendo que la solución sea más comprensible, comprobable y fácil de evolucionar.
 

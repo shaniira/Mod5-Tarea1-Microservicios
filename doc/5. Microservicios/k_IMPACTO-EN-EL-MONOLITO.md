@@ -118,4 +118,21 @@ El monolito se apagó sin tocar su código. Detalle en [m, sección 9](m_IMPLEME
 | RabbitMQ | El exchange `andina.insurance.events`, donde el monolito publicaba `policy.issued.v1`, se borró; los consumidores ya no lo declaran. Su cola `andina.policy.audit.queue` (sin consumidor) no se recreó; sus 6 mensajes quedaron en el directorio del nodo anterior de RabbitMQ (m, 9.4) |
 | Código (`src`, `pom.xml`, `Dockerfile`) | **Sin cambios**, archivado |
 
-**Reversa (mientras dure el periodo de seguridad):** `docker compose --profile monolito up -d mongodb backend` y apuntar la URL del servicio en el gateway a `http://backend:8080`. Las escrituras hechas después del corte habría que copiarlas antes al monolito. Pasado ese periodo, se puede borrar el volumen `andina_clean_mongo_data` (el respaldo queda en `respaldos/`).
+**Reversa (mientras dure el periodo de seguridad):** `docker compose --profile monolito up -d mongodb backend` y apuntar la URL del servicio en el gateway a `http://backend:8080`. Las escrituras hechas después del corte habría que copiarlas antes al monolito. Pasado ese periodo, se puede borrar el volumen `andina_clean_mongo_data` (el respaldo queda en `respaldos/`). **Ya no aplica:** el monolito se retiró del repositorio el 2026-09-28 (sección 8).
+
+## 8. Retiro del monolito del repositorio (2026-09-28)
+
+Pasado el periodo de seguridad, y con el respaldo de su base comprobado, el monolito se retiró del repositorio. Detalle, motivos, errores y verificación en [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
+| Qué | Efecto sobre el monolito |
+|---|---|
+| Código (`src`, `pom.xml`, `Dockerfile`, `README.md`, `.dockerignore`, `.gitignore`) | Borrado de la rama. Su último estado queda en la etiqueta anotada **`monolito-final`** (`git checkout monolito-final`) |
+| `docker-compose.yml`, `docker-compose.debug.yml`, `.env.example`, `.env` | Movidos a la raíz del repositorio (`git mv`; `.env` con `mv`, no se versiona). Se quitaron los servicios `mongodb` y `backend` (perfil `monolito`), la red `clean_network` y el volumen `clean_mongo_data` |
+| Base de datos | Volumen `andina_clean_mongo_data` borrado. Respaldo: `respaldos/monolito-andina_seguros_clean-2026-09-27.archive.gz` (probado al tomarlo en el paso 6.10; integridad comprobada con `gzip -t` antes de borrar el volumen) |
+| Imagen Docker | `andina-seguros-clean:1.0.0` borrada |
+| Kubernetes | `k8s/archivo-monolito/` (manifiestos 20-23) borrado; queda en la etiqueta |
+| CI | `.github/workflows/backend.yml` borrado |
+| Datos que solo daba el monolito | Las tablas tarifarias: ahora las siembra quotation-service (`DemoDataInitializer`, mismos ids). Los clientes demo los siembra customer-service (antes desactivado porque llegaban de la migración) |
+| Scripts `services/*/migracion/migrar-*.sh` | Se conservan como evidencia, con una cabecera "HISTÓRICO": leían el MongoDB del monolito y ya no se pueden ejecutar |
+
+**Reversa:** ya no hay una reversa inmediata. Para volver a ver el monolito: `git worktree add ../monolito monolito-final`, levantar su Compose de esa versión y restaurar el respaldo con `mongorestore --archive --gzip`. Las escrituras hechas desde el corte (2026-09-27) solo existen en los microservicios.

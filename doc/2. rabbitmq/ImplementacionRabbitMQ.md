@@ -1,5 +1,7 @@
 # Implementacion de RabbitMQ y consumidor independiente de WhatsApp
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](../5.%20Microservicios/q_RETIRO-DEL-MONOLITO.md).
+
 > Estado: publicación implementada en Clean, Hexagonal y Onion; envío local eliminado y WhatsApp exclusivo de `notification-consumer`. Véase el inventario final y código impactado en [`IMPLEMENTACION-BACKENDS-RABBITMQ.md`](../IMPLEMENTACION-BACKENDS-RABBITMQ.md).
 >
 > **Actualización (fase 1 de la migración a microservicios):** `notification-consumer` pasó a ser `services/notification-service`, con base propia y sin leer la colección `clientes` del backend. Este documento se conserva como historia; el diseño vigente está en [`../5. Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md`](../5.%20Microservicios/f_IMPLEMENTACION-NOTIFICATION-SERVICE-FASE1.md).

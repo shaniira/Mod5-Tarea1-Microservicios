@@ -1,6 +1,6 @@
-# Andina Seguros — Frontend Web
+# Backend Seguros — Frontend Web
 
-Aplicación web para operar el motor de tarificación y la gestión de pólizas de Andina Seguros. Está desarrollada con **Vue 3, TypeScript, Pinia, Vue Router, Axios y Vite**, y consume la API REST del backend Spring Boot.
+Aplicación web para operar el motor de tarificación y la gestión de pólizas de Backend Seguros. Está desarrollada con **Vue 3, TypeScript, Pinia, Vue Router, Axios y Vite**, y consume la API REST del backend Spring Boot.
 
 ## 1. Objetivo
 

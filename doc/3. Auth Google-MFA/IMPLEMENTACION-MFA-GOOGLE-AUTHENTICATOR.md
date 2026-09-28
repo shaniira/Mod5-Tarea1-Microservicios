@@ -1,5 +1,7 @@
 # Autenticación en dos pasos con Google Authenticator (MFA)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](../5.%20Microservicios/q_RETIRO-DEL-MONOLITO.md).
+
 **Proyecto:** `Arquitectura-Clean` (backend) + `frontend` (Vue 3)
 **Fecha de este análisis:** 2026-09-07
 **Este documento reemplaza** a la versión anterior de `IMPLEMENTACION-MFA-GOOGLE-AUTHENTICATOR.md`, fusionando lo mejor de ese primer borrador con una verificación línea por línea del código real del proyecto (incluye una sección de comparación en el §2).
@@ -322,7 +324,7 @@ Registrar los beans de los 2 adaptadores nuevos (`TotpAdapter`, `ZxingQrCodeAdap
 ```yaml
 app:
   mfa:
-    emisor: "Andina Seguros"
+    emisor: "Backend Seguros"
     desafio-expiracion-segundos: 300
     max-intentos: 5
 ```

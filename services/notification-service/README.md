@@ -51,7 +51,7 @@ customer-service / policy-service ──(Outbox)──► RabbitMQ (andina.event
 
 ## Ejecución
 
-Con Docker (desde `Arquitectura-Clean/`):
+Con Docker (desde la raíz del repositorio):
 
 ```bash
 docker compose up -d --build notification-service

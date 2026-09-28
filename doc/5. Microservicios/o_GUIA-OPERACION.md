@@ -2,16 +2,16 @@
 
 Qué hacer para levantar, vigilar y reparar el sistema de microservicios. Está escrita para quien opera el sistema sin haberlo construido. El detalle de cómo se llegó aquí está en [n_IMPLEMENTACION-ENDURECIMIENTO-FASE7.md](n_IMPLEMENTACION-ENDURECIMIENTO-FASE7.md).
 
-Todos los comandos se ejecutan desde la raíz del repositorio, salvo que se indique `Arquitectura-Clean/`.
+Todos los comandos se ejecutan desde la raíz del repositorio (ahí están `docker-compose.yml` y `.env` desde el retiro del monolito, `q_…`).
 
 ---
 
 ## 1. Levantar el sistema
 
-| Qué | Comando (desde `Arquitectura-Clean/`) |
+| Qué | Comando |
 |---|---|
 | Stack completo | `docker compose up -d --build` |
-| Con observabilidad (Grafana, Prometheus, Jaeger, Loki) | `docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d` |
+| Con observabilidad (Grafana, Prometheus, Jaeger, Loki) | `docker compose -f docker-compose.yml -f infra/observability/docker-compose.observability.yml up -d` |
 | WhatsApp y JSON.pe simulados (pruebas) | `WHATSAPP_BASE_URL=http://whatsapp-mock:8080 JSONPE_BASE_URL=http://jsonpe-mock:8080 docker compose --profile whatsapp-mock --profile jsonpe-mock up -d` |
 | Con HTTPS local (https://localhost:8443 y :8444) | `FRONTEND_API_URL=https://localhost:8444/api FRONTEND_API_ORIGIN=https://localhost:8444 CORS_ALLOWED_ORIGINS=https://localhost:8443 docker compose --profile tls up -d --build` |
 | Estado | `docker compose ps` (todos los servicios deben estar `healthy`) |
@@ -20,7 +20,7 @@ Puertos: frontend 5173, gateway 8080; con observabilidad, Grafana 3000, Jaeger 1
 
 **Más de una réplica.** Todos los servicios admiten varias réplicas: el estado efímero vive en Redis y MongoDB, y el relay del Outbox publica solo desde la réplica que tiene el turno (`outbox_lock`). En Kubernetes basta con subir `replicas`. En Compose los servicios con `container_name` fijo no escalan con `--scale`; una segunda réplica de prueba se levanta con `docker compose run -d --no-deps <servicio>`.
 
-## 2. Leer el tablero "Andina Seguros — Resumen" (Grafana)
+## 2. Leer el tablero "Backend Seguros — Resumen" (Grafana)
 
 | Panel | Qué mirar | Normal |
 |---|---|---|
@@ -46,7 +46,7 @@ Las alertas están en `infra/observability/prometheus/alertas.yml` y se ven en P
 | Qué | Detalle |
 |---|---|
 | Configuración | `infra/observability/alertmanager/alertmanager.yml`: Gmail (`smtp.gmail.com:587`, STARTTLS), remitente y destinatario ramirezlisset361@gmail.com, `send_resolved: true` (también avisa cuando se resuelve) |
-| Contraseña | Una **contraseña de aplicación** de Google (no la contraseña de la cuenta), en `Arquitectura-Clean/.env` como `ALERTMANAGER_SMTP_PASSWORD=<16 letras sin espacios>`. Se crea en https://myaccount.google.com/apppasswords (requiere la verificación en 2 pasos activa). Después: `docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d alertmanager` |
+| Contraseña | Una **contraseña de aplicación** de Google (no la contraseña de la cuenta), en el `.env` de la raíz como `ALERTMANAGER_SMTP_PASSWORD=<16 letras sin espacios>`. Se crea en https://myaccount.google.com/apppasswords (requiere la verificación en 2 pasos activa). Después: `docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml up -d alertmanager` |
 | Agrupación | Un correo por grupo de alerta y severidad; espera 30 s para juntar las que se disparan a la vez; si el grupo cambia, otro correo a los 5 min; si sigue activa, recordatorio cada 4 h |
 | Consola | http://localhost:9093 (alertas recibidas, silencios). Para silenciar una alerta durante un mantenimiento: "New Silence" con su `alertname` |
 | Si no llegan correos | `docker logs andina-alertmanager \| grep -i notify`. "missing password": falta la variable. "535 Username and Password not accepted": la contraseña de aplicación es incorrecta o se revocó. Revisar también la carpeta de spam |
@@ -122,10 +122,10 @@ sh infra/mongo/probar-restauracion.sh respaldos/<fecha-hora>   # restaura en un 
 
 ## 8. Carga
 
-`infra/carga/carga.js` (k6) mide lecturas, emisión y el límite del gateway. Correrlo después de cambios de rendimiento (desde `Arquitectura-Clean/`, con WhatsApp simulado):
+`infra/carga/carga.js` (k6) mide lecturas, emisión y el límite del gateway. Correrlo después de cambios de rendimiento (con WhatsApp simulado):
 
 ```bash
-docker run --rm -i --network andina_gateway_network -e BASE=http://gateway:8080 grafana/k6:0.54.0 run - < ../infra/carga/carga.js
+docker run --rm -i --network andina_gateway_network -e BASE=http://gateway:8080 grafana/k6:0.54.0 run - < infra/carga/carga.js
 ```
 
 ## 9. Kubernetes

@@ -32,7 +32,7 @@ Los mismos que tenía el monolito (el frontend no cambia). Entran por el gateway
 El `state` OAuth de Facebook (300 s), los tickets de login (60 s) y los desafíos MFA (300 s) viven en **Redis** (base 1) con TTL y se consumen con `GETDEL` (un solo uso, atómico). Por eso el servicio se puede escalar:
 
 ```bash
-cd Arquitectura-Clean
+# desde la raíz del repositorio
 docker compose up -d --scale identity-service=2
 ```
 

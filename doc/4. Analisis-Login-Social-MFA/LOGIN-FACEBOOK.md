@@ -1,17 +1,19 @@
 # Login con Facebook — cómo funciona hoy en el proyecto
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](../5.%20Microservicios/q_RETIRO-DEL-MONOLITO.md).
+
 > Analizado directamente sobre el código de `Arquitectura-Clean` (backend) y `frontend`, rama `feature/auth-social-mfa`. No se asume nada de la documentación anterior en `doc/Auth Google-MFA/`; todo lo descrito aquí se verificó leyendo los archivos fuente citados en cada sección.
 
 ## 1. Explicación en términos simples
 
-Piensa en "Iniciar con Facebook" como usar tu carné de Facebook para entrar a Andina Seguros en vez de crear un usuario y contraseña nuevos. El flujo real es:
+Piensa en "Iniciar con Facebook" como usar tu carné de Facebook para entrar a Backend Seguros en vez de crear un usuario y contraseña nuevos. El flujo real es:
 
-1. Le dices a Andina Seguros "quiero entrar con Facebook".
-2. Andina Seguros te manda a la puerta de Facebook.
-3. Facebook te pregunta "¿le das permiso a Andina Seguros para ver tu nombre y correo?".
-4. Si dices que sí, Facebook te regresa a Andina Seguros con un "comprobante" (un código).
-5. Andina Seguros, **en su propio servidor** (nunca en tu navegador), le muestra ese comprobante a Facebook y a cambio recibe tus datos básicos.
-6. Con esos datos, Andina Seguros busca si ya te conoce; si no, te crea una cuenta nueva automáticamente.
+1. Le dices a Backend Seguros "quiero entrar con Facebook".
+2. Backend Seguros te manda a la puerta de Facebook.
+3. Facebook te pregunta "¿le das permiso a Backend Seguros para ver tu nombre y correo?".
+4. Si dices que sí, Facebook te regresa a Backend Seguros con un "comprobante" (un código).
+5. Backend Seguros, **en su propio servidor** (nunca en tu navegador), le muestra ese comprobante a Facebook y a cambio recibe tus datos básicos.
+6. Con esos datos, Backend Seguros busca si ya te conoce; si no, te crea una cuenta nueva automáticamente.
 7. Te entrega un "gafete" interno (un JWT) con el que ya puedes usar la aplicación.
 
 La particularidad de este proyecto es el paso 4-5: en vez de que el navegador reciba directamente el gafete (inseguro, quedaría en el historial/URL), el backend genera un **ticket de un solo uso** y el frontend lo cambia por el gafete real con una llamada aparte.
@@ -222,7 +224,7 @@ if (usuario.isMfaHabilitado()) {
 ```
 **Impacto:** un usuario que activó MFA para "estar más protegido" queda completamente desprotegido si su cuenta tiene Facebook vinculado — cualquiera que controle esa sesión de Facebook entra sin el segundo factor. Ver también [MFA.md](./MFA.md#inconsistencia-cruzada-el-mfa-no-es-realmente-obligatorio).
 
-**2. El login con Facebook no verifica que la persona sea un cliente registrado de Andina Seguros — el login con Google sí.**
+**2. El login con Facebook no verifica que la persona sea un cliente registrado de Backend Seguros — el login con Google sí.**
 En `AutenticarConGoogleUseCase.vincularOCrearUsuario`, antes de crear una cuenta nueva se exige:
 ```java
 if (clientes.buscarPorCorreo(identidad.email()).isEmpty()) {

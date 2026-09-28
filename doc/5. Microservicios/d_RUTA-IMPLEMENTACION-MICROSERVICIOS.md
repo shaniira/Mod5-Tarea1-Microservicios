@@ -1,4 +1,4 @@
-# Andina Seguros — Ruta de implementación de la migración a microservicios
+# Backend Seguros — Ruta de implementación de la migración a microservicios
 
 Este documento convierte la propuesta ([c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md](c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md)) en una secuencia de pasos ejecutables. Sigue el diagrama objetivo ([c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg](c_DIAGRAMA-ARQUITECTURA-MICROSERVICIOS.svg)) y resuelve los riesgos de [b_ANALISIS-RIESGOS-ARQUITECTURA.md](b_ANALISIS-RIESGOS-ARQUITECTURA.md).
 
@@ -243,7 +243,7 @@ Verificados el 2026-09-26; evidencias en [h_CIERRE-PENDIENTES.md](h_CIERRE-PENDI
 | 6.10 | **Apagar el monolito:** retirar `Arquitectura-Clean` del Compose, conservar su repositorio archivado y su base **respaldada** durante un periodo de seguridad antes de borrarla | S |
 | 6.11 | **Retirar el exchange antiguo** `andina.insurance.events` y los enlaces dobles | S |
 
-**Estado (2026-09-27): ✅ cerrada.** policy-service implementado, corte de las fases 3 a 6 hecho y monolito retirado: su base está respaldada, `backend` solo arranca con `--profile monolito` y el código quedó sin cambios (6.10). El exchange heredado se borró (6.11) y los servicios nuevos están en Prometheus, Grafana y Jaeger. Detalle en [m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md), secciones 7 y 9.
+**Estado (2026-09-27): ✅ cerrada.** policy-service implementado, corte de las fases 3 a 6 hecho y monolito retirado: su base está respaldada, `backend` solo arranca con `--profile monolito` y el código quedó sin cambios (6.10). El exchange heredado se borró (6.11) y los servicios nuevos están en Prometheus, Grafana y Jaeger. Detalle en [m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md](m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md), secciones 7 y 9. **Después (2026-09-28):** pasado el periodo de seguridad, el monolito se retiró del repositorio (etiqueta `monolito-final`, respaldo en `respaldos/`, volumen borrado) y el Compose pasó a la raíz: [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 **Criterios de salida**
 - [x] Emitir y renovar pólizas funciona solo con eventos y proyecciones.
