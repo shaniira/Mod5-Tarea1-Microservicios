@@ -1,0 +1,18 @@
+{
+  "eventId": "90000018-0000-4000-8000-000000000001",
+  "eventType": "ClaimStatusChanged",
+  "eventVersion": 1,
+  "occurredAt": "2026-09-27T10:00:00Z",
+  "aggregateId": "66666666-6666-4666-8666-666666666666",
+  "aggregateVersion": 2,
+  "correlationId": "ejemplo-contrato",
+  "producer": "claims-service",
+  "data": {
+    "claimId": "66666666-6666-4666-8666-666666666666",
+    "policyId": "44444444-4444-4444-8444-444444444444",
+    "previousStatus": "REPORTADO",
+    "newStatus": "LIQUIDADO",
+    "open": false,
+    "insuredResponsible": false
+  }
+}

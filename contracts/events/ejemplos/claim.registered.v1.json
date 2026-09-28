@@ -1,0 +1,23 @@
+{
+  "eventId": "90000015-0000-4000-8000-000000000001",
+  "eventType": "ClaimRegistered",
+  "eventVersion": 1,
+  "occurredAt": "2026-09-27T10:00:00Z",
+  "aggregateId": "66666666-6666-4666-8666-666666666666",
+  "aggregateVersion": 1,
+  "correlationId": "ejemplo-contrato",
+  "producer": "claims-service",
+  "data": {
+    "claimId": "66666666-6666-4666-8666-666666666666",
+    "policyId": "44444444-4444-4444-8444-444444444444",
+    "customerId": "11111111-1111-4111-8111-111111111111",
+    "status": "REPORTADO",
+    "open": true,
+    "date": "2026-10-05",
+    "type": "CHOQUE",
+    "estimatedAmount": 700,
+    "currency": "PEN",
+    "insuredResponsible": false,
+    "severity": "LEVE"
+  }
+}

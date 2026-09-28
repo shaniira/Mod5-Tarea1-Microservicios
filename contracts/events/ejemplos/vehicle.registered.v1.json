@@ -1,0 +1,21 @@
+{
+  "eventId": "90000017-0000-4000-8000-000000000001",
+  "eventType": "VehicleRegistered",
+  "eventVersion": 1,
+  "occurredAt": "2026-09-27T10:00:00Z",
+  "aggregateId": "22222222-2222-4222-8222-222222222222",
+  "aggregateVersion": 1,
+  "correlationId": "ejemplo-contrato",
+  "producer": "customer-service",
+  "data": {
+    "vehicleId": "22222222-2222-4222-8222-222222222222",
+    "customerId": "11111111-1111-4111-8111-111111111111",
+    "plate": "ABC123",
+    "brand": "Kia",
+    "model": "Rio",
+    "manufactureYear": 2022,
+    "vehicleType": "AUTO",
+    "usage": "PARTICULAR",
+    "circulationZone": "LIMA"
+  }
+}

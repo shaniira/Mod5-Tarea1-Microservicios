@@ -1,0 +1,22 @@
+{
+  "eventId": "90000015-0000-4000-8000-000000000001",
+  "eventType": "CustomerUpdated",
+  "eventVersion": 1,
+  "occurredAt": "2026-09-27T10:00:00Z",
+  "aggregateId": "11111111-1111-4111-8111-111111111111",
+  "aggregateVersion": 2,
+  "correlationId": "ejemplo-contrato",
+  "producer": "customer-service",
+  "data": {
+    "customerId": "11111111-1111-4111-8111-111111111111",
+    "documentType": "DNI",
+    "documentNumber": "70000001",
+    "names": "Ana",
+    "surnames": "Torres",
+    "fullName": "Ana Torres",
+    "email": "ana@andina.local",
+    "phone": "900333444",
+    "active": true,
+    "birthDate": "1990-01-15"
+  }
+}

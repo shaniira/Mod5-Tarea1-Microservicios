@@ -110,7 +110,7 @@
     "/api/auth/logout": {
       "post": {
         "tags": [
-          "auth-controller"
+          "sesion-controller"
         ],
         "operationId": "logout",
         "responses": {
@@ -206,6 +206,39 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/auth/usuarios/{username}/estado": {
+      "patch": {
+        "tags": [
+          "sesion-controller"
+        ],
+        "operationId": "cambiarEstado",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstadoUsuarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -391,7 +424,6 @@
       "CrearUsuarioRequest": {
         "required": [
           "password",
-          "rol",
           "username"
         ],
         "type": "object",
@@ -485,6 +517,17 @@
         "properties": {
           "idToken": {
             "type": "string"
+          }
+        }
+      },
+      "EstadoUsuarioRequest": {
+        "required": [
+          "activo"
+        ],
+        "type": "object",
+        "properties": {
+          "activo": {
+            "type": "boolean"
           }
         }
       },

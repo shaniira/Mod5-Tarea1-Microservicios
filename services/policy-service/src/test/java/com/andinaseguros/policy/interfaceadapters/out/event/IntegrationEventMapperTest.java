@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.andinaseguros.policy.entities.enums.EstadoPoliza;
 import com.andinaseguros.policy.entities.event.EmisionRechazadaEvent;
 import com.andinaseguros.policy.entities.event.PolizaEmitidaEvent;
+import com.andinaseguros.policy.entities.event.PolizaRenovadaEvent;
+import com.andinaseguros.policy.contratos.Contratos;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -37,6 +39,7 @@ class IntegrationEventMapperTest {
         assertThat(outbound.exchange()).isEqualTo("andina.events");
         assertThat(outbound.routingKey()).isEqualTo("policy.issued.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("PolicyIssued");
         assertThat(node.get("aggregateId").asText()).isEqualTo(poliza.toString());
         assertThat(node.get("aggregateVersion").asLong()).isEqualTo(1);
@@ -59,8 +62,29 @@ class IntegrationEventMapperTest {
 
         assertThat(outbound.routingKey()).isEqualTo("policy.issuance-rejected.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("PolicyIssuanceRejected");
         assertThat(node.at("/data/quoteId").asText()).isEqualTo(cotizacion.toString());
         assertThat(node.at("/data/reasonCode").asText()).isEqualTo("COTIZACION_VENCIDA");
+    }
+
+    /** Fase 7: policy.renewed.v1 también se compara con su esquema en contracts/events. */
+    @Test
+    void policyRenewedCumpleElContrato() throws Exception {
+        UUID nueva = UUID.randomUUID();
+        UUID anterior = UUID.randomUUID();
+        var outbound =
+                mapper.map(
+                        new PolizaRenovadaEvent(
+                                UUID.randomUUID(), Instant.parse("2026-09-27T10:00:00Z"), nueva, anterior,
+                                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "POL-REN-2027-ABCD1234",
+                                new BigDecimal("1525.50"), "PEN", LocalDate.of(2027, 10, 1), LocalDate.of(2028, 10, 1), 2),
+                        "corr-1");
+
+        assertThat(outbound.routingKey()).isEqualTo("policy.renewed.v1");
+        JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
+        assertThat(node.at("/data/newPolicyId").asText()).isEqualTo(nueva.toString());
+        assertThat(node.at("/data/previousPolicyId").asText()).isEqualTo(anterior.toString());
     }
 }

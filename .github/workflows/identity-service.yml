@@ -28,5 +28,8 @@ jobs:
           cache: maven
       - name: Pruebas y ArchUnit
         run: mvn -B --no-transfer-progress verify
+        # Fase 7 (paso 7.6): las pruebas de contrato contra contracts/ son obligatorias en CI.
+        env:
+          CONTRATOS_OBLIGATORIOS: "true"
       - name: Imagen Docker
         run: docker build -t andina-identity-service:${{ github.sha }} .

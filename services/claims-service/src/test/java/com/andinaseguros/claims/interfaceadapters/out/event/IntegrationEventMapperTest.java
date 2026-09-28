@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.andinaseguros.claims.entities.enums.EstadoSiniestro;
 import com.andinaseguros.claims.entities.event.SiniestroEstadoCambiadoEvent;
 import com.andinaseguros.claims.entities.event.SiniestroRegistradoEvent;
+import com.andinaseguros.claims.contratos.Contratos;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -50,6 +51,7 @@ class IntegrationEventMapperTest {
         assertThat(outbound.exchange()).isEqualTo("andina.events");
         assertThat(outbound.routingKey()).isEqualTo("claim.registered.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("ClaimRegistered");
         assertThat(node.get("aggregateId").asText()).isEqualTo(siniestroId.toString());
         assertThat(node.get("aggregateVersion").asLong()).isEqualTo(1);
@@ -79,6 +81,7 @@ class IntegrationEventMapperTest {
 
         assertThat(outbound.routingKey()).isEqualTo("claim.status-changed.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("ClaimStatusChanged");
         assertThat(node.get("aggregateVersion").asLong()).isEqualTo(3);
         assertThat(node.at("/data/previousStatus").asText()).isEqualTo("EN_EVALUACION");

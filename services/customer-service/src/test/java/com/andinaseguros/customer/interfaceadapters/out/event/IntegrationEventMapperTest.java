@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.andinaseguros.customer.entities.enums.TipoUso;
 import com.andinaseguros.customer.entities.enums.TipoVehiculo;
 import com.andinaseguros.customer.entities.event.ClienteActualizadoEvent;
+import com.andinaseguros.customer.entities.event.ClienteRegistradoEvent;
 import com.andinaseguros.customer.entities.event.VehiculoRegistradoEvent;
+import com.andinaseguros.customer.contratos.Contratos;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -47,6 +49,7 @@ class IntegrationEventMapperTest {
         assertThat(outbound.exchange()).isEqualTo("andina.events");
         assertThat(outbound.routingKey()).isEqualTo("customer.updated.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("CustomerUpdated");
         assertThat(node.get("aggregateId").asText()).isEqualTo(clienteId.toString());
         assertThat(node.get("aggregateVersion").asLong()).isEqualTo(7);
@@ -83,6 +86,7 @@ class IntegrationEventMapperTest {
         assertThat(outbound.exchange()).isEqualTo("andina.events");
         assertThat(outbound.routingKey()).isEqualTo("vehicle.registered.v1");
         JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
         assertThat(node.get("eventType").asText()).isEqualTo("VehicleRegistered");
         assertThat(node.get("aggregateId").asText()).isEqualTo(vehiculoId.toString());
         assertThat(node.get("aggregateVersion").asLong()).isEqualTo(1);
@@ -91,5 +95,24 @@ class IntegrationEventMapperTest {
         assertThat(node.at("/data/manufactureYear").asInt()).isEqualTo(2022);
         assertThat(node.at("/data/vehicleType").asText()).isEqualTo("AUTO");
         assertThat(node.at("/data/usage").asText()).isEqualTo("TAXI");
+    }
+
+    /** Fase 7: customer.registered.v1 también se compara con su esquema en contracts/events. */
+    @Test
+    void customerRegisteredCumpleElContrato() throws Exception {
+        UUID clienteId = UUID.randomUUID();
+        var outbound =
+                mapper.map(
+                        new ClienteRegistradoEvent(
+                                UUID.randomUUID(), Instant.parse("2026-09-27T10:00:00Z"), clienteId, "DNI", "70000001",
+                                "Ana", "Torres", LocalDate.of(1990, 1, 15), "ana@andina.local", "921175206", true, 1),
+                        "corr-1");
+
+        assertThat(outbound.routingKey()).isEqualTo("customer.registered.v1");
+        JsonNode node = json.readTree(json.writeValueAsString(outbound.message()));
+        Contratos.validarEvento(outbound.routingKey(), node);
+        assertThat(node.get("eventType").asText()).isEqualTo("CustomerRegistered");
+        assertThat(node.at("/data/customerId").asText()).isEqualTo(clienteId.toString());
+        assertThat(node.at("/data/phone").asText()).isEqualTo("921175206");
     }
 }

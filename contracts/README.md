@@ -22,6 +22,20 @@ Esquemas de los eventos que viajan por RabbitMQ entre los microservicios (secci�
 - **Idempotencia:** los consumidores guardan el `eventId` en su `inbox` y no repiten el efecto si el evento llega dos veces.
 - **Orden:** los eventos de un agregado llevan `aggregateVersion`; el consumidor descarta los que tengan una versión igual o menor a la que ya aplicó.
 - Los mensajes llevan además el encabezado AMQP `X-Correlation-Id` y el `messageId` igual al `eventId`.
+- **Fechas:** `date-time` en RFC 3339 con zona (`2026-10-12T10:00:00Z`). Sin zona no cumple el contrato (la prueba de contrato lo detectó en `quote.accepted`, fase 7).
+
+## Pruebas de contrato (fase 7, paso 7.6)
+
+Corren en CI con cada cambio de un servicio o de `contracts/`; un cambio incompatible rompe el build (`CONTRATOS_OBLIGATORIOS=true` en los workflows). Al construir las imágenes Docker se saltan, porque el contexto no incluye `contracts/`.
+
+| Lado | Qué comprueba | Dónde |
+|---|---|---|
+| Productor | Cada evento que genera el servicio cumple su esquema (formato de fechas y uuid incluidos) | `IntegrationEventMapperTest` de customer, claims, quotation y policy |
+| Consumidor | El listener acepta el ejemplo de cada evento que consume y llega al caso de uso | `ContratoEventosConsumidosTest` de notification, identity, quotation, claims y policy |
+| Ejemplos | Un evento válido por esquema, tal como lo publica su productor | [events/ejemplos/](events/ejemplos) (se validan contra el esquema en cada prueba) |
+| API | Los controladores coinciden con el OpenAPI: falla si se quita o renombra un endpoint, si una respuesta pierde un campo, si el cuerpo pide un campo obligatorio nuevo o si hay un endpoint sin contrato | `ContratoApiTest` de customer, claims, quotation, policy e identity |
+
+Al cambiar un evento: primero el esquema y su ejemplo aquí, luego productor y consumidores. Al agregar un endpoint: regenerar el OpenAPI del servicio (tabla siguiente).
 
 ## APIs REST (OpenAPI)
 

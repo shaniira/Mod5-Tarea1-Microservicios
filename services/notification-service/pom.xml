@@ -86,6 +86,13 @@
       <version>${archunit.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- Fase 7 (paso 7.6): pruebas de contrato de eventos contra contracts/events (JSON Schema). -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>1.5.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
