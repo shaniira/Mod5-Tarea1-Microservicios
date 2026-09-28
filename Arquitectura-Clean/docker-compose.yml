@@ -1,9 +1,15 @@
 name: andina-clean
 
 services:
+  # --- Monolito (paso 6.10: retirado) ------------------------------------------------------------
+  # Desde el apagado (2026-09-27) el monolito y su MongoDB solo arrancan con el perfil "monolito"
+  # (docker compose --profile monolito up -d). Se conservan para una reversa durante el periodo de
+  # seguridad; su base esta respaldada en respaldos/ y el volumen andina_clean_mongo_data no se
+  # borra. Ver doc/5. Microservicios/m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md, seccion 9.
   mongodb:
     image: mongo:8
     container_name: andina-clean-mongodb
+    profiles: ["monolito"]
     restart: unless-stopped
     # Replica set de un nodo (transacciones del Outbox, paso 0.7) con autenticacion obligatoria
     # (paso 0.6). infra/mongo/arranque.sh crea el keyFile y los usuarios; sirve tambien para el
@@ -32,6 +38,7 @@ services:
   backend:
     image: andina-seguros-clean:1.0.0
     container_name: andina-clean-backend
+    profiles: ["monolito"]
     build:
       context: .
       dockerfile: Dockerfile
@@ -394,8 +401,7 @@ services:
 
   # --- Fase 6: policy-service ----------------------------------------------------------------------
   # Polizas, saga de emision y renovaciones con base propia y proyecciones accepted_quotes y
-  # claim_ref. Desde el corte el gateway le envia /api/polizas y /api/renovaciones. El monolito
-  # (backend) queda sin trafico de negocio; retirarlo es el paso 6.10. Ver
+  # claim_ref. Desde el corte el gateway le envia /api/polizas y /api/renovaciones. Ver
   # doc/5. Microservicios/m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md.
   policy-mongodb:
     image: mongo:8
@@ -449,9 +455,9 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      BACKEND_SERVICE_URL: http://backend:8080
       IDENTITY_SERVICE_URL: http://identity-service:8080
-      # Corte de las fases 3 a 6. Reversa: apuntar cualquiera de estas URL a http://backend:8080.
+      # Corte de las fases 3 a 6. Reversa (paso 6.10): levantar el perfil "monolito" y apuntar
+      # cualquiera de estas URL a http://backend:8080.
       CUSTOMER_SERVICE_URL: ${CUSTOMER_SERVICE_URL:-http://customer-service:8080}
       CLAIMS_SERVICE_URL: ${CLAIMS_SERVICE_URL:-http://claims-service:8080}
       QUOTATION_SERVICE_URL: ${QUOTATION_SERVICE_URL:-http://quotation-service:8080}
@@ -462,12 +468,12 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:5173
     ports:
       - "8080:8080"
+    # Paso 6.10: fuera de clean_network (la red del MongoDB del monolito). Llega a los servicios, y
+    # al backend en una reversa, por services_network.
     networks:
-      - clean_network
       - gateway_network
       - services_network
     depends_on:
-      backend: { condition: service_started }
       identity-service: { condition: service_started }
       redis: { condition: service_healthy }
 

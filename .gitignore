@@ -35,3 +35,6 @@ Thumbs.db
 # Secretos reales de Kubernetes (las plantillas *.example.yaml si se versionan)
 k8s/**/*secret*.yaml
 !k8s/**/*.example.yaml
+
+# Respaldos de bases (contienen datos de clientes; nunca se versionan)
+respaldos/
