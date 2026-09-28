@@ -10,7 +10,8 @@
 # La cola destino por defecto es el nombre de la DLQ sin ".dlq" (convención de todas las colas).
 # Antes de reprocesar hay que corregir la causa (ver la guía de operación, doc/5. Microservicios/
 # o_GUIA-OPERACION.md); si no, los mensajes vuelven a la DLQ.
-# En Kubernetes: los mismos comandos rabbitmqctl con "kubectl exec -n andina-seguros deploy/rabbitmq --".
+# En Kubernetes (RabbitMQ es un StatefulSet, Pod rabbitmq-0): RABBITMQ_CONTAINER no aplica; usar los
+# mismos comandos rabbitmqctl con "kubectl exec -n andina-seguros rabbitmq-0 --".
 set -eu
 
 DLQ="${1:?Uso: reprocesar-dlq.sh <dlq> [cola-destino]}"
