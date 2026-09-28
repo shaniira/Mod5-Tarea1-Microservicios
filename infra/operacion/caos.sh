@@ -228,7 +228,7 @@ caso_replicas() {
   # reparte el Service), así que se emite llamando a cada réplica directamente.
   echo "== 2 réplicas de policy-service: emiten las dos, cada evento sale una vez y el relay cambia de dueño"
   if ! docker inspect policy-service-replica2 > /dev/null 2>&1; then
-    (cd Arquitectura-Clean && docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml \
+    (docker compose -f docker-compose.yml -f infra/observability/docker-compose.observability.yml \
       run -d --no-deps --use-aliases --name policy-service-replica2 policy-service > /dev/null)
   fi
   espera "segunda réplica sana" 240 sano policy-service-replica2
@@ -265,7 +265,7 @@ caso_relay_lote() {
   # El caso difícil del turno: un lote grande pendiente y dos réplicas compitiendo por publicarlo.
   echo "== Lote acumulado con 2 réplicas: al volver RabbitMQ cada evento sale exactamente una vez"
   if ! docker inspect policy-service-replica2 > /dev/null 2>&1; then
-    (cd Arquitectura-Clean && docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml \
+    (docker compose -f docker-compose.yml -f infra/observability/docker-compose.observability.yml \
       run -d --no-deps --use-aliases --name policy-service-replica2 policy-service > /dev/null)
   fi
   espera "segunda réplica sana" 240 sano policy-service-replica2

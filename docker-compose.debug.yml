@@ -5,10 +5,5 @@
 # No usar fuera de la máquina de desarrollo (paso 0.6 de la ruta: MongoDB, RabbitMQ y los servicios
 # solo son accesibles dentro de Docker).
 services:
-  mongodb:
-    # Conexión desde el host (Compass): mongodb://root:<clave>@localhost:27020/?directConnection=true
-    ports: ["27020:27017"]
   rabbitmq:
     ports: ["5672:5672", "15672:15672"]
-  backend:
-    ports: ["8083:8080"]

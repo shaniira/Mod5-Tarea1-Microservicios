@@ -7,10 +7,10 @@
 //   pico:     120 peticiones/s durante 10 s a una sola ruta, por encima del límite del gateway
 //             (50/s, ráfaga 100): el exceso debe responder 429, nunca 5xx.
 //
-// Uso (desde Arquitectura-Clean/, con el stack levantado; WhatsApp simulado para no enviar
+// Uso (desde la raíz del repositorio, con el stack levantado; WhatsApp simulado para no enviar
 // mensajes reales):
 //   docker run --rm -i --network andina_gateway_network -e BASE=http://gateway:8080 \
-//     grafana/k6:0.54.0 run - < ../infra/carga/carga.js
+//     grafana/k6:0.54.0 run - < infra/carga/carga.js
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';

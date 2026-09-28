@@ -2,7 +2,7 @@
 # alertas.yml). Se usa el cuerpo de correo predeterminado de Alertmanager, sin plantilla propia.
 #
 # Envío por Gmail (smtp.gmail.com:587, STARTTLS) con la cuenta del proyecto. La contraseña NO va en
-# este archivo: es una "contraseña de aplicación" de Google que se registra en Arquitectura-Clean/.env
+# este archivo: es una "contraseña de aplicación" de Google que se registra en el .env de la raíz
 # como ALERTMANAGER_SMTP_PASSWORD; al arrancar el contenedor se escribe en /tmp/smtp_password.
 global:
   smtp_smarthost: smtp.gmail.com:587

@@ -1,41 +1,513 @@
-name: andina-arquitecturas
+# Stack completo de Andina Seguros (microservicios). Se levanta desde la raíz del repositorio:
+#   docker compose up -d --build
+# El monolito (Arquitectura-Clean) se retiró del repositorio: su código queda en la etiqueta de git
+# monolito-final y su base en respaldos/. El nombre del proyecto (andina-clean) se conserva para no
+# renombrar contenedores, redes ni volúmenes existentes.
+name: andina-clean
 
 services:
-  clean-mongodb:
-    image: mongo:8
-    container_name: andina-clean-mongodb
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    # Nombre de host fijo: RabbitMQ guarda su estado en /var/lib/rabbitmq/mnesia/rabbit@<host>. Sin
+    # esto, cada vez que se recrea el contenedor arranca un nodo nuevo y vacío (colas y mensajes
+    # pendientes quedan en el directorio del nodo anterior). Visto el 2026-09-27 al sumarlo a la
+    # red de observabilidad.
+    hostname: rabbitmq
     restart: unless-stopped
     environment:
-      MONGO_INITDB_DATABASE: andina_seguros_clean
-    ports: ["27020:27017"]
-    volumes: ["clean_mongo_data:/data/db"]
-    networks: ["clean_network"]
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-andina}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+    # Sin puertos en el host (paso 0.6): la consola se abre con docker-compose.debug.yml.
+    # Fase 7: plugins fijos, incluido shovel para reprocesar DLQ (infra/rabbitmq/reprocesar-dlq.sh).
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infra/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    networks: ["rabbitmq_network"]
     healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      # rabbitmq-diagnostics arranca su propio nodo Erlang: con el host cargado tarda más de 5 s.
+      # Fase 7: cada 5 s mientras arranca y luego cada 30 s (cada chequeo cuesta CPU).
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+
+  # --- Fase 1: notification-service (antes "consumer") con base propia ---------------------------
+  # Solo ve su propia base y RabbitMQ (database per service).
+  notification-mongodb:
+    image: mongo:8
+    container_name: andina-notification-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${NOTIFICATION_MONGO_ROOT_PASSWORD:-notification-root-local}
+      MONGO_INITDB_DATABASE: notification_db
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-notification-local}
+    volumes:
+      - notification_mongo_data:/data/db
+      - ./services/notification-service/mongo-init:/docker-entrypoint-initdb.d:ro
+    networks: ["notification_data_network"]
+    healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+    # Sin puerto publicado al host.
+
+  notification-service:
+    image: andina-notification-service:1.1.0
+    container_name: andina-notification-service
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      # Credenciales solo de notification_db (paso 1.9).
+      SPRING_DATA_MONGODB_URI: mongodb://notification:${NOTIFICATION_DB_PASSWORD:-notification-local}@notification-mongodb:27017/notification_db?authSource=notification_db
+      WHATSAPP_BASE_URL: ${WHATSAPP_BASE_URL:-https://api.whatsapp.json.pe}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_CB_WAIT_OPEN: ${WHATSAPP_CB_WAIT_OPEN:-30s}
+    networks: [notification_data_network, rabbitmq_network]
+    depends_on:
+      notification-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # WhatsApp simulado para probar sin enviar mensajes reales. Se levanta solo con
+  # "--profile whatsapp-mock" y WHATSAPP_BASE_URL=http://whatsapp-mock:8080 (ver
+  # services/notification-service/README.md).
+  whatsapp-mock:
+    image: wiremock/wiremock:3.9.1
+    container_name: andina-whatsapp-mock
+    profiles: ["whatsapp-mock"]
+    command: ["--global-response-templating", "--disable-banner"]
+    volumes:
+      - ./services/notification-service/whatsapp-mock:/home/wiremock/mappings:ro
+    networks: [rabbitmq_network]
+
+  redis:
+    image: redis:7-alpine
+    container_name: andina-clean-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # gateway_network: rate limiter del gateway (base 0). identity_data_network: estado efimero de
+    # identity-service (base 1): state OAuth, tickets de login y desafios MFA (paso 2.5).
+    # customer_data_network: cache de placas de customer-service (base 2, paso 3.2).
+    networks: ["gateway_network", "identity_data_network", "customer_data_network"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 15
+    # Sin puerto publicado al host (regla "no exponer mas puertos que el gateway y el frontend").
 
-  clean-backend:
-    image: andina-seguros-clean:1.0.0
-    container_name: andina-clean-backend
-    build: { context: ./Arquitectura-Clean, dockerfile: Dockerfile }
+  # --- Fase 2: identity-service ------------------------------------------------------------------
+  # Genera una sola vez el par de claves RS256 en un volumen que solo monta identity-service. La
+  # clave privada nunca esta en el repositorio ni en variables de entorno de otros servicios.
+  identity-keygen:
+    image: eclipse-temurin:21-jre-alpine
+    user: root
+    restart: "no"
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        if [ ! -s /keys/private.pem ]; then
+        openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /keys/private.pem
+        && echo 'Clave RS256 generada'; else echo 'La clave RS256 ya existe'; fi;
+        chown 1001:1001 /keys/private.pem && chmod 400 /keys/private.pem
+    volumes:
+      - identity_keys:/keys
+    network_mode: none
+
+  identity-mongodb:
+    image: mongo:8
+    container_name: andina-identity-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${IDENTITY_MONGO_ROOT_PASSWORD:-identity-root-local}
+      MONGO_INITDB_DATABASE: identity_db
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-identity-local}
+    volumes:
+      - identity_mongo_data:/data/db
+      - ./services/identity-service/mongo-init:/docker-entrypoint-initdb.d:ro
+    networks: ["identity_data_network"]
+    healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+
+  # Sin container_name: se puede escalar ("docker compose up --scale identity-service=2", paso
+  # 2.10). El gateway y los servicios lo encuentran por el DNS de Docker.
+  identity-service:
+    image: andina-identity-service:1.0.0
+    build:
+      context: ./services/identity-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://identity:${IDENTITY_DB_PASSWORD:-identity-local}@identity-mongodb:27017/identity_db?authSource=identity_db
+      REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_PRIVATE_KEY_FILE: /run/keys/identity/private.pem
+      JWT_EXPIRATION_SECONDS: 28800
+      APP_DEMO_DATA_ENABLED: "true"
+      SWAGGER_ENABLED: "true"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_JWK_SET_URI: ${GOOGLE_JWK_SET_URI:-https://www.googleapis.com/oauth2/v3/certs}
+      GOOGLE_ISSUER: ${GOOGLE_ISSUER:-https://accounts.google.com}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      FACEBOOK_REDIRECT_URI: ${FACEBOOK_REDIRECT_URI:-}
+      FACEBOOK_SCOPES: ${FACEBOOK_SCOPES:-public_profile,email}
+      FACEBOOK_FRONTEND_CALLBACK_URL: ${FACEBOOK_FRONTEND_CALLBACK_URL:-http://localhost:5173/login}
+      FACEBOOK_LOGIN_TICKET_TTL_SECONDS: ${FACEBOOK_LOGIN_TICKET_TTL_SECONDS:-60}
+      FACEBOOK_TOKEN_ENCRYPTION_KEY: ${FACEBOOK_TOKEN_ENCRYPTION_KEY:-}
+      FACEBOOK_TOKEN_URI: ${FACEBOOK_TOKEN_URI:-https://graph.facebook.com/v22.0/oauth/access_token}
+      FACEBOOK_GRAPH_BASE_URL: ${FACEBOOK_GRAPH_BASE_URL:-https://graph.facebook.com/v22.0}
+    volumes:
+      - identity_keys:/run/keys/identity:ro
+    networks: [services_network, identity_data_network, rabbitmq_network]
+    depends_on:
+      identity-keygen: { condition: service_completed_successfully }
+      identity-mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # --- Fase 3: customer-service --------------------------------------------------------------------
+  # Clientes, vehiculos y consulta de placas con base propia. Desde el corte el gateway le envia
+  # /api/clientes y /api/vehiculos y publica customer.*. Datos iniciales: services/customer-service/
+  # migracion/migrar-clientes.sh. Ver doc/5. Microservicios/i_IMPLEMENTACION-CUSTOMER-SERVICE-FASE3.md.
+  customer-mongodb:
+    image: mongo:8
+    container_name: customer-mongodb
+    restart: unless-stopped
+    # Replica set de un nodo con autenticacion (mismo arranque que las demas bases, infra/mongo): el
+    # cliente y su evento del Outbox se guardan en una sola transaccion.
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${CUSTOMER_MONGO_ROOT_PASSWORD:-customer-root-local}
+      MONGO_APP_USERS: customer:customer_db:${CUSTOMER_DB_PASSWORD:-customer-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: customer-mongodb:27017
+    volumes:
+      - customer_mongo_data:/data/db
+      - ./infra/mongo:/scripts:ro
+    networks: ["customer_data_network"]
+    healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+
+  customer-service:
+    image: customer-service:1.0.0
+    container_name: customer-service
+    build:
+      context: ./services/customer-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://customer:${CUSTOMER_DB_PASSWORD:-customer-local}@customer-mongodb:27017/customer_db?replicaSet=rs0&authSource=customer_db
+      REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      JSONPE_TOKEN: ${JSONPE_TOKEN:-}
+      JSONPE_BASE_URL: ${JSONPE_BASE_URL:-https://api.json.pe}
+      # Paso 3.5: fuente de customer.* desde el corte.
+      CUSTOMER_EVENTS_PUBLISH_ENABLED: ${CUSTOMER_EVENTS_PUBLISH_ENABLED:-true}
+      # Retiro del monolito: una instalacion nueva siembra los clientes demo (si ya existen, por
+      # la migracion o una siembra anterior, no se tocan).
+      APP_DEMO_DATA_ENABLED: "true"
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, customer_data_network, rabbitmq_network]
+    depends_on:
+      customer-mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # JSON.pe simulado para probar placas sin token real. Se levanta con "--profile jsonpe-mock" y
+  # JSONPE_BASE_URL=http://jsonpe-mock:8080; detenerlo simula la caida del proveedor.
+  jsonpe-mock:
+    image: wiremock/wiremock:3.9.1
+    container_name: jsonpe-mock
+    profiles: ["jsonpe-mock"]
+    command: ["--global-response-templating", "--disable-banner"]
+    volumes:
+      - ./services/customer-service/jsonpe-mock:/home/wiremock/mappings:ro
+    networks: [customer_data_network]
+
+  # --- Fase 4: claims-service ----------------------------------------------------------------------
+  # Siniestros con base propia y proyeccion policy_ref (policy.*). Desde el corte el gateway le envia
+  # /api/polizas/{id}/siniestros. Ver doc/5. Microservicios/j_IMPLEMENTACION-CLAIMS-SERVICE-FASE4.md.
+  claims-mongodb:
+    image: mongo:8
+    container_name: claims-mongodb
+    restart: unless-stopped
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${CLAIMS_MONGO_ROOT_PASSWORD:-claims-root-local}
+      MONGO_APP_USERS: claims:claims_db:${CLAIMS_DB_PASSWORD:-claims-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: claims-mongodb:27017
+    volumes:
+      - claims_mongo_data:/data/db
+      - ./infra/mongo:/scripts:ro
+    networks: ["claims_data_network"]
+    healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+
+  claims-service:
+    image: claims-service:1.0.0
+    container_name: claims-service
+    build:
+      context: ./services/claims-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://claims:${CLAIMS_DB_PASSWORD:-claims-local}@claims-mongodb:27017/claims_db?replicaSet=rs0&authSource=claims_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      # Paso 4.5: publica claim.* desde el corte.
+      CLAIMS_EVENTS_PUBLISH_ENABLED: ${CLAIMS_EVENTS_PUBLISH_ENABLED:-true}
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, claims_data_network, rabbitmq_network]
+    depends_on:
+      claims-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # --- Fase 5: quotation-service -------------------------------------------------------------------
+  # Tarifas, motor de tarificacion y cotizaciones con base propia y proyecciones customer_ref y
+  # vehicle_ref (lectura de refuerzo a customer-service). Desde el corte el gateway le envia
+  # /api/cotizaciones y /api/tablas-tarifarias. Ver doc/5. Microservicios/l_IMPLEMENTACION-QUOTATION-SERVICE-FASE5.md.
+  quotation-mongodb:
+    image: mongo:8
+    container_name: quotation-mongodb
+    restart: unless-stopped
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${QUOTATION_MONGO_ROOT_PASSWORD:-quotation-root-local}
+      MONGO_APP_USERS: quotation:quotation_db:${QUOTATION_DB_PASSWORD:-quotation-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: quotation-mongodb:27017
+    volumes:
+      - quotation_mongo_data:/data/db
+      - ./infra/mongo:/scripts:ro
+    networks: ["quotation_data_network"]
+    healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+
+  quotation-service:
+    image: quotation-service:1.0.0
+    container_name: quotation-service
+    build:
+      context: ./services/quotation-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://quotation:${QUOTATION_DB_PASSWORD:-quotation-local}@quotation-mongodb:27017/quotation_db?replicaSet=rs0&authSource=quotation_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      CUSTOMER_SERVICE_URL: http://customer-service:8080
+      # Paso 5.4: publica quote.accepted.v1 desde el corte.
+      QUOTATION_EVENTS_PUBLISH_ENABLED: ${QUOTATION_EVENTS_PUBLISH_ENABLED:-true}
+      # Retiro del monolito: siembra las tablas tarifarias demo si no existen (DemoDataInitializer).
+      APP_DEMO_DATA_ENABLED: "true"
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, quotation_data_network, rabbitmq_network]
+    depends_on:
+      quotation-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # --- Fase 6: policy-service ----------------------------------------------------------------------
+  # Polizas, saga de emision y renovaciones con base propia y proyecciones accepted_quotes y
+  # claim_ref. Desde el corte el gateway le envia /api/polizas y /api/renovaciones. Ver
+  # doc/5. Microservicios/m_IMPLEMENTACION-POLICY-SERVICE-FASE6.md.
+  policy-mongodb:
+    image: mongo:8
+    container_name: policy-mongodb
+    restart: unless-stopped
+    entrypoint: ["bash", "/scripts/arranque.sh"]
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${POLICY_MONGO_ROOT_PASSWORD:-policy-root-local}
+      MONGO_APP_USERS: policy:policy_db:${POLICY_DB_PASSWORD:-policy-local}
+      MONGO_REPLICA_SET: rs0
+      MONGO_REPLICA_HOST: policy-mongodb:27017
+    volumes:
+      - policy_mongo_data:/data/db
+      - ./infra/mongo:/scripts:ro
+    networks: ["policy_data_network"]
+    healthcheck:
+      # Fase 7: cada 5 s mientras arranca (start_interval) y luego cada 30 s. Antes era cada 5 s
+      # siempre: cada chequeo lanza mongosh (un proceso Node) y con 7 bases se comían la CPU.
+      test: ["CMD", "bash", "/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+      start_interval: 5s
+
+  policy-service:
+    image: policy-service:1.0.0
+    container_name: policy-service
+    build:
+      context: ./services/policy-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://policy:${POLICY_DB_PASSWORD:-policy-local}@policy-mongodb:27017/policy_db?replicaSet=rs0&authSource=policy_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-andina}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-andina-local}
+      JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
+      # Pasos 6.6 y 6.7: fuente de policy.* desde el corte.
+      POLICY_EVENTS_PUBLISH_ENABLED: ${POLICY_EVENTS_PUBLISH_ENABLED:-true}
+      SWAGGER_ENABLED: "true"
+    networks: [services_network, policy_data_network, rabbitmq_network]
+    depends_on:
+      policy-mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  gateway:
+    image: andina-api-gateway:1.0.0
+    container_name: andina-api-gateway
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATA_MONGODB_URI: mongodb://clean-mongodb:27017/andina_seguros_clean
-      # Desde la fase 2 los tokens los emite identity-service, que este compose reducido no
-      # incluye: aqui solo responden las rutas publicas (health, swagger). Para el sistema
-      # completo usar Arquitectura-Clean/docker-compose.yml.
+      IDENTITY_SERVICE_URL: http://identity-service:8080
+      # Corte de las fases 3 a 6: todo el negocio va a los microservicios.
+      CUSTOMER_SERVICE_URL: ${CUSTOMER_SERVICE_URL:-http://customer-service:8080}
+      CLAIMS_SERVICE_URL: ${CLAIMS_SERVICE_URL:-http://claims-service:8080}
+      QUOTATION_SERVICE_URL: ${QUOTATION_SERVICE_URL:-http://quotation-service:8080}
+      POLICY_SERVICE_URL: ${POLICY_SERVICE_URL:-http://policy-service:8080}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       JWT_JWKS_URI: http://identity-service:8080/.well-known/jwks.json
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
-    ports: ["8083:8080"]
-    networks: ["clean_network"]
+      # Con el perfil tls: CORS_ALLOWED_ORIGINS=https://localhost:8443 (ver infra/tls/Caddyfile).
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    ports:
+      - "8080:8080"
+    # Llega a los servicios por services_network; no ve ninguna base de datos.
+    networks:
+      - gateway_network
+      - services_network
     depends_on:
-      clean-mongodb: { condition: service_healthy }
+      identity-service: { condition: service_started }
+      redis: { condition: service_healthy }
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # El frontend llama solo al gateway (:8080), unico punto de entrada de la API.
+        VITE_API_URL: ${FRONTEND_API_URL:-http://localhost:8080/api}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    # Fase 7: nginx sin root escucha en 8080; API_ORIGIN va a la CSP (connect-src).
+    environment:
+      API_ORIGIN: ${FRONTEND_API_ORIGIN:-http://localhost:8080}
+    ports: ["5173:8080"]
+    restart: unless-stopped
+
+  # --- Fase 7: TLS local (hallazgo S6), opcional ------------------------------------------------
+  # HTTPS delante del frontend (8443) y del gateway (8444) con una CA local. Excepción documentada
+  # a "solo el gateway y el frontend publican puertos": son esos mismos dos, cifrados.
+  #   FRONTEND_API_URL=https://localhost:8444/api FRONTEND_API_ORIGIN=https://localhost:8444 \
+  #   CORS_ALLOWED_ORIGINS=https://localhost:8443 docker compose --profile tls up -d --build
+  tls-proxy:
+    image: caddy:2.8-alpine
+    container_name: tls-proxy
+    profiles: ["tls"]
+    restart: unless-stopped
+    volumes:
+      - ./infra/tls/Caddyfile:/etc/caddy/Caddyfile:ro
+      - tls_data:/data
+    ports: ["8443:8443", "8444:8444"]
+    networks: [default, gateway_network]
+    depends_on: [frontend, gateway]
 volumes:
-  clean_mongo_data: { name: andina_clean_mongo_data }
+  rabbitmq_data:
+  notification_mongo_data:
+    name: andina_notification_mongo_data
+  identity_mongo_data:
+    name: andina_identity_mongo_data
+  # Clave privada RS256 de identity-service. Borrar este volumen rota la clave e invalida todos
+  # los tokens emitidos.
+  identity_keys:
+    name: andina_identity_keys
+  customer_mongo_data:
+    name: customer_mongo_data
+  claims_mongo_data:
+    name: claims_mongo_data
+  quotation_mongo_data:
+    name: quotation_mongo_data
+  policy_mongo_data:
+    name: policy_mongo_data
+  tls_data:
+    name: tls_data
 
 networks:
-  clean_network: { name: andina_clean_network }
+  rabbitmq_network:
+  notification_data_network:
+    name: andina_notification_data_network
+  gateway_network:
+    name: andina_gateway_network
+  # Gateway, identity-service y los servicios de negocio (rutas, JWKS y llamadas sincronas).
+  services_network:
+    name: andina_services_network
+  identity_data_network:
+    name: andina_identity_data_network
+  customer_data_network:
+    name: customer_data_network
+  claims_data_network:
+    name: claims_data_network
+  quotation_data_network:
+    name: quotation_data_network
+  policy_data_network:
+    name: policy_data_network
+
