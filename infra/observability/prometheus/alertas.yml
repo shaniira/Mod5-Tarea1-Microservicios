@@ -28,8 +28,10 @@ groups:
 
   - name: andina-mensajeria
     rules:
+      # Cada consumidor es dueño de su DLQ (*.dlq); la cantidad la mide RabbitMQ (job rabbitmq), así
+      # que cubre a todos los servicios sin métricas propias.
       - alert: DlqConMensajes
-        expr: notification_dlq_messages > 0
+        expr: max by (queue) (rabbitmq_detailed_queue_messages{queue=~".+[.]dlq"}) > 0
         for: 1m
         labels: { severidad: media }
         annotations:

@@ -82,10 +82,7 @@ services:
     environment:
       MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
     networks: [observability_network]
-  backend:
-    environment:
-      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
-    networks: [observability_network]
+  # El backend ya no está: se retiró en el paso 6.10.
   identity-service:
     environment:
       MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
@@ -93,6 +90,27 @@ services:
   notification-service:
     environment:
       MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  # Fases 3 a 6 (criterio de salida 3 de la fase 6).
+  customer-service:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  claims-service:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  quotation-service:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  policy-service:
+    environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    networks: [observability_network]
+  # RabbitMQ trae el plugin rabbitmq_prometheus (puerto 15692): Prometheus lee de ahí la cantidad
+  # de mensajes de cada cola, incluidas las DLQ de todos los servicios.
+  rabbitmq:
     networks: [observability_network]
 
 volumes:

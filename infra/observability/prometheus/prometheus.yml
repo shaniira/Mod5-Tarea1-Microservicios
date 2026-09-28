@@ -12,10 +12,7 @@ scrape_configs:
     static_configs:
       - targets: ["gateway:8080"]
 
-  - job_name: backend
-    metrics_path: /actuator/prometheus
-    static_configs:
-      - targets: ["backend:8080"]
+  # El backend se retiró en el paso 6.10: sin este job, la alerta ServicioCaido no lo reporta.
 
   - job_name: notification-service
     metrics_path: /actuator/prometheus
@@ -31,6 +28,36 @@ scrape_configs:
         type: A
         port: 8080
         refresh_interval: 30s
+
+  # Fases 3 a 6.
+  - job_name: customer-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["customer-service:8080"]
+
+  - job_name: claims-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["claims-service:8080"]
+
+  - job_name: quotation-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["quotation-service:8080"]
+
+  - job_name: policy-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["policy-service:8080"]
+
+  # Mensajes por cola (plugin rabbitmq_prometheus). Solo la familia queue_coarse_metrics: da
+  # rabbitmq_detailed_queue_messages{queue=...} sin medir todo el broker.
+  - job_name: rabbitmq
+    metrics_path: /metrics/detailed
+    params:
+      family: [queue_coarse_metrics]
+    static_configs:
+      - targets: ["rabbitmq:15692"]
 
   - job_name: prometheus
     static_configs:

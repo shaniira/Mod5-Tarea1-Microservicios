@@ -178,7 +178,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "notification_dlq_messages",
+          "expr": "max by (queue) (rabbitmq_detailed_queue_messages{queue=~\".+[.]dlq\"})",
           "legendFormat": "{{queue}}"
         }
       ]
