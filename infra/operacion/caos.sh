@@ -4,10 +4,13 @@
 # sistema se recupera sin perder eventos.
 #
 # Uso (desde la raíz del repositorio, con el stack levantado y WhatsApp y JSON.pe simulados):
-#   bash infra/operacion/caos.sh                 # todos los casos
+#   bash infra/operacion/caos.sh                 # los casos básicos (~25 min)
+#   bash infra/operacion/caos.sh todos           # además los largos (~40 min)
 #   bash infra/operacion/caos.sh claims rabbitmq # solo algunos
-# Casos: claims notification customer quotation policy identity rabbitmq redis mongo-policy
-#        whatsapp jsonpe identity-larga
+# Casos básicos: claims notification customer quotation policy identity rabbitmq redis
+#                mongo-policy whatsapp jsonpe
+# Casos largos:  replicas (2 réplicas de policy), relay-lote (lote acumulado con 2 réplicas),
+#                identity-larga (identity caído 6 minutos)
 # Sale con código 1 si algún resultado no es el esperado.
 set -u
 
@@ -256,8 +259,41 @@ caso_replicas() {
   docker rm -f policy-service-replica2 > /dev/null && echo "  -- segunda réplica eliminada"
 }
 
+caso_relay_lote() {
+  # El caso difícil del turno: un lote grande pendiente y dos réplicas compitiendo por publicarlo.
+  echo "== Lote acumulado con 2 réplicas: al volver RabbitMQ cada evento sale exactamente una vez"
+  if ! docker inspect policy-service-replica2 > /dev/null 2>&1; then
+    (cd Arquitectura-Clean && docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.observability.yml \
+      run -d --no-deps --use-aliases --name policy-service-replica2 policy-service > /dev/null)
+  fi
+  espera "segunda réplica sana" 240 sano policy-service-replica2
+  local QIDS=() IDS=() i R id n DUP=0 FALTA=0
+  for i in $(seq 1 20); do cotizar_y_aceptar; QIDS+=("$QID"); done; sleep 5
+  apagar andina-clean-rabbitmq-1
+  for i in $(seq 1 20); do
+    if [ $((i % 2)) = 0 ]; then R=policy-service; else R=policy-service-replica2; fi
+    IDS+=("$(emitir_en "$R" "${QIDS[$((i - 1))]}")")
+  done
+  local P; P=$(mongo policy-mongodb policy_db "print(db.outbox.countDocuments({status:'PENDING'}))")
+  [ "$P" -ge 20 ] && ok "20 emisiones con RabbitMQ caído: $P eventos acumulados en el Outbox" || falla "solo $P eventos pendientes"
+  encender andina-clean-rabbitmq-1
+  espera "el lote se publica (0 pendientes)" 180 outbox_sin_pendientes
+  sleep 10
+  for id in "${IDS[@]}"; do
+    n=$(docker logs claims-service 2>&1 | grep -c "PolicyIssued póliza $id")
+    [ "$n" = 1 ] || { [ "$n" = 0 ] && FALTA=$((FALTA + 1)) || DUP=$((DUP + 1)); }
+  done
+  [ "$DUP$FALTA" = 00 ] && ok "los 20 policy.issued llegaron exactamente una vez a claims" || falla "duplicados $DUP, faltantes $FALTA"
+  echo "  INFO   dueña del turno: $(mongo policy-mongodb policy_db "print(db.outbox_lock.findOne().owner)")"
+  docker rm -f policy-service-replica2 > /dev/null && echo "  -- segunda réplica eliminada"
+}
+
 CASOS=("$@")
-[ ${#CASOS[@]} -eq 0 ] && CASOS=(claims notification customer quotation policy identity rabbitmq redis mongo-policy whatsapp jsonpe)
+BASICOS=(claims notification customer quotation policy identity rabbitmq redis mongo-policy whatsapp jsonpe)
+# Sin argumentos: los casos básicos (~25 min). "todos" suma los largos: réplicas, lote con 2
+# réplicas e identity caído 6 minutos (~40 min en total).
+[ ${#CASOS[@]} -eq 0 ] && CASOS=("${BASICOS[@]}")
+[ "${CASOS[*]}" = todos ] && CASOS=("${BASICOS[@]}" replicas relay-lote identity-larga)
 preparar
 echo "Pruebas de caos ($CID), cliente $CLIENTE, vehículo $VEHICULO"
 for caso in "${CASOS[@]}"; do "caso_${caso//-/_}"; token; done
