@@ -17,9 +17,9 @@ Este documento registra lo que se implementó en la fase 3 de la [ruta de implem
 | 3.2 Consulta de placas resiliente | Timeout de 5 s (RestClient), circuit breaker `jsonpe`, un reintento con espera aleatoria y exponencial, bulkhead de 10 llamadas y **caché en Redis** (base 2, clave `placa:<PLACA>`, TTL 24 h). Solo las caídas del proveedor cuentan para el circuito y se reintentan; un token rechazado no. Si falla y no hay caché, responde `SIN_DATOS` y el usuario completa los datos a mano (igual que el monolito). Si Redis falla, la caché se comporta como vacía | ✅ |
 | 3.3 Publicar `customer.*` y `vehicle.registered` (Outbox) | Outbox transaccional (replica set de un nodo). `customer.registered/updated.v1` con el mismo formato que publicaba el monolito más el campo opcional `birthDate`; `vehicle.registered.v1` nuevo, con tipo, uso y año (lo que necesita la tarificación). Contratos en `contracts/events` | ✅ (publicación apagada hasta el corte) |
 | 3.4 Migrar `clientes` y `vehiculos` y backfill | `migracion/migrar-clientes.sh` copia las dos colecciones a `customer_db` y compara cantidad y huella SHA-256. El backfill `POST /api/clientes/eventos/reenvio` ahora publica también los vehículos | ✅ |
-| 3.5 Cambio de fuente de los eventos | Interruptor `CUSTOMER_EVENTS_PUBLISH_ENABLED` (en Compose: `false`). Con `false` los eventos quedan en el Outbox; se activa en el mismo momento que se cambia la ruta | ⏳ Preparado; requiere el corte |
-| 3.6 Rutas en el gateway | No se cambiaron (decisión "sin enrutar"). La ruta a agregar está en la sección 3.2 | ⏳ Pendiente del corte |
-| 3.7 "Mi cuenta" como composición en el gateway | No se hizo: mientras clientes y pólizas sigan en el monolito, "Mi cuenta" sigue ahí. Se hará cuando exista policy-service (fase 6) | ⏳ Pospuesto |
+| 3.5 Cambio de fuente de los eventos | Interruptor `CUSTOMER_EVENTS_PUBLISH_ENABLED` (en Compose: `false`). Con `false` los eventos quedan en el Outbox; se activa en el mismo momento que se cambia la ruta | ✅ Hecho en el corte (2026-09-27, `m_…` sección 7): interruptor en `true` |
+| 3.6 Rutas en el gateway | No se cambiaron (decisión "sin enrutar"). La ruta a agregar está en la sección 3.2 | ✅ Hecho en el corte (2026-09-27, `m_…` sección 7) |
+| 3.7 "Mi cuenta" como composición en el gateway | No se hizo: mientras clientes y pólizas sigan en el monolito, "Mi cuenta" sigue ahí. Se hará cuando exista policy-service (fase 6) | ✅ Hecho en el corte: el gateway compone customer y policy |
 
 Además:
 
@@ -79,9 +79,9 @@ Pruebas hechas el 2026-09-27 contra el stack de `Arquitectura-Clean/docker-compo
 
 | # | Criterio de salida (ruta, sección 7) | Cómo se probó | Resultado |
 |---|---|---|---|
-| 1 | Ningún servicio consulta `clientes` ni `vehiculos` fuera de customer-service | Requiere el corte: el monolito sigue siendo la fuente y lee sus colecciones | ⏳ Pendiente del corte |
+| 1 | Ningún servicio consulta `clientes` ni `vehiculos` fuera de customer-service | Requiere el corte: el monolito sigue siendo la fuente y lee sus colecciones | ✅ Hecho en el corte (2026-09-27, `m_…` sección 7) |
 | 2 | Con JSON.pe caído, se puede registrar un vehículo de forma manual y las placas ya consultadas siguen respondiendo desde la caché | Con el simulador arriba, `ABC123` devolvió datos (`fuente: JSON_PE`) y quedó en Redis con TTL de 86 399 s. Con el simulador detenido: `abc-123` respondió los mismos datos desde la caché; `XYZ789` respondió `SIN_DATOS` ("complete el registro manualmente") y el log registró `JSON.pe falló al consultar la placa XYZ789: JSONPE_UNAVAILABLE`; el registro manual del vehículo `XYZ-789` respondió **201** | ✅ Cumple |
-| 3 | Las proyecciones de notification e identity coinciden con los conteos de `customer_db` | Requiere el corte (hoy las alimenta el monolito) | ⏳ Pendiente del corte |
+| 3 | Las proyecciones de notification e identity coinciden con los conteos de `customer_db` | Requiere el corte (hoy las alimenta el monolito) | ✅ Verificado en el corte (15 = 15) y por la reconciliación de la fase 7 |
 
 Pruebas adicionales:
 
@@ -97,7 +97,7 @@ Pruebas adicionales:
 
 | Punto | Detalle |
 |---|---|
-| **Criterios de salida pendientes del corte** | "Ningún servicio consulta `clientes` ni `vehiculos` fuera de customer-service" y "las proyecciones de notification e identity coinciden con `customer_db`" dependen de que el monolito deje de ser la fuente (sección 3.2) |
+| **Criterios de salida pendientes del corte** | "Ningún servicio consulta `clientes` ni `vehiculos` fuera de customer-service" y "las proyecciones de notification e identity coinciden con `customer_db`" dependen de que el monolito deje de ser la fuente (sección 3.2). **Resuelto:** se cumplieron con el corte (2026-09-27) |
 | **Datos en paralelo** | Mientras no haya corte, lo que se cree directamente en customer-service no llega al monolito, y lo que se cree en el monolito no llega a customer-service hasta repetir la migración |
 | **Kubernetes** | Manifiestos escritos pero no aplicados |
 | **Relay del Outbox** | Pensado para una réplica, igual que el del backend |

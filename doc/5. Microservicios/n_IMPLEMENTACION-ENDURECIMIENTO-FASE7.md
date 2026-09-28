@@ -2,7 +2,7 @@
 
 Este documento registra lo que se hizo en la fase 7 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#11-fase-7--endurecimiento-y-cierre): las pruebas, lo que encontraron, cómo se corrigió y cómo quedó el sistema frente a los criterios de "terminado" de la [propuesta](c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md#11-criterios-de-aceptación-definición-de-terminado). Cómo operar el sistema día a día está en [o_GUIA-OPERACION.md](o_GUIA-OPERACION.md).
 
-**Resultado:** los 9 pasos de la fase están hechos y verificados contra el stack de Compose. Las pruebas encontraron **11 defectos reales** que no se habían visto en las fases anteriores (sección 2). Los más graves:
+**Resultado:** los 9 pasos de la fase están hechos y verificados contra el stack de Compose. Las pruebas encontraron **12 defectos reales** (uno más en la revisión posterior, sección 9) que no se habían visto en las fases anteriores (sección 2). Los más graves:
 
 - con Redis caído, el gateway se colgaba;
 - el relay del Outbox no admitía 2 réplicas;
@@ -51,6 +51,7 @@ Pendientes de la fase 6 que se cerraron aquí:
 | 9 | `quotationCB` esperaba 6 s pero el timeout HTTP global del gateway (5 s) cortaba antes | Análisis de un 503 | `response-timeout: 6000` en la ruta de quotation |
 | 10 | La renovación podía no ver un siniestro recién llegado: solo se contaban los mensajes *listos* de la cola; con prefetch 250 cientos podían estar entregados y sin aplicar | Análisis (fase 6, sección 5) | Prefetch 1 en policy y un contador de eventos de siniestros en proceso (`SiniestrosEnProceso`, antes de los reintentos) |
 | 11 | Un id que no es UUID, un JSON roto o una ruta inexistente → 500 | Fase 6 | 400 `SOLICITUD_MAL_FORMADA`, 404 y 405 en los 5 servicios con API |
+| 12 | **El turno del Outbox podía vencer a mitad de una pasada:** se renovaba solo al empezar; un lote de 100 eventos con confirmaciones lentas podía pasar los 15 s y otra réplica publicaría a la vez (duplicados o fuera de orden) | Revisión externa (Codex, sección 9) | El turno se renueva antes de cada evento y la pasada se corta si se pierde; el servicio no arranca si el turno dura menos del doble de la espera de confirmación. Prueba unitaria y caso de caos `relay-lote` |
 
 Dos más, de la verificación:
 
@@ -66,10 +67,10 @@ Dos más, de la verificación:
 | gateway | 1 | — |
 | identity-service | 62 | contrato de API, consumidor de `customer.*`, 400/404 |
 | notification-service | 30 | consumidor de `customer.*` y `policy.issued` |
-| customer-service | 42 | turno del relay, `customer.registered` contra su esquema, contrato de API, 400 |
-| claims-service | 32 | turno, consumidor de `policy.*` (4 eventos), contrato de API, 400 |
-| quotation-service | 45 | turno, `quote.accepted` con zona, consumidores, contrato de API, 400 |
-| policy-service | 48 | turno, `SiniestrosEnProceso`, `policy.renewed`, consumidores, contrato de API, 400/404 |
+| customer-service | 43 | turno del relay (también a mitad de lote), `customer.registered` contra su esquema, contrato de API, 400 |
+| claims-service | 33 | turno, consumidor de `policy.*` (4 eventos), contrato de API, 400 |
+| quotation-service | 46 | turno, `quote.accepted` con zona, consumidores, contrato de API, 400 |
+| policy-service | 49 | turno, `SiniestrosEnProceso`, `policy.renewed`, consumidores, contrato de API, 400/404 |
 
 Todas pasan con `CONTRATOS_OBLIGATORIOS=true` (como en CI). `k8s/`: 39 recursos válidos con kubeconform.
 
@@ -89,6 +90,7 @@ Todas pasan con `CONTRATOS_OBLIGATORIOS=true` (como en CI). `k8s/`: 39 recursos 
 | WhatsApp | El circuito se abre, el consumo se pausa, **0 mensajes en la DLQ**; al volver salen los retenidos |
 | JSON.pe | Placa en caché: 200; placa nueva: 200 con `SIN_DATOS` ("complete el registro manualmente") |
 | 2 réplicas de policy | Las dos emiten (5 y 5); cada `policy.issued` llega **exactamente una vez** a claims; al caer la dueña del turno la otra lo toma y publica |
+| Lote acumulado con 2 réplicas (`relay-lote`) | 20 emisiones con RabbitMQ caído (repartidas entre las dos réplicas) dejan 20 eventos en el Outbox; al volver RabbitMQ las dos compiten por publicarlos y los 20 llegan **exactamente una vez** a claims |
 
 Dos límites que se ven y quedan documentados en la guía:
 
@@ -193,3 +195,20 @@ Ninguno: ya estaba retirado desde la fase 6. Se usó su respaldo (`respaldos/mon
 | Infraestructura | `infra/operacion/` (caos, reconciliación), `infra/mongo/` (respaldo, restauración), `infra/rabbitmq/` (plugins, reproceso), `infra/carga/`, `infra/tls/`, `infra/observability/` (blackbox, alertas, tablero), `Arquitectura-Clean/docker-compose.yml` (healthchecks, plugins, TLS, frontend) |
 | Kubernetes y CI | `k8s/31-rabbitmq.yaml` (StatefulSet), `k8s/README.md`, `.github/workflows/k8s.yml` y `CONTRATOS_OBLIGATORIOS` en los workflows |
 | Documentación | este documento, [o_GUIA-OPERACION.md](o_GUIA-OPERACION.md), `d_RUTA…` (fase 7), `DOCKER-EJECUCION.md`, `CLAUDE.md`, `services/notification-service/README.md` |
+
+## 9. Revisión externa (Codex)
+
+Una revisión con Codex, hecha mientras la fase estaba en curso (antes de las pruebas, los documentos y los commits), señaló estos puntos:
+
+| Punto | Estado |
+|---|---|
+| El turno del Outbox puede vencer durante un lote lento | **Corregido** (defecto 12): se renueva antes de cada evento; validación al arrancar; prueba unitaria y caso `relay-lote` en vivo |
+| Documentos de las fases 3 a 6 con estados "pendiente" que ya no lo son, y 6.10/6.11 marcados "No se hizo" | **Corregido:** cada fila indica cómo quedó resuelta, sin borrar lo que se decidió en su momento |
+| `reprocesar-dlq.sh` indicaba `deploy/rabbitmq` en Kubernetes | **Corregido:** RabbitMQ es un StatefulSet; el comando es `kubectl exec -n andina-seguros rabbitmq-0 -- …` |
+| `caos.sh` no corre por defecto los casos de réplicas | **Corregido:** `bash infra/operacion/caos.sh todos` suma `replicas`, `relay-lote` e `identity-larga` |
+| Correr caos, carga, reconciliación y restauración; confirmar que las pruebas pasan | Ya hecho (sección 3) |
+| `o_GUIA` enlazaba a un informe que no existía; `nginx.conf` borrado sin su plantilla | Ya resuelto: este documento existe y los dos archivos entraron en el mismo commit |
+| Qué hacer con la cola de auditoría | Ya decidido (paso 7.9) |
+| **Siniestro recién registrado y renovación** con varias réplicas o con el evento todavía en el Outbox de claims | **Abierto, pendiente de decisión.** Opciones: (a) la evaluación queda "provisional" y se confirma cuando `claim_ref` alcanza la versión de claims; (b) policy consulta a claims en ese momento (llamada síncrona con circuit breaker, y "pendientes" si no responde) |
+| **Revocación de tokens con Redis caído** (se deja pasar: un token revocado vale hasta que vence, como mucho 8 h) | **Abierto, pendiente de aprobación.** Alternativas: aceptar el riesgo, o acortar la vida del token para acotarlo |
+| Aplicar Kubernetes, rotar tokens de JSON.pe, Alertmanager, login social real | Pendientes ya anotados (sección 6 y `CLAUDE.md`) |

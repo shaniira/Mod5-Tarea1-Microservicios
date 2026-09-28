@@ -19,8 +19,8 @@ Este documento registra lo que se implementó en la fase 6 de la [ruta de implem
 | 6.7 Migrar `polizas` y `propuestas_renovacion`; interruptor único | `migrar-polizas.sh` copia y compara (huella SHA-256). Interruptor `POLICY_EVENTS_PUBLISH_ENABLED` (en Compose: `false`) | ✅ (interruptor apagado hasta el corte) |
 | 6.8 Rutas en el gateway | `/api/polizas/**` y `/api/renovaciones/**` a policy-service, con las de siniestros antes (sección 7) | ✅ |
 | 6.9 "Mi cuenta" pasa a policy-service | Endpoint `GET /api/mi-cuenta/polizas` (solo CLIENTE, con el `customerId` del token) y composición en el gateway (`MiCuentaController`) con customer-service, con respuesta parcial | ✅ |
-| 6.10 Apagar el monolito | **No se hizo**: el equipo decidió mantener el monolito congelado y corriendo. Ver sección 3.2 | ⏳ Pendiente del corte |
-| 6.11 Retirar `andina.insurance.events` | **No se hizo**: el monolito sigue publicando `policy.issued.v1` ahí | ⏳ Pendiente del corte |
+| 6.10 Apagar el monolito | Primero se decidió mantenerlo congelado y corriendo (sección 3.2); al cerrar la fase se retiró con su base respaldada | ✅ Hecho (sección 9.1) |
+| 6.11 Retirar `andina.insurance.events` | Se retiró cuando el monolito dejó de publicar ahí; su DLX, en la fase 7 | ✅ Hecho (sección 9.2) |
 
 Cambios en servicios anteriores para cerrar la saga:
 
@@ -94,10 +94,10 @@ Pruebas adicionales:
 | Punto | Detalle |
 |---|---|
 | **Vencer y cancelar pólizas** | No existe la operación en el sistema; los contratos están listos para cuando exista |
-| **Kubernetes** | Manifiestos escritos y validados con `--dry-run=server`; no aplicados. El clúster kind local todavía corre el despliegue de la fase 0 (gateway, **backend**, MongoDB, RabbitMQ, Redis) y carga mucho el equipo (sección 9) |
-| **Siniestro recién registrado y renovación** | La sincronización de `claim_ref` mira la carga inicial y los mensajes *listos* de `policy.claim.events`. No ve un evento que todavía está en el Outbox de claims ni uno ya entregado al consumidor y sin confirmar: una evaluación hecha en ese instante no ve el siniestro. Con el equipo cargado se vio una ventana de ~1,3 s (sección 9). Para la fase 7: contar también los mensajes sin confirmar, o que la evaluación quede provisional hasta que `claim_ref` esté al día |
-| **Id que no es UUID** | `GET /api/polizas/abc` (y equivalentes en claims) responde 500 en lugar de 400. El monolito hacía lo mismo; queda para la fase 7 |
-| **RabbitMQ en Kubernetes** | Usa `emptyDir`: al reiniciar el Pod pierde colas y mensajes. En Compose se corrigió el equivalente (sección 9); en Kubernetes queda para la fase 7 (StatefulSet con volumen) |
+| **Kubernetes** | Manifiestos escritos y validados con `--dry-run=server`; no aplicados. El clúster kind local todavía corre el despliegue de la fase 0 (gateway, **backend**, MongoDB, RabbitMQ, Redis) y carga mucho el equipo (sección 9) **Fase 7:** validados con kubeconform en CI; el clúster kind se apagó; siguen sin aplicarse |
+| **Siniestro recién registrado y renovación** | La sincronización de `claim_ref` mira la carga inicial y los mensajes *listos* de `policy.claim.events`. No ve un evento que todavía está en el Outbox de claims ni uno ya entregado al consumidor y sin confirmar: una evaluación hecha en ese instante no ve el siniestro. Con el equipo cargado se vio una ventana de ~1,3 s (sección 9). Para la fase 7: contar también los mensajes sin confirmar, o que la evaluación quede provisional hasta que `claim_ref` esté al día **Fase 7:** se cuentan los mensajes sin confirmar (prefetch 1 y `SiniestrosEnProceso`); quedan abiertos el evento que sigue en el Outbox de claims y el que aplica otra réplica (`n_…`) |
+| **Id que no es UUID** | `GET /api/polizas/abc` (y equivalentes en claims) responde 500 en lugar de 400. El monolito hacía lo mismo; queda para la fase 7 **Resuelto en la fase 7:** 400 `SOLICITUD_MAL_FORMADA` |
+| **RabbitMQ en Kubernetes** | Usa `emptyDir`: al reiniciar el Pod pierde colas y mensajes. En Compose se corrigió el equivalente (sección 9); en Kubernetes queda para la fase 7 (StatefulSet con volumen) **Resuelto en la fase 7:** `StatefulSet` con volumen |
 
 ## 7. Corte de las fases 3 a 6 (2026-09-27)
 

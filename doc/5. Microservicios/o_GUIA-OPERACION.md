@@ -71,7 +71,7 @@ Para entrar a una base: `docker exec -it <contenedor-mongodb> mongosh -u root -p
 
 ## 5. Qué sigue funcionando si algo se cae (degradación planificada)
 
-Verificado con `bash infra/operacion/caos.sh` (resultados en la sección 3.2 de `n_…`).
+Verificado con `bash infra/operacion/caos.sh` (casos básicos, ~25 min) y `bash infra/operacion/caos.sh todos` (suma 2 réplicas, lote con 2 réplicas e identity caído 6 min). Resultados en la sección 3.2 de `n_…`.
 
 | Si cae… | Deja de funcionar | Sigue funcionando |
 |---|---|---|

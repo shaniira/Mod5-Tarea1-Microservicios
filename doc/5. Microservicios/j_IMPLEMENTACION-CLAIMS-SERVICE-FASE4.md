@@ -13,14 +13,14 @@ Este documento registra lo que se implementó en la fase 4 de la [ruta de implem
 
 | Paso de la ruta | Implementación | Estado |
 |---|---|---|
-| 4.1 Publicar `policy.renewed/expired/cancelled` desde el monolito | No se hizo: requiere cambiar el código del monolito. `policy_ref` se mantiene con `policy.issued.v1` (que el monolito ya publica) y con la carga inicial | ⏳ Pendiente (o lo resuelve policy-service en la fase 6) |
+| 4.1 Publicar `policy.renewed/expired/cancelled` desde el monolito | No se hizo: requiere cambiar el código del monolito. `policy_ref` se mantiene con `policy.issued.v1` (que el monolito ya publica) y con la carga inicial | ✅ Lo resolvió policy-service: publica `policy.renewed` (fase 6); `expired/cancelled` tienen contrato pero ninguna operación los produce |
 | 4.2 Crear claims-service con la plantilla | Estructura Clean con 8 reglas ArchUnit. `Siniestro` (misma regla: un siniestro cerrado no cambia) con **versión del agregado**, `Dinero`, los casos de uso `siniestro/*`. Mismas rutas, reglas por rol y propietario, respuestas y formato de error que el monolito | ✅ |
 | 4.3 Proyección `policy_ref` con backfill | Colección `policy_ref` (id, cliente, número, estado). Se alimenta con `policy.issued.v1` (cola propia `claims.policy.events`, enlazada a `andina.insurance.events` y a `andina.events`, con DLQ) mediante un *upsert* que solo inserta si no existe. La carga inicial la hace `migracion/migrar-siniestros.sh` desde la colección `polizas` (solo lectura) | ✅ |
 | 4.4 Validar la póliza contra `policy_ref` | Registrar un siniestro exige que la póliza esté en la proyección y `VIGENTE`; si no está, responde 404 sin consultar a nadie más. El control de propietario del CLIENTE también usa `policy_ref` | ✅ |
 | 4.5 Publicar `claim.registered/status-changed.v1` (Outbox) | Siniestro y evento en una sola transacción (replica set). Los eventos llevan el estado, si está abierto y si el asegurado fue responsable (lo que la renovación necesita). Interruptor `CLAIMS_EVENTS_PUBLISH_ENABLED` (en Compose: `false`). Backfill nuevo: `POST /api/siniestros/eventos/reenvio` (ADMIN) | ✅ (publicación apagada hasta el corte) |
 | 4.6 Migrar `siniestros` a `claims_db` | `migrar-siniestros.sh` copia la colección y compara cantidad y huella SHA-256 | ✅ |
-| 4.7 Rutas en el gateway | No se cambiaron (sin enrutar). La ruta a agregar está en la sección 3.2 | ⏳ Pendiente del corte |
-| 4.8 El monolito consume `claim.*` | No se hizo: requiere cambiar el código del monolito | ⏳ Pendiente (o fase 6) |
+| 4.7 Rutas en el gateway | No se cambiaron (sin enrutar). La ruta a agregar está en la sección 3.2 | ✅ Hecho en el corte (2026-09-27, `m_…` sección 7) |
+| 4.8 El monolito consume `claim.*` | No se hizo: requiere cambiar el código del monolito | ✅ Ya no hace falta: el monolito se retiró y policy-service consume `claim.*` (fase 6) |
 
 Además: `claims-mongodb` y `claims-service` en `Arquitectura-Clean/docker-compose.yml` (sin puertos en el host, sin acceso a la red del backend), contratos `claim.*.schema.json` y CI `.github/workflows/claims-service.yml`. No se escribieron manifiestos de Kubernetes.
 
@@ -73,7 +73,7 @@ Pruebas hechas el 2026-09-27 contra el stack de Compose. claims-service se llam�
 | # | Criterio de salida (ruta, sección 8) | Cómo se probó | Resultado |
 |---|---|---|---|
 | 1 | Registrar y cambiar el estado de un siniestro funciona sin acceso a la base de pólizas | Se emitió una póliza en el monolito; `policy.issued.v1` la dejó en `policy_ref` (VIGENTE, `origen: POLICY_ISSUED`) en menos de 1 s. En claims-service: registrar siniestro **201**, cambiar a LIQUIDADO **200**, cambiar un cerrado **422** `SINIESTRO_CERRADO`, póliza fuera de la proyección **404**, póliza VENCIDA (carga inicial) **422** `POLIZA_NO_VIGENTE`. Desde el contenedor, `andina-clean-mongodb` y `mongodb` no resuelven: no hay ruta a la base del backend | ✅ Cumple |
-| 2 | Una renovación se bloquea si hay siniestros abiertos, usando el contador actualizado por eventos | La renovación sí se bloquea (`422 SINIESTROS_PENDIENTES`), pero el monolito usa su propia colección `siniestros`, no un contador por eventos. Requiere el paso 4.8 o la fase 6 | ⏳ Parcial |
+| 2 | Una renovación se bloquea si hay siniestros abiertos, usando el contador actualizado por eventos | La renovación sí se bloquea (`422 SINIESTROS_PENDIENTES`), pero el monolito usa su propia colección `siniestros`, no un contador por eventos. Requiere el paso 4.8 o la fase 6 | ✅ Cumplido en la fase 6: policy-service bloquea con `claim_ref`, actualizado por `claim.*` (verificado por el gateway y en las pruebas de caos de la fase 7) |
 | 3 | Con claims-service caído, la emisión y renovación de pólizas siguen funcionando | Con claims-service detenido: cotizar, aceptar y emitir póliza por el gateway respondieron bien; evaluar una renovación respondió (bloqueada por un siniestro abierto). El `policy.issued.v1` quedó en la cola `claims.policy.events` (1 mensaje); al levantar claims-service se procesó (cola en 0, DLQ en 0) y la póliza apareció en `policy_ref` | ✅ Cumple |
 
 Pruebas adicionales:
