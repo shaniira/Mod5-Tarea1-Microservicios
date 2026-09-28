@@ -25,9 +25,10 @@ import org.springframework.context.annotation.Configuration;
  * propuesta): el backend ya no las declara.
  *
  * <ul>
- *   <li>{@code andina.policy.notification.queue}: policy.issued.v1 desde andina.events. Conserva el
- *       nombre y los argumentos de antes (incluida su DLX andina.insurance.events.dlx): RabbitMQ no
- *       deja cambiar los argumentos de una cola existente.
+ *   <li>{@code notification.policy.events}: policy.issued.v1 desde andina.events, con DLX
+ *       andina.events.dlx como las demás colas. Fase 7: reemplaza a andina.policy.notification.queue,
+ *       que usaba la DLX heredada andina.insurance.events.dlx (RabbitMQ no deja cambiar los
+ *       argumentos de una cola existente, por eso es una cola nueva).
  *   <li>{@code notification.customer.events}: customer.registered.v1 y customer.updated.v1.
  * </ul>
  *
