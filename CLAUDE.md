@@ -9,7 +9,8 @@ Sistema de seguros vehiculares (cotizaciones, pólizas, siniestros, renovaciones
 
 - `doc/5. Microservicios/c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md`: arquitectura objetivo, contratos de eventos, resiliencia y observabilidad.
 - `doc/5. Microservicios/d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md`: fases con sus pasos y criterios de salida (los cumplidos están marcados).
-- `doc/5. Microservicios/f_…` (fase 1), `g_…` (fase 2), `h_CIERRE-PENDIENTES.md`, `i_…` (fase 3), `j_…` (fase 4), `l_…` (fase 5), `m_…` (fase 6, corte y retiro del monolito): qué se implementó, decisiones y evidencias.
+- `doc/5. Microservicios/f_…` (fase 1), `g_…` (fase 2), `h_CIERRE-PENDIENTES.md`, `i_…` (fase 3), `j_…` (fase 4), `l_…` (fase 5), `m_…` (fase 6, corte y retiro del monolito), `n_…` (fase 7): qué se implementó, decisiones y evidencias.
+- `doc/5. Microservicios/o_GUIA-OPERACION.md`: cómo operar el sistema (alertas, reconciliación, respaldos, DLQ, degradación).
 - `doc/5. Microservicios/k_IMPACTO-EN-EL-MONOLITO.md`: qué se cambió en el monolito en cada fase y commit, y qué haría falta para cada corte.
 - `contracts/`: esquemas de eventos y OpenAPI. Todo evento nuevo se define aquí primero.
 - `doc/0. STANDAR-COMMITS.md`: estándar de commits.
@@ -25,7 +26,7 @@ Sistema de seguros vehiculares (cotizaciones, pólizas, siniestros, renovaciones
 | 4. claims-service                                          | ✅ Cerrada (corte 2026-09-27) | Shanira |
 | 5. quotation-service                                       | ✅ Cerrada (corte 2026-09-27) | Shanira |
 | 6. policy-service (Saga de emisión, se apaga el monolito) | ✅ Cerrada (monolito retirado 2026-09-27) | Shanira |
-| 7. Endurecimiento                                          | ⏳ Pendiente | —          |
+| 7. Endurecimiento                                          | ✅ Cerrada (2026-09-28) | Shanira |
 
 Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotation`), con PRs pequeños.
 
@@ -53,8 +54,10 @@ Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotat
 | `services/quotation-service/`    | Tablas tarifarias, motor de tarificación, cotizaciones; proyecciones `customer_ref` y `vehicle_ref` con lectura de refuerzo a customer-service; publica `quote.accepted` |
 | `frontend/`                      | Vue 3.5 + TypeScript + Vite + Pinia; llama solo al gateway                                                          |
 | `contracts/`                     | Esquemas JSON de eventos y OpenAPI                                                                                  |
-| `infra/mongo/`                   | Arranque de MongoDB con replica set y autenticación (Compose y Kubernetes)                                         |
-| `infra/observability/`           | OTel Collector, Jaeger, Prometheus (alertas), Loki, Promtail, Grafana                                               |
+| `infra/observability/`           | OTel Collector, Jaeger, Prometheus (alertas), Loki, Promtail, Grafana, blackbox (readiness)                         |
+| `infra/operacion/`               | Pruebas de caos (`caos.sh`) y reconciliación de proyecciones (`reconciliar.sh`)                                     |
+| `infra/mongo/`, `infra/rabbitmq/` | MongoDB (replica set y autenticación, respaldo, prueba de restauración); plugins de RabbitMQ y reproceso de DLQ |
+| `infra/carga/`, `infra/tls/`     | Prueba de carga (k6) y proxy HTTPS local (perfil `tls`)                                                             |
 | `k8s/`                           | Manifiestos de Kubernetes (ver `k8s/README.md`); los del monolito, en `k8s/archivo-monolito/`                     |
 | `respaldos/`                     | Respaldos de bases (no versionado): la del monolito tomada al retirarlo                                            |
 
@@ -63,7 +66,9 @@ Trabajo en paralelo: cada fase en su propia rama (por ejemplo `feat/fase5-quotat
 - Cada servicio: carpetas `entities`, `usecases`, `interfaceadapters`, `frameworksdrivers` y prueba ArchUnit (plantilla en la sección 3 de la ruta).
 - **Database per service**: ningún servicio lee la base de otro. Los datos ajenos se copian con eventos (proyecciones con `aggregateVersion` para descartar eventos viejos).
 - Publicar eventos siempre con **Outbox**; consumir con **inbox/idempotencia**; cada consumidor es dueño de sus colas y su DLQ.
-- Todos los eventos van por `andina.events` (DLX `andina.events.dlx`). El heredado `andina.insurance.events` se retiró en el paso 6.11; solo queda `andina.insurance.events.dlx` como DLX de la cola `andina.policy.notification.queue` (sus argumentos no se pueden cambiar sin recrearla).
+- Todos los eventos van por `andina.events` (DLX `andina.events.dlx`); cada cola `<cola>` tiene su DLQ `<cola>.dlq` (reproceso: `infra/rabbitmq/reprocesar-dlq.sh`). El exchange heredado y su DLX se retiraron (pasos 6.11 y fase 7).
+- Todo evento nuevo: esquema y ejemplo en `contracts/events/` primero; las pruebas de contrato lo exigen en CI (`CONTRATOS_OBLIGATORIOS=true`). Fechas `date-time` con zona.
+- El relay del Outbox publica solo desde la réplica que tiene el turno (`outbox_lock`): los servicios admiten varias réplicas.
 - Seguridad: cada servicio valida el JWT (RS256, JWKS de identity) y aplica rol y propietario (`customerId` del token). Reglas por rol del backend en `interfaceadapters/in/rest/security/Roles.java`.
 - Solo el gateway (8080) y el frontend (5173) publican puertos. Secretos solo por variables de entorno (`.env`, nunca versionado).
 - Comentarios y documentación en español.
@@ -115,13 +120,12 @@ Al terminar:
 
 ## Siguiente trabajo
 
-Las fases 0 a 6 están cerradas: el monolito se retiró (ver `m_…`, secciones 7 y 9). Lo que sigue es la **fase 7** (ruta, sección 11), con estos puntos ya identificados:
+Las 8 fases de la ruta están cerradas (fase 7: `n_…`). Lo que queda son decisiones documentadas para cuando el negocio lo pida (`n_…`, secciones 5 y 6):
 
-1. **Kubernetes:** manifiestos de los servicios nuevos y del gateway validados con `--dry-run=server` (`k8s/70`–`98`); falta cargar las imágenes y aplicarlos. El clúster kind local todavía corre el despliegue de la fase 0 (con backend) y sobrecarga el equipo. RabbitMQ usa `emptyDir` (pierde mensajes al reiniciar).
-2. **Auditoría:** `andina.policy.audit.queue` ya no existe en el nodo actual; sus 6 mensajes antiguos quedaron en el directorio del nodo anterior de RabbitMQ. Definir un consumidor de auditoría sobre `andina.events`.
-3. **Renovación y siniestros recientes:** la sincronización de `claim_ref` no ve eventos en el Outbox de claims ni mensajes sin confirmar (`m_…`, sección 5).
-4. **Ids que no son UUID** responden 500 (como el monolito); deberían dar 400.
-5. **DLX heredada** `andina.insurance.events.dlx` de la cola de notificación de pólizas (renombrar implica recrear la cola).
-6. Caos, carga y reconciliación (criterios de la fase 7). Pasado el periodo de seguridad, borrar el volumen `andina_clean_mongo_data`.
+1. **Kubernetes:** manifiestos validados (kubeconform en CI; RabbitMQ ya es `StatefulSet` con volumen) pero no aplicados. El clúster kind local está apagado (`docker start andina-seguros-control-plane`) y todavía tiene el despliegue de la fase 0.
+2. **Seguridad para producción:** permisos de RabbitMQ por servicio y TLS interno (S5), token en cookie `HttpOnly` con renovación (S8), Alertmanager.
+3. **Alta disponibilidad:** MongoDB y RabbitMQ de 3 nodos (A5).
+4. **Rendimiento:** en el equipo de 4 CPU las lecturas dan p95 de 1,7 s (objetivo 1 s); el gateway suma unos 350 ms. Fijar el límite de tasa por entorno según la capacidad medida (`n_…`, sección 3.4).
+5. Pasado el periodo de seguridad, borrar el volumen `andina_clean_mongo_data` (el respaldo queda en `respaldos/`).
 
-Para probar localmente: `--profile jsonpe-mock` con `JSONPE_BASE_URL=http://jsonpe-mock:8080` simula JSON.pe, y `--profile whatsapp-mock` con `WHATSAPP_BASE_URL=http://whatsapp-mock:8080` simula WhatsApp.
+Operación diaria (reconciliación, respaldos, DLQ, alertas): `o_GUIA-OPERACION.md`. Para probar localmente: `--profile jsonpe-mock` con `JSONPE_BASE_URL=http://jsonpe-mock:8080` simula JSON.pe, y `--profile whatsapp-mock` con `WHATSAPP_BASE_URL=http://whatsapp-mock:8080` simula WhatsApp.

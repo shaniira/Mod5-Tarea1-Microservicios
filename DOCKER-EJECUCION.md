@@ -42,6 +42,25 @@ WHATSAPP_BASE_URL=http://whatsapp-mock:8080 docker compose --profile whatsapp-mo
 JSONPE_BASE_URL=http://jsonpe-mock:8080 docker compose --profile jsonpe-mock up -d
 ```
 
+Con HTTPS local (fase 7, perfil `tls`: https://localhost:8443 el frontend y https://localhost:8444 el gateway, con una CA local de Caddy):
+
+```bash
+FRONTEND_API_URL=https://localhost:8444/api FRONTEND_API_ORIGIN=https://localhost:8444 \
+CORS_ALLOWED_ORIGINS=https://localhost:8443 docker compose --profile tls up -d --build
+```
+
+### Operación (fase 7)
+
+Desde la raíz del repositorio; qué hacer con cada resultado está en la [guía de operación](doc/5.%20Microservicios/o_GUIA-OPERACION.md).
+
+| Tarea | Comando |
+|---|---|
+| Reconciliar proyecciones con sus fuentes | `sh infra/operacion/reconciliar.sh` |
+| Respaldar las 6 bases / probar la restauración | `sh infra/mongo/respaldar.sh` / `sh infra/mongo/probar-restauracion.sh respaldos/<fecha>` |
+| Reprocesar una DLQ | `sh infra/rabbitmq/reprocesar-dlq.sh <cola>.dlq` |
+| Pruebas de caos | `bash infra/operacion/caos.sh [caso...]` (con WhatsApp y JSON.pe simulados) |
+| Prueba de carga | `docker run --rm -i --network andina_gateway_network grafana/k6:0.54.0 run - < infra/carga/carga.js` |
+
 ### Abrir puertos internos (solo para depurar)
 
 ```bash
@@ -57,7 +76,7 @@ docker compose -f docker-compose.yml -f ../infra/observability/docker-compose.ob
 
 - **Grafana** (http://localhost:3000, usuario `admin`, clave `GRAFANA_ADMIN_PASSWORD` o `grafana-local`): tablero "Andina Seguros — Resumen" y, en Explore, los logs de todos los servicios. Para seguir una petición: `{service=~".+"} |= "<X-Correlation-Id>"`; desde cada log, el `traceId` abre la traza en Jaeger.
 - **Jaeger** (http://localhost:16686): una emisión es una sola traza: gateway → policy-service → RabbitMQ → notification-service, claims-service y quotation-service.
-- **Prometheus** (http://localhost:9090): métricas de los 7 servicios y de RabbitMQ (mensajes por cola), y alertas: circuito abierto, DLQ con mensajes (de cualquier servicio), Outbox atrasado, 5xx, servicio caído y notificaciones pausadas.
+- **Prometheus** (http://localhost:9090): métricas de los 7 servicios y de RabbitMQ (mensajes por cola), readiness de cada servicio (blackbox) y alertas: servicio caído o no listo, circuito abierto, DLQ con mensajes (de cualquier servicio), Outbox atrasado, 5xx y notificaciones pausadas.
 
 Detener sin borrar datos:
 
