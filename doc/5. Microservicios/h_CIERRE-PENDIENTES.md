@@ -1,4 +1,6 @@
-# Andina Seguros — Cierre de pendientes (fase 0 y fases 1-2)
+# Backend Seguros — Cierre de pendientes (fase 0 y fases 1-2)
+
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 Este documento registra el cierre de los pendientes que habían quedado después de las fases 1 y 2, y de lo que faltaba de la fase 0 ([ruta, sección 4](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#4-fase-0--preparación-y-seguridad-base)). Todo se verificó el 2026-09-26 contra el stack de Docker Compose y, en el caso de MongoDB, también en Kubernetes (Minikube).
 
@@ -41,6 +43,21 @@ Este documento registra el cierre de los pendientes que habían quedado después
 | Traza distribuida (Jaeger) | Una sola traza: gateway → `andina-backend` (`POST /api/polizas`) → RabbitMQ → notification-service; el alta de cliente continúa en identity-service y notification-service |
 | Logs por `correlationId` (Loki vía Grafana) | Aparecen las líneas del gateway y de notification-service; estas llevan el mismo `traceId` que la traza de Jaeger |
 | Pruebas automáticas | Backend 47, identity-service 59, notification-service 27, gateway 1 (con Redis) |
+
+### 2.1 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | Tras recrear un contenedor (por ejemplo el backend), el gateway respondía 503 hasta reiniciarlo | El gateway guardaba la IP vieja: caché DNS sin vencimiento y conexiones que no se renovaban | Caché DNS de 10 s y conexiones con vida limitada (commit `d2c524b`) | Se recreó el backend (IP nueva): 6 de 6 respuestas correctas sin reiniciar el gateway |
+| 2 | Después de reiniciar el backend, las primeras peticiones daban 503 | El circuit breaker del gateway se abrió durante el reinicio, y la primera petición con la JVM en frío superaba el timeout de 3 s | Se esperó a que el circuito se cerrara. El arranque en frío se resolvió de fondo en la fase 7 (calentamiento antes de declararse listo) | Reintento con el circuito cerrado: 200 |
+| 3 | La prueba WebMvc del control de acceso no encontraba la configuración de la aplicación | Faltaba indicarle la clase de configuración, como hacía la prueba existente del backend | Se siguió el mismo patrón que esa prueba | 5 pruebas de acceso en verde (47 en el backend) |
+| 4 | El filtro del gateway no podía modificar las cabeceras de la petición | En Spring Cloud Gateway las cabeceras de la petición son de solo lectura en ese punto | Se crea una copia modificable con un *request decorator* | Pruebas del gateway en verde |
+| 5 | Una prueba de ACTUARIO devolvía 400 en vez de 403 | El cuerpo vacío fallaba la validación antes de llegar a la regla de rol | Error de la prueba: se envía un cuerpo bien formado para que decida el rol | 27 de 27 comprobaciones de seguridad |
+| 6 | La migración de usuarios dejó de funcionar | El MongoDB del backend pasó a exigir credenciales | El script de migración usa las credenciales | Migración repetida con la misma huella |
+| 7 | El replica set de MongoDB no arrancaba en Kubernetes | El Service *headless* solo publica Pods listos, y el replica set necesita resolver su propio nombre antes de estarlo | `publishNotReadyAddresses: true` en el Service | Replica set PRIMARY, autenticación obligatoria y transacciones funcionando en Minikube |
+| 8 | Kubernetes no aceptaba el Pod de notification-service con `runAsNonRoot` | La imagen usaba un usuario sin UID fijo, y Kubernetes no puede comprobar `runAsNonRoot` con un nombre | UID 1001 en la imagen, como identity-service | Pod aceptado por el API server |
+| 9 | Las trazas del backend salían en Jaeger como `unknown_service` | Faltaba el nombre del servicio en la configuración de trazas | Se configuró el nombre (`andina-backend`) | El backend aparece con su nombre en Jaeger |
+| 10 | Algunos comandos con rutas fallaban en Git Bash | Git Bash convierte a rutas de Windows los argumentos que empiezan con `/` | Anteponer `MSYS_NO_PATHCONV=1` (quedó anotado en `CLAUDE.md`) | Comandos repetidos sin error |
 
 ## 3. Alineación con el stack objetivo
 

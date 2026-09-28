@@ -1,4 +1,6 @@
-# Andina Seguros — Análisis de la arquitectura actual: riesgos, vulnerabilidades y desventajas
+# Backend Seguros — Análisis de la arquitectura actual: riesgos, vulnerabilidades y desventajas
+
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 Este documento describe el diagrama [DIAGRAMA-ARQUITECTURA-ACTUAL.png](a_DIAGRAMA-ARQUITECTURA-ACTUAL.png) y evalúa sus riesgos. Se basa en el código y en los `docker-compose.yml`. Cada hallazgo indica dónde se comprobó. Lo que **no** se pudo comprobar se dice expresamente. El detalle técnico de la arquitectura está en [ARQUITECTURA-ACTUAL.md](a_ARQUITECTURA-ACTUAL.md).
 
@@ -65,7 +67,7 @@ Es un **monolito en capas (Clean Architecture)** más un **worker asíncrono ori
 
 ### S1. Registro público con elección de rol — Crítica
 
-- **Evidencia:** `SecurityConfig` deja `/api/auth/**` sin autenticación ([SecurityConfig.java](../../Arquitectura-Clean/src/main/java/com/andinaseguros/frameworksdrivers/configuration/spring/SecurityConfig.java)). `POST /api/auth/register` no tiene ninguna restricción adicional y su cuerpo (`CrearUsuarioRequest`) incluye el campo `rol` de tipo `RolUsuario`. `RegistrarUsuarioUseCase` guarda el usuario con ese rol, sin verificar quién lo pide.
+- **Evidencia:** `SecurityConfig` deja `/api/auth/**` sin autenticación (`SecurityConfig.java` del monolito (etiqueta de git `monolito-final`)). `POST /api/auth/register` no tiene ninguna restricción adicional y su cuerpo (`CrearUsuarioRequest`) incluye el campo `rol` de tipo `RolUsuario`. `RegistrarUsuarioUseCase` guarda el usuario con ese rol, sin verificar quién lo pide.
 - **Cómo se explota:** `POST /api/auth/register` con `{"username":"x","password":"y","rol":"ADMIN"}` y luego `POST /api/auth/login`. No se necesita ninguna credencial previa.
 - **Consecuencias:** toma total del sistema. El atacante ve, crea y modifica clientes, pólizas, siniestros, renovaciones y tablas tarifarias. Puede además crear cuentas persistentes para volver a entrar.
 - **Qué hacer:** que el registro no acepte `rol`, o que solo lo permita un ADMIN autenticado. Un usuario que se autoregistra debe quedar con un rol mínimo por defecto.
@@ -103,7 +105,7 @@ Es un **monolito en capas (Clean Architecture)** más un **worker asíncrono ori
 
 ### S6. Tráfico sin cifrar — Alta
 
-- **Evidencia:** navegador → Nginx en HTTP `:5173`; navegador → backend en `http://localhost:8083`; backend ↔ MongoDB y RabbitMQ sin TLS. Nginx no tiene bloque HTTPS ([frontend/nginx.conf](../../frontend/nginx.conf)).
+- **Evidencia:** navegador → Nginx en HTTP `:5173`; navegador → backend en `http://localhost:8083`; backend ↔ MongoDB y RabbitMQ sin TLS. Nginx no tiene bloque HTTPS ([frontend/nginx.conf](../../frontend/nginx.conf.template) (hoy `nginx.conf.template`)).
 - **Consecuencias:** en un despliegue fuera de `localhost`, el JWT, las contraseñas y los códigos MFA viajan en claro y se pueden capturar o modificar en la red.
 - **Qué hacer:** terminar TLS en un proxy inverso delante de Nginx y del backend, y cifrar las conexiones internas si los servicios dejan de estar en la misma máquina.
 

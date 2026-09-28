@@ -1,4 +1,6 @@
-# Andina Seguros — Implementación de identity-service (Fase 2 de la migración a microservicios)
+# Backend Seguros — Implementación de identity-service (Fase 2 de la migración a microservicios)
+
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 Este documento registra lo que se implementó en la fase 2 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#6-fase-2--identity-service), las decisiones tomadas y la verificación de los criterios de aceptación contra el stack de Docker.
 
@@ -61,6 +63,18 @@ Pruebas adicionales:
 | Circuit breaker y bulkhead de Google | Pruebas unitarias: 4 caídas abren el circuito y no se vuelve a llamar a Google; los tokens inválidos no lo abren; con el bulkhead lleno se responde "no disponible" sin llamar a Google |
 | Pruebas automáticas | identity-service: 56 (incluye 8 reglas ArchUnit). Backend: 42 (las 35 de autenticación se movieron). notification-service: 27. Corren al construir las imágenes |
 | Error encontrado y corregido | La primera versión del endpoint JWKS respondía 500 (Spring inyectaba un mapa de todos los beans en lugar del JWKS). Lo detectó la prueba de extremo a extremo; se corrigió y se agregó `JwksControllerTest` |
+
+### 3.1 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | El gateway rechazaba tokens RS256 válidos y `/.well-known/jwks.json` respondía 500 | El controlador pedía un `Map<String, Object>` y Spring le inyectaba un mapa con **todos** los beans, no el JWKS | El controlador recibe la clave RSA y publica solo su parte pública. Nueva prueba `JwksControllerTest`: el JWKS no puede contener parámetros privados (`d`, `p`, `q`...) | JWKS con el mismo `kid`; el gateway y el backend aceptan los tokens |
+| 2 | El navegador podía rechazar las respuestas del API (error que ya existía) | La cabecera `Access-Control-Allow-Origin` salía dos veces: la ponían el gateway y el backend | CORS solo en el gateway (commit `f2ba312`) | Una sola cabecera CORS en la respuesta |
+| 3 | Los tokens del monolito no eran HS256 sino HS384 | jjwt elige el algoritmo según el largo del secreto | El decodificador de la ventana de transición replica esa regla en vez de fijar HS256 | Durante la ventana un token viejo daba 200; al cerrarla, 401 |
+| 4 | Al quitar la configuración de autenticación del `application.yml` del backend se borró también el bloque `cors` | Error al editar un rango del archivo | Se restauró el bloque | El backend compila y sus pruebas pasan (42) |
+| 5 | El backend no compilaba tras retirar la autenticación | Una clase de configuración de índices seguía usando el documento de usuarios | Esos índices viven ahora en `UsuarioDocument` de identity-service (`@Indexed`); se quitaron del backend | 42 pruebas del backend en verde |
+| 6 | La prueba de caché de claves de Google no era determinista con dos réplicas | Cada réplica tiene su propia caché y el gateway reparte las llamadas | Se calienta cada réplica llamándola directamente antes de "apagar" Google | Login con Google en las dos réplicas con el JWKS caído |
+| 7 | La imagen del gateway tardó más de 30 min en construirse | Red lenta al descargar dependencias de Maven | Problema del entorno, no del código: se esperó a que terminara (una construcción paralela con salida detallada confirmó que no estaba colgada) | Las tres imágenes quedaron listas |
 
 ## 4. Limitaciones conocidas
 

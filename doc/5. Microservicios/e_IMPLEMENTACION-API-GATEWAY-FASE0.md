@@ -1,4 +1,6 @@
-# Andina Seguros — Implementación del API Gateway (Fase 0 de la migración a microservicios)
+# Backend Seguros — Implementación del API Gateway (Fase 0 de la migración a microservicios)
+
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 Este documento describe **lo que ya está implementado y verificado en el repositorio**, no una
 propuesta. Es la fase 0 del plan de migración
@@ -335,6 +337,18 @@ desarrollo. Esto es lo que sí se pudo verificar de forma real (no solo leer có
    sin él) — documentado como prerrequisito de entorno, no como un defecto del manifiesto.
 
 ---
+
+### 7.1 Errores encontrados y cómo se resolvieron
+
+Resumen de lo que falló durante la fase, por qué y cómo se corrigió (el detalle técnico está en la lista de arriba).
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | El gateway no compilaba | Se usó `HttpHeaders.FORWARDED`, una constante que no existe en `org.springframework.http.HttpHeaders` | Se usa el nombre literal de la cabecera, `"Forwarded"` | `mvn package` compila y la prueba de contexto de Spring arranca |
+| 2 | RabbitMQ no arrancaba en Kubernetes: `Error when reading .erlang.cookie: eacces` | El contenedor corre sin root y no podía escribir la cookie de Erlang en `/var/lib/rabbitmq` | Volumen `emptyDir` montado en `/var/lib/rabbitmq` (en la fase 7 pasó a StatefulSet con volumen persistente) | Pod `1/1 Running` en el clúster kind |
+| 3 | RabbitMQ y MongoDB se reiniciaban en bucle en Kubernetes | Sus *probes* `exec` no tenían `timeoutSeconds`: el valor por defecto es 1 s y `rabbitmq-diagnostics` o `mongosh` tardan más; el *liveness* mataba el contenedor justo al terminar de arrancar | `timeoutSeconds: 10` en los *probes* `exec` (5 en los `httpGet` del gateway y el backend) y un `startupProbe` propio para RabbitMQ y MongoDB | Todos los Pods estables; login de punta a punta Ingress → gateway (2 réplicas) → backend → MongoDB |
+| 4 | El HPA del gateway mostraba `<unknown>` | kind no trae `metrics-server` | No es un defecto del manifiesto: se documentó como prerrequisito del clúster (`k8s/README.md`) | `kubectl get hpa` muestra las métricas una vez instalado `metrics-server` |
+| 5 | El límite de peticiones del login no cortaba en una prueba en serie | Cada login tarda lo que tarda BCrypt, y en ese tiempo el balde de *tokens* se recargaba | No era un defecto: la prueba se repitió con una ráfaga en paralelo | La ráfaga paralela recibe `429` como está diseñado |
 
 ## 8. Cómo compilar, construir y probar
 

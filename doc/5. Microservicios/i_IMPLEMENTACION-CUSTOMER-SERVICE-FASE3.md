@@ -1,5 +1,7 @@
 # Implementación de customer-service (fase 3 de la migración a microservicios)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
 Este documento registra lo que se implementó en la fase 3 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#7-fase-3--customer-service), las decisiones tomadas, el impacto en el monolito y la verificación contra el stack de Docker.
 
 **Resultado:** clientes, vehículos y la consulta de placas viven en `services/customer-service`, con base propia (`customer_db`), Outbox, caché de placas en Redis y los patrones de resiliencia hacia JSON.pe. El servicio corre **en paralelo al monolito, sin enrutar**: el gateway sigue enviando `/api/clientes/**` y `/api/vehiculos/**` al monolito, que sigue siendo la fuente de verdad. El corte (cambiar la ruta y activar la publicación de eventos) queda preparado pero no se hizo, porque requiere cambiar el código del monolito y el equipo decidió mantenerlo congelado (ver sección 3).
@@ -92,6 +94,14 @@ Pruebas adicionales:
 | Outbox con la publicación apagada | El vehículo registrado dejó `vehicle.registered.v1` en el Outbox como `PENDING`; no se publicó nada |
 | Pruebas automáticas | 38 (8 reglas ArchUnit, control de acceso por rol y propietario, eventos, backfill, caché, resiliencia de JSON.pe con reintento, circuit breaker y bulkhead). Corren al construir la imagen |
 | Error encontrado y corregido | Sobre `http://` el cliente HTTP del JDK pedía subir a HTTP/2 (`Upgrade: h2c`) y la respuesta del simulador se perdía, así que toda consulta terminaba en `SIN_DATOS` sin dejar rastro. Se fijó HTTP/1.1 y se agregó un `WARN` con el motivo cuando el proveedor falla |
+
+### 4.1 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | Toda consulta de placa contra el JSON.pe simulado respondía `SIN_DATOS`, sin dejar rastro en el log | Sobre `http://` el cliente HTTP del JDK pedía pasar a HTTP/2 (`Upgrade: h2c`) y la respuesta del simulador se perdía; además, la falla del proveedor no se registraba | Cliente fijado en HTTP/1.1 y un `WARN` con el motivo cuando el proveedor falla | `ABC123` devolvió datos (`fuente: JSON_PE`) y quedó en la caché de Redis; con el simulador detenido, el log muestra `JSONPE_UNAVAILABLE` |
+| 2 | Quedó un volumen huérfano `andina_customer_mongo_data` | Al quitar el prefijo de la empresa a los nombres nuevos, el volumen pasó a llamarse `customer_mongo_data` y el anterior quedó sin uso | No se borró: borrar datos lo decide el dueño del entorno. No afecta al stack, que usa `customer_mongo_data` | `docker volume ls` muestra los dos; el servicio usa el nuevo |
+| 3 | (Descubierto en la fase 7) Un id que no es UUID o un JSON mal formado respondía 500 | El manejador de errores no distinguía los errores de formato de la petición | 400 `SOLICITUD_MAL_FORMADA` en todos los servicios (commit `3863bd9`, `n_…`) | Pruebas de los manejadores de errores y caso manual por el gateway |
 
 ## 5. Limitaciones conocidas
 

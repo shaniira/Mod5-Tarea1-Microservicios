@@ -1,5 +1,7 @@
 # Endurecimiento y cierre (fase 7 de la migración a microservicios)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
 Este documento registra lo que se hizo en la fase 7 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#11-fase-7--endurecimiento-y-cierre): las pruebas, lo que encontraron, cómo se corrigió y cómo quedó el sistema frente a los criterios de "terminado" de la [propuesta](c_ARQ_PROPUESTA-MIGRACION-MICROSERVICIOS.md#11-criterios-de-aceptación-definición-de-terminado). Cómo operar el sistema día a día está en [o_GUIA-OPERACION.md](o_GUIA-OPERACION.md).
 
 **Resultado:** los 9 pasos de la fase están hechos y verificados contra el stack de Compose. Las pruebas encontraron **12 defectos reales** (uno más en la revisión posterior, sección 9) que no se habían visto en las fases anteriores (sección 2). Los más graves:
@@ -57,6 +59,12 @@ Dos más, de la verificación:
 
 - **`ErroresServidorAltos`** se disparaba en todos los servicios durante una caída, porque contaba los 503 de readiness. Ahora excluye `/actuator`.
 - **RabbitMQ en Kubernetes** perdía colas y mensajes al reiniciar (`emptyDir` y nombre de Pod aleatorio), el mismo defecto que se corrigió en Compose en la fase 6.
+
+Y tres más, de las decisiones CAP y de Alertmanager (secciones 10 y 11):
+
+- **La copia local de revocaciones dejaba de refrescarse** tras el primer ciclo: `Flux.interval` de Reactor se detenía sin avisar. Se detectó porque la métrica de antigüedad crecía y a Redis no llegaba ningún `SCAN`. Se reemplazó por un hilo programado (`ScheduledExecutorService`) que registra los fallos; la copia quedó con 0 a 5 s de antigüedad.
+- **Compose no arrancaba sin la contraseña de Gmail:** el primer diseño usaba `secrets:` tomado de una variable, y Compose se niega a arrancar si la variable no existe. Se pasa por variable de entorno y el contenedor la escribe en un archivo al arrancar (sección 11.1): sin contraseña, el stack arranca y solo fallan los correos.
+- **El primer intento del caso `renovacion-reciente` falló** porque corrió con el gateway recién reiniciado y en frío. No era un defecto: repetido en caliente, pasó.
 
 ## 3. Verificación
 

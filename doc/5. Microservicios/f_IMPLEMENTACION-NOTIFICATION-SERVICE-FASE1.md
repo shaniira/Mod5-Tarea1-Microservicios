@@ -1,4 +1,6 @@
-# Andina Seguros — Implementación de notification-service (Fase 1 de la migración a microservicios)
+# Backend Seguros — Implementación de notification-service (Fase 1 de la migración a microservicios)
+
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 Este documento registra lo que se implementó en la fase 1 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#5-fase-1--notification-service), las decisiones tomadas y la verificación de los criterios de aceptación contra el stack de Docker.
 
@@ -62,6 +64,15 @@ Pruebas adicionales:
 | La cola de pólizas escucha los dos exchanges | Un `policy.issued.v1` publicado en `andina.events` llegó a `andina.policy.notification.queue` |
 | Correlación | Un `X-Correlation-Id` enviado al gateway apareció en el log JSON de notification-service junto con `traceId` y `spanId` |
 | Pruebas automáticas | Backend: 77 pruebas (incluye ArchUnit). notification-service: 27 pruebas (incluye 8 reglas ArchUnit). Ambas corren al construir las imágenes |
+
+### 3.1 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | Cada línea del log JSON de notification-service traía el campo `service` dos veces | Se definía como campo propio del encoder y además como propiedad de contexto, que `LogstashEncoder` ya incluye | Se deja solo la propiedad de contexto (`logback-spring.xml`) | Log revisado tras reconstruir: un solo `service` |
+| 2 | La respuesta traía la cabecera `X-Correlation-Id` dos veces | La agregaban el gateway y también el filtro del backend | El backend solo la agrega cuando genera el id él mismo (llamada directa, sin gateway) | Respuesta por el gateway con una sola cabecera; el mismo id en los logs de backend y notification |
+| 3 | Una vez el WhatsApp salió al teléfono anterior del cliente | El cambio de teléfono (`customer.updated`) y la póliza (`policy.issued`) viajan por colas distintas; la póliza se procesó primero | No se corrigió a propósito: es la consistencia eventual que se acepta al usar proyecciones. Se documentó en "Limitaciones conocidas" | La proyección quedó correcta (versión 2 con el teléfono nuevo); solo ese mensaje usó el número viejo |
+| 4 | El script de prueba de extremo a extremo no obtenía el token | El login devuelve el token anidado (`token.token`) | Error del script, no del sistema: se corrigió la lectura | El flujo completo pasó |
 
 ## 4. Limitaciones conocidas
 

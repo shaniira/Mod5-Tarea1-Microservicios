@@ -1,5 +1,7 @@
 # Implementación de policy-service (fase 6 de la migración a microservicios)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
 Este documento registra lo que se implementó en la fase 6 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#10-fase-6--policy-service-y-apagado-del-monolito), las decisiones, el impacto en el monolito y la verificación contra el stack de Docker.
 
 **Resultado:** pólizas, la saga de emisión y las renovaciones viven en `services/policy-service`, con base propia (`policy_db`), las proyecciones `accepted_quotes` y `claim_ref`, y `policy.*` por Outbox. La saga completa (cotizar → aceptar → emitir → notificar → siniestro → renovar) funcionó de extremo a extremo **solo con eventos y proyecciones**, y la doble emisión en paralelo nunca generó más de una póliza. El 2026-09-27 se hizo **el corte de las fases 3 a 6** (sección 7): el gateway envía todo el negocio a los microservicios y el monolito quedó sin tráfico, con su código sin modificar. Ese mismo día **se cerró la fase** (sección 9): el monolito salió del Compose con su base respaldada (6.10), se retiró el exchange heredado (6.11) y los servicios nuevos entraron en Prometheus, Grafana y Jaeger. Los 4 criterios de salida se cumplen.
@@ -182,6 +184,24 @@ Verificación (stack de observabilidad levantado, sin monolito, WhatsApp simulad
 | **Healthcheck de RabbitMQ con 5 s** | Con el equipo cargado, `rabbitmq-diagnostics ping` tardaba 12 s: RabbitMQ figuraba *unhealthy* y bloqueaba el arranque de quien depende de él | `timeout: 15s`, como en MongoDB |
 | **Equipo sobrecargado** | El clúster kind (`andina-seguros-control-plane`) sigue corriendo el despliegue de la fase 0, con *load average* ~40 y usando swap. Con el stack recién recreado, la primera emisión tardó 5,1 s (límite del gateway 5 s → 503, aunque la póliza se creó) y un registro de siniestro superó los 3 s de claims | No se tocó el clúster. En caliente el flujo pasó completo. Queda pendiente decidir si se apaga el despliegue viejo o se aplican los manifiestos nuevos |
 | **Id que no es UUID → 500** | Visto en el primer intento (ids vacíos) | Igual que el monolito; queda en la fase 7 (sección 5) |
+
+### 9.5 Resumen: errores encontrados en toda la fase y cómo se resolvieron
+
+Reúne en un solo lugar lo que está repartido en las secciones 4, 8 y 9.4.
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | Dos emisiones simultáneas de la misma cotización: la perdedora respondía **500** | Dentro de una transacción, MongoDB no informa "clave duplicada" sino `WriteConflict`, un error transitorio que pide reintentar | Reintento de hasta 5 veces con espera aleatoria; en el reintento la validación ve la póliza ganadora y responde 422, y quotation registra la compensación | 5 rondas de 3 solicitudes simultáneas: siempre 1 póliza y ninguna respuesta 500 |
+| 2 | La prueba de doble emisión se quedaba esperando | Error del script de prueba: usaba el **número** de la cotización en lugar del **id**, así que nunca la aceptaba | Se corrigió el script | La prueba pasó (fila 1) |
+| 3 | `claim_ref` se daba por sincronizada solo por la carga inicial (Codex) | No se miraba si había eventos de siniestros esperando en la cola | Si la cola `policy.claim.events` tiene mensajes, se responde "siniestros pendientes"; en la fase 7 se sumaron los eventos recibidos sin aplicar (`b4622de`) | Pruebas de `EvaluarRenovacionUseCase` |
+| 4 | Se aceptaba un `quote.accepted` sin `expiresAt` (Codex) | El listener no exigía el campo que pide el contrato | El evento va a la DLQ y el dominio exige la fecha | Prueba del listener |
+| 5 | La migración borraba los índices y no los recreaba (Codex) | `mongorestore --drop` elimina la colección con sus índices | El script recrea los índices, incluido el único parcial por cotización | Migración repetida con el servicio encendido; índice presente |
+| 6 | Se perdieron de la vista 6 mensajes de la cola de auditoría al recrear RabbitMQ | Sin nombre de host fijo, RabbitMQ arrancó como un nodo nuevo y vacío | `hostname: rabbitmq` en el Compose (`c68c571`) | Un mensaje persistente sobrevivió a `--force-recreate` |
+| 7 | RabbitMQ figuraba *unhealthy* con el equipo cargado | El healthcheck tenía 5 s y el `ping` tardaba 12 s | `timeout: 15s` | RabbitMQ sano con el stack completo |
+| 8 | La primera emisión tras recrear el stack dio 503 (la póliza sí se creó) | Equipo sobrecargado por un clúster kind viejo, más el arranque en frío | En la fase 7: calentamiento antes de declararse listo (`c8e57ef`) y el clúster kind detenido | Flujo completo en caliente sin errores |
+| 9 | Una renovación podía no ver un siniestro registrado ~1,3 s antes | `claim_ref` se actualiza por eventos, con retraso | Fase 7: al generar la renovación se confirma con claims-service de forma síncrona (CP), `n_…` sección 10 | Casos de caos `renovacion-reciente` y `renovacion-claims` |
+| 10 | Un id que no es UUID respondía 500 | Igual que el monolito: no se distinguían los errores de formato | Fase 7: 400 `SOLICITUD_MAL_FORMADA` (`3863bd9`) | Pruebas de los manejadores de errores |
+| 11 | Dos asuntos de commit superaban los 50 caracteres del estándar | Error de proceso | Se reescribieron esos mensajes antes de subirlos (nada estaba publicado) | `git log` con todos los asuntos ≤ 50 |
 
 ## 6. Archivos
 

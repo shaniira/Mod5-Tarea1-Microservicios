@@ -1,5 +1,7 @@
 # Implementación de quotation-service (fase 5 de la migración a microservicios)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
 Este documento registra lo que se implementó en la fase 5 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#9-fase-5--quotation-service), las decisiones, el impacto en el monolito y la verificación contra el stack de Docker.
 
 **Resultado:** las tablas tarifarias, el motor de tarificación y las cotizaciones viven en `services/quotation-service`, con base propia (`quotation_db`), las proyecciones `customer_ref` y `vehicle_ref`, lectura de refuerzo hacia customer-service con circuit breaker, y `quote.accepted.v1` por Outbox. Como en las fases 3 y 4, el servicio corre **en paralelo al monolito, sin enrutar**, y el código del monolito no se modificó. La tarificación da **exactamente el mismo resultado** que el monolito en los 39 casos de referencia probados.
@@ -86,6 +88,15 @@ Pruebas adicionales:
 | `policy.issued.v1` marca EMITIDA | Se publicó un `policy.issued.v1` de prueba solo en la cola de quotation (para no afectar a otros consumidores): la cotización pasó a EMITIDA; el mismo evento repetido se registró como `YA_EMITIDA`. Colas y DLQ en 0 |
 | Pruebas automáticas | 36 (8 reglas ArchUnit, motor con el caso del monolito y casos de prima mínima, proyecciones y lectura de refuerzo, 503 controlado, `quote.accepted.v1`, idempotencia de EMITIDA, control de acceso). Corren al construir la imagen |
 | Error encontrado y corregido | Una referencia que llegaba sin fecha de nacimiento se completaba con customer-service pero el dato no se guardaba (la versión 0 era menor que la 1 del evento), así que cada cotización de ese cliente volvía a llamar a customer-service. Se agregó `completarFechaNacimiento`, que guarda solo ese dato sin tocar la versión |
+
+### 4.1 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | Cada cotización de un cliente sin fecha de nacimiento volvía a llamar a customer-service | La lectura de refuerzo traía la fecha, pero el dato no se guardaba: la versión de la referencia (0) era menor que la del evento (1) y el guardado condicional lo descartaba | `completarFechaNacimiento` guarda solo ese dato, sin tocar la versión | Con customer-service detenido, ese mismo cliente se cotizó desde la proyección (201) |
+| 2 | Una prueba del motor de tarificación fallaba | El valor esperado de la prueba estaba mal calculado (1413); lo correcto es 1250 + 10 % de gastos + 3 % de recargo = **1412.50** | Se corrigió el valor esperado de la prueba; el motor estaba bien | 39 de 39 cotizaciones idénticas al monolito |
+| 3 | (Descubierto en la fase 7) `quote.accepted.v1` salía con fechas sin zona horaria | El contrato pide RFC 3339 y el servicio serializaba `LocalDateTime` | Las fechas se publican en UTC (`...Z`); policy-service las sigue leyendo (`b90436f`) | Pruebas de contrato con JSON Schema, obligatorias en CI |
+| 4 | (Retiro del monolito, 2026-09-28) Una instalación nueva no podía cotizar | Las tablas tarifarias solo llegaban con la migración desde la base del monolito | `DemoDataInitializer` siembra las 3 tablas demo (mismos ids) si no existen, con `APP_DEMO_DATA_ENABLED=true` en Compose (`q_…`) | `DemoDataInitializerTest` (2 pruebas) y el log "Tablas tarifarias demo listas" al arrancar |
 
 ## 5. Limitaciones conocidas
 

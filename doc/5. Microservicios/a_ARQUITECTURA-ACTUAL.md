@@ -1,4 +1,6 @@
-# Andina Seguros — Especificación de la arquitectura actual
+# Backend Seguros — Especificación de la arquitectura actual
+
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
 
 Documento para dibujar el diagrama de arquitectura. Todo lo que aparece aquí se verificó en el código y en los `docker-compose.yml`. Lo que no existe en el código se marca como **Observación**.
 
@@ -52,7 +54,7 @@ Lo que **no existe**: el frontend nunca habla con RabbitMQ, MongoDB ni el Consum
 
 ## 3. Redes y despliegue Docker
 
-Fuente de verdad del stack completo: [Arquitectura-Clean/docker-compose.yml](../../Arquitectura-Clean/docker-compose.yml) (proyecto `andina-clean`).
+Fuente de verdad del stack completo: `Arquitectura-Clean/docker-compose.yml` (hoy [docker-compose.yml](../../docker-compose.yml) en la raíz) (proyecto `andina-clean`).
 
 | Servicio | Redes |
 |---|---|
@@ -292,7 +294,7 @@ Frontend → `GET /api/vehiculos/informacion-externa` → `ConsultarInformacionV
 | Backend | `JWT_SECRET`, `JWT_EXPIRATION_SECONDS` | ≥32 caracteres, 28800 |
 | Backend | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` |
 | Backend | `GOOGLE_CLIENT_ID` | debe coincidir con `VITE_GOOGLE_CLIENT_ID` |
-| Backend | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`, `FACEBOOK_FRONTEND_CALLBACK_URL`, `FACEBOOK_TOKEN_ENCRYPTION_KEY`, … | ver [Arquitectura-Clean/.env.example](../../Arquitectura-Clean/.env.example) |
+| Backend | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`, `FACEBOOK_FRONTEND_CALLBACK_URL`, `FACEBOOK_TOKEN_ENCRYPTION_KEY`, … | ver `Arquitectura-Clean/.env.example` (hoy [.env.example](../../.env.example) en la raíz) |
 | Backend | `RABBITMQ_EXCHANGE`, `RABBITMQ_DLX`, `RABBITMQ_ROUTING_KEY`, `RABBITMQ_NOTIFICATION_QUEUE`, `RABBITMQ_NOTIFICATION_DLQ`, `RABBITMQ_AUDIT_QUEUE` | nombres de §7 |
 | Consumer | `SPRING_RABBITMQ_*`, `SPRING_DATA_MONGODB_URI` | apunta a la misma base del backend |
 | Consumer | `WHATSAPP_BASE_URL`, `WHATSAPP_TOKEN`, `WHATSAPP_TIMEOUT_SECONDS` | el compose actual no define `WHATSAPP_TOKEN` |

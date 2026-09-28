@@ -1,5 +1,7 @@
 # Implementación de claims-service (fase 4 de la migración a microservicios)
 
+> **Nota (2026-09-28):** el monolito se retiró del repositorio. Las rutas `Arquitectura-Clean/...`, el contenedor `andina-clean-mongodb` y los comandos `cd Arquitectura-Clean` de este documento describen el estado de su momento: hoy el Compose y el `.env` están en la raíz y el código del monolito queda en la etiqueta de git `monolito-final`. Ver [q_RETIRO-DEL-MONOLITO.md](q_RETIRO-DEL-MONOLITO.md).
+
 Este documento registra lo que se implementó en la fase 4 de la [ruta de implementación](d_RUTA-IMPLEMENTACION-MICROSERVICIOS.md#8-fase-4--claims-service), las decisiones, el impacto en el monolito y la verificación contra el stack de Docker.
 
 **Resultado:** los siniestros viven en `services/claims-service`, con base propia (`claims_db`), Outbox para `claim.*` y la proyección `policy_ref`, que reemplaza la consulta a la base de pólizas. Como en la fase 3, el servicio corre **en paralelo al monolito, sin enrutar**. El monolito sigue atendiendo `/api/polizas/{id}/siniestros/**` y su código no se modificó.
@@ -86,6 +88,14 @@ Pruebas adicionales:
 | Pruebas automáticas | 23 (8 reglas ArchUnit, casos de uso, control de acceso con `policy_ref`, formato de `claim.*`, relay del Outbox). Corren al construir la imagen |
 
 Observación ajena a esta fase: la primera emisión de póliza por el gateway respondió **503** (el límite de 3 s del gateway hacia el backend), aunque el monolito sí la emitió. Las siguientes respondieron a tiempo. Conviene revisar ese límite para `POST /api/polizas` en la fase 6.
+
+### 4.1 Errores encontrados y cómo se resolvieron
+
+| # | Error o problema | Causa | Solución | Cómo se verificó |
+|---|---|---|---|---|
+| 1 | La primera emisión de póliza por el gateway respondió 503, aunque la póliza se creó | La primera petición tras un reinicio (JVM en frío) superó el límite de 3 s del gateway hacia el backend | En la fase 6 cada ruta tiene su propio timeout; en la fase 7 cada servicio se "calienta" antes de declararse listo (`c8e57ef`: la primera petición bajó de 5,7 s a 1,4 s) y se alineó el timeout global con los circuit breakers (`d79571f`) | Prueba de carga y casos de caos de la fase 7 sin 503 en caliente |
+| 2 | El criterio "bloquear la renovación con un contador por eventos" no se podía cumplir en esta fase | El monolito (congelado) seguía usando su propia colección de siniestros | Se cumplió en la fase 6: policy-service bloquea con `claim_ref`, que se actualiza con `claim.*` | Prueba por el gateway y casos de caos de la fase 7 |
+| 3 | (Descubierto en la fase 7) Una renovación podía no ver un siniestro recién registrado | La proyección `claim_ref` de policy se actualiza por eventos, con unos milisegundos o segundos de retraso | Al generar la renovación, policy consulta a claims-service de forma síncrona (decisión CP, `n_…` sección 10); si claims no responde, 503 `SINIESTROS_NO_DISPONIBLE` | Casos de caos `renovacion-reciente` y `renovacion-claims` |
 
 ## 5. Limitaciones conocidas
 
