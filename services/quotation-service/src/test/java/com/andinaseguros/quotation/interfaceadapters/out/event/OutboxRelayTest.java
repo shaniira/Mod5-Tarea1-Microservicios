@@ -96,6 +96,32 @@ class OutboxRelayTest {
         verifyNoInteractions(outbox, rabbit);
     }
 
+    /** Fase 7: el turno se renueva antes de cada evento; si otra réplica lo tomó, la pasada se corta. */
+    @Test
+    void siPierdeElTurnoAMitadDelLoteDejaDePublicar() {
+        OutboxEventDocument e1 = pendiente("e1");
+        OutboxEventDocument e2 = pendiente("e2");
+        OutboxEventDocument e3 = pendiente("e3");
+        when(outbox.findByStatusOrderByCreatedAtAsc(eq("PENDING"), any())).thenReturn(List.of(e1, e2, e3));
+        doAnswer(invocation -> {
+                    CorrelationData correlation = invocation.getArgument(3);
+                    correlation.getFuture().complete(new CorrelationData.Confirm(true, null));
+                    return null;
+                })
+                .when(rabbit)
+                .send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
+        // Tiene el turno al empezar y antes de e2; antes de e3 otra réplica ya lo tomó.
+        java.util.Iterator<Boolean> turnos = List.of(true, true, false).iterator();
+        OutboxRelay conTurno = new OutboxRelay(outbox, rabbit, 100, Duration.ofSeconds(1), clock, turnos::next);
+
+        assertThat(conTurno.publicarPendientes()).isEqualTo(2);
+
+        assertThat(e1.status).isEqualTo("SENT");
+        assertThat(e2.status).isEqualTo("SENT");
+        assertThat(e3.status).isEqualTo("PENDING");
+        verify(rabbit, times(2)).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
+    }
+
     private static OutboxEventDocument pendiente(String id) {
         OutboxEventDocument d = new OutboxEventDocument();
         d.id = id;

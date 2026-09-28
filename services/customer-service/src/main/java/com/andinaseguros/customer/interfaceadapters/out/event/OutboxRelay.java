@@ -24,10 +24,13 @@ import org.springframework.data.domain.PageRequest;
  * o no confirma, el evento se queda pendiente y se reintenta en la siguiente pasada; nada se
  * pierde. Se detiene en el primer fallo para no adelantar eventos posteriores del mismo agregado.
  *
- * <p>Con varias réplicas solo publica la que tiene el turno ({@link MongoOutboxLease}): así no
- * se envía el mismo evento dos veces a la vez ni se altera el orden. Si la dueña del turno se
- * detiene a mitad de una pasada, otra puede reenviar un evento ya enviado; los consumidores son
- * idempotentes (inbox o versión), así que no se aplica dos veces.
+ * <p>Con varias réplicas solo publica la que tiene el turno ({@link MongoOutboxLease}), y lo renueva
+ * antes de cada evento, no solo al empezar la pasada: como una publicación espera como mucho
+ * {@code confirmTimeout} y el turno dura más del doble (se valida al arrancar), nunca se publica
+ * con el turno vencido aunque el lote sea largo. Si otra réplica lo tomó, la pasada se corta y
+ * los eventos que faltan los publica la nueva dueña, en orden. Riesgo residual: una pausa de la
+ * JVM más larga que el turno justo entre renovar y publicar; entonces un evento puede salir dos
+ * veces, y los consumidores lo descartan (inbox o versión).
  */
 public class OutboxRelay {
     private static final Logger log = LoggerFactory.getLogger(OutboxRelay.class);
@@ -74,6 +77,11 @@ public class OutboxRelay {
                         OutboxEventDocument.PENDING, PageRequest.of(0, batchSize));
         int enviados = 0;
         for (OutboxEventDocument evento : pendientes) {
+            // Renovar antes de cada evento; el primero ya quedó cubierto al empezar la pasada.
+            if (enviados > 0 && !turno.getAsBoolean()) {
+                log.info("Relay del Outbox: se perdió el turno a mitad de la pasada tras {} evento(s)", enviados);
+                break;
+            }
             try {
                 enviar(evento);
             } catch (Exception exception) {

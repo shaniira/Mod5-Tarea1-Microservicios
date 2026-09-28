@@ -80,6 +80,14 @@ public class OutboxConfig {
             @Value("${app.outbox.lease-seconds:15}") long leaseSeconds,
             MongoTemplate mongoTemplate,
             MeterRegistry meterRegistry) {
+        // El relay renueva el turno antes de cada publicación y una publicación espera como mucho
+        // confirmTimeout: si el turno durara menos que eso (con margen), podría vencerse mientras
+        // se publica y otra réplica publicaría a la vez.
+        if (Duration.ofSeconds(leaseSeconds).compareTo(Duration.ofMillis(confirmTimeoutMs).multipliedBy(2)) <= 0) {
+            throw new IllegalStateException(
+                    "app.outbox.lease-seconds (" + leaseSeconds + " s) debe ser mayor que el doble de "
+                            + "app.outbox.confirm-timeout-ms (" + confirmTimeoutMs + " ms)");
+        }
         OutboxRelay relay =
                 new OutboxRelay(
                         outbox,
