@@ -25,14 +25,22 @@ import com.andinaseguros.policy.usecases.service.renovacion.ListarHistorialRenov
 import com.andinaseguros.policy.usecases.service.renovacion.ListarRenovacionesUseCase;
 import com.andinaseguros.policy.usecases.service.renovacion.ObtenerRenovacionUseCase;
 import com.andinaseguros.policy.usecases.service.renovacion.RechazarRenovacionUseCase;
+import com.andinaseguros.policy.interfaceadapters.out.siniestros.ClaimsServiceHistorialAdapter;
 import com.andinaseguros.policy.interfaceadapters.out.sincronizacion.SincronizacionSiniestrosAdapter;
 import com.andinaseguros.policy.usecases.port.out.repository.SincronizacionSiniestrosPort;
+import com.andinaseguros.policy.usecases.port.out.siniestros.HistorialSiniestrosPort;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.retry.RetryRegistry;
+import java.net.http.HttpClient;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.QueueInformation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 /** Arma los casos de uso (sin anotaciones de Spring) con sus adaptadores. */
@@ -141,8 +149,30 @@ public class UseCaseConfig {
             DomainEventPublisherPort eventos,
             TransaccionPort transaccion,
             ClockPort clock,
-            IdGeneratorPort ids) {
-        return new GenerarPolizaRenovadaUseCase(renovaciones, polizas, eventos, transaccion, clock, ids);
+            IdGeneratorPort ids,
+            HistorialSiniestrosPort historialSiniestros) {
+        return new GenerarPolizaRenovadaUseCase(renovaciones, polizas, eventos, transaccion, clock, ids, historialSiniestros);
+    }
+
+    /**
+     * Fase 7: confirmación de siniestros con claims-service al generar una renovación. Timeout de
+     * 2 s, un reintento y circuit breaker "claims" (application.yml). HTTP/1.1 fijo: sobre http://
+     * el cliente del JDK intenta subir a HTTP/2 (h2c).
+     */
+    @Bean
+    HistorialSiniestrosPort historialSiniestros(
+            @Value("${app.claims-service.url}") String url,
+            @Value("${app.claims-service.timeout:2s}") Duration timeout,
+            CircuitBreakerRegistry circuitBreakers,
+            RetryRegistry retries) {
+        HttpClient httpClient =
+                HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(timeout).build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(timeout);
+        return new ClaimsServiceHistorialAdapter(
+                RestClient.builder().baseUrl(url).requestFactory(factory).build(),
+                circuitBreakers.circuitBreaker("claims"),
+                retries.retry("claims"));
     }
 
     @Bean

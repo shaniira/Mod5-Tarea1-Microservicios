@@ -23,6 +23,8 @@ import com.andinaseguros.policy.usecases.port.out.repository.PolizaRepository;
 import com.andinaseguros.policy.usecases.port.out.repository.RenovacionRepository;
 import com.andinaseguros.policy.usecases.port.out.repository.SincronizacionSiniestrosPort;
 import com.andinaseguros.policy.usecases.port.out.repository.SiniestrosRefRepository;
+import com.andinaseguros.policy.usecases.port.out.siniestros.HistorialSiniestrosPort;
+import com.andinaseguros.policy.usecases.exception.SiniestrosNoDisponiblesException;
 import com.andinaseguros.policy.usecases.support.TransaccionDirecta;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -41,6 +43,7 @@ class RenovacionUseCasesTest {
     private final SincronizacionSiniestrosPort sincronizacion = mock(SincronizacionSiniestrosPort.class);
     private final RenovacionRepository renovaciones = mock(RenovacionRepository.class);
     private final DomainEventPublisherPort eventos = mock(DomainEventPublisherPort.class);
+    private final HistorialSiniestrosPort historial = mock(HistorialSiniestrosPort.class);
     private final EvaluarRenovacionUseCase evaluar =
             new EvaluarRenovacionUseCase(
                     polizas, siniestros, sincronizacion, renovaciones, new EvaluadorRenovacion(), new CalculadorPrimaRenovacion(),
@@ -98,7 +101,7 @@ class RenovacionUseCasesTest {
         var generar =
                 new GenerarPolizaRenovadaUseCase(
                         renovaciones, polizas, eventos, transaccion, () -> Instant.parse("2026-12-20T10:00:00Z"),
-                        UUID::randomUUID);
+                        UUID::randomUUID, historial);
         LocalDateTime ahora = LocalDateTime.now();
         PropuestaRenovacion propuesta =
                 new PropuestaRenovacion(
@@ -107,6 +110,8 @@ class RenovacionUseCasesTest {
         when(renovaciones.buscarPorId(propuesta.id())).thenReturn(Optional.of(propuesta));
         when(polizas.buscarPorId(poliza.getId())).thenReturn(Optional.of(poliza));
         when(polizas.guardar(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        // claims-service confirma el mismo historial que se evaluó: un siniestro cerrado.
+        when(historial.listarPorPoliza(poliza.getId())).thenReturn(List.of(ref(false, true)));
 
         var nueva = generar.execute(propuesta.id());
 
@@ -125,5 +130,61 @@ class RenovacionUseCasesTest {
 
     private SiniestroRef ref(boolean abierto, boolean responsable) {
         return new SiniestroRef(UUID.randomUUID(), poliza.getId(), abierto, responsable);
+    }
+
+    /** Fase 7: al generar se confirma con claims-service; un siniestro abierto bloquea la renovación. */
+    @Test
+    void siClaimsConfirmaUnSiniestroAbiertoNoGeneraLaPoliza() {
+        PropuestaRenovacion propuesta = propuestaAceptada(1);
+        when(historial.listarPorPoliza(poliza.getId())).thenReturn(List.of(ref(true, false)));
+
+        assertThatThrownBy(() -> generador().execute(propuesta.id()))
+                .isInstanceOf(ReglaNegocioException.class)
+                .extracting("codigo")
+                .isEqualTo("SINIESTROS_PENDIENTES");
+        assertThat(poliza.getEstado()).isEqualTo(EstadoPoliza.VIGENTE);
+        verifyNoInteractions(eventos);
+    }
+
+    @Test
+    void siElHistorialCambioDesdeLaEvaluacionPideEvaluarDeNuevo() {
+        PropuestaRenovacion propuesta = propuestaAceptada(1);
+        when(historial.listarPorPoliza(poliza.getId())).thenReturn(List.of(ref(false, true), ref(false, true)));
+
+        assertThatThrownBy(() -> generador().execute(propuesta.id()))
+                .isInstanceOf(ReglaNegocioException.class)
+                .extracting("codigo")
+                .isEqualTo("RENOVACION_DESACTUALIZADA");
+        verifyNoInteractions(eventos);
+    }
+
+    @Test
+    void siClaimsNoRespondeNoRenuevaYPideReintentar() {
+        PropuestaRenovacion propuesta = propuestaAceptada(1);
+        when(historial.listarPorPoliza(poliza.getId()))
+                .thenThrow(new SiniestrosNoDisponiblesException(new RuntimeException("timeout")));
+
+        assertThatThrownBy(() -> generador().execute(propuesta.id())).isInstanceOf(SiniestrosNoDisponiblesException.class);
+        assertThat(poliza.getEstado()).isEqualTo(EstadoPoliza.VIGENTE);
+        verify(polizas, never()).guardar(any());
+        verifyNoInteractions(eventos);
+    }
+
+    private GenerarPolizaRenovadaUseCase generador() {
+        return new GenerarPolizaRenovadaUseCase(
+                renovaciones, polizas, eventos, new TransaccionDirecta(), () -> Instant.parse("2026-12-20T10:00:00Z"),
+                UUID::randomUUID, historial);
+    }
+
+    private PropuestaRenovacion propuestaAceptada(int siniestrosConsiderados) {
+        LocalDateTime ahora = LocalDateTime.now();
+        PropuestaRenovacion propuesta =
+                new PropuestaRenovacion(
+                        UUID.randomUUID(), poliza.getId(), poliza.getPrima(), Dinero.soles(new BigDecimal("1080")),
+                        new BigDecimal("8"), siniestrosConsiderados, EstadoRenovacion.ACEPTADA, "ok", ahora,
+                        ahora.plusDays(30), ahora, null);
+        when(renovaciones.buscarPorId(propuesta.id())).thenReturn(Optional.of(propuesta));
+        when(polizas.buscarPorId(poliza.getId())).thenReturn(Optional.of(poliza));
+        return propuesta;
     }
 }

@@ -1,6 +1,7 @@
 package com.andinaseguros.policy.interfaceadapters.in.rest.exception;
 
 import com.andinaseguros.policy.entities.exception.DomainException;
+import com.andinaseguros.policy.usecases.exception.SiniestrosNoDisponiblesException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -33,11 +34,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ApiError> domain(DomainException exception, HttpServletRequest request) {
         HttpStatus status =
-                "RECURSO_NO_ENCONTRADO".equals(exception.getCodigo())
-                        ? HttpStatus.NOT_FOUND
-                        : HttpStatus.UNPROCESSABLE_ENTITY;
-        return ResponseEntity.status(status)
-                .body(error(status.value(), exception.getCodigo(), exception.getMessage(), request, Map.of()));
+                switch (exception.getCodigo()) {
+                    case "RECURSO_NO_ENCONTRADO" -> HttpStatus.NOT_FOUND;
+                    // Fase 7: claims-service no confirmó los siniestros; es temporal, se reintenta.
+                    case SiniestrosNoDisponiblesException.CODIGO -> HttpStatus.SERVICE_UNAVAILABLE;
+                    default -> HttpStatus.UNPROCESSABLE_ENTITY;
+                };
+        var respuesta = ResponseEntity.status(status);
+        if (status == HttpStatus.SERVICE_UNAVAILABLE) {
+            respuesta.header("Retry-After", "5");
+        }
+        return respuesta.body(error(status.value(), exception.getCodigo(), exception.getMessage(), request, Map.of()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

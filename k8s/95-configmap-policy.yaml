@@ -11,3 +11,5 @@ data:
   JWT_ISSUER: "andina-identity"
   # Paso 6.6: el servicio es la fuente de sus eventos desde el corte.
   POLICY_EVENTS_PUBLISH_ENABLED: "true"
+  # Fase 7: al generar una póliza renovada se confirman los siniestros con claims-service.
+  CLAIMS_SERVICE_URL: "http://claims-service.andina-seguros.svc.cluster.local:8080"

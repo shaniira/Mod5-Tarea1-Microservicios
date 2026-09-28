@@ -8,6 +8,7 @@ import com.andinaseguros.policy.entities.exception.RecursoNoEncontradoException;
 import com.andinaseguros.policy.entities.exception.ReglaNegocioException;
 import com.andinaseguros.policy.entities.model.Poliza;
 import com.andinaseguros.policy.entities.model.PropuestaRenovacion;
+import com.andinaseguros.policy.entities.model.SiniestroRef;
 import com.andinaseguros.policy.entities.valueobject.PeriodoVigencia;
 import com.andinaseguros.policy.usecases.dto.Responses.PolizaResponse;
 import com.andinaseguros.policy.usecases.mapper.PolizaEventMapper;
@@ -15,16 +16,24 @@ import com.andinaseguros.policy.usecases.port.out.event.DomainEventPublisherPort
 import com.andinaseguros.policy.usecases.port.out.id.IdGeneratorPort;
 import com.andinaseguros.policy.usecases.port.out.repository.PolizaRepository;
 import com.andinaseguros.policy.usecases.port.out.repository.RenovacionRepository;
+import com.andinaseguros.policy.usecases.port.out.siniestros.HistorialSiniestrosPort;
 import com.andinaseguros.policy.usecases.port.out.time.ClockPort;
 import com.andinaseguros.policy.usecases.port.out.transaccion.TransaccionPort;
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Mismas reglas que el monolito (propuesta aprobada, una sola póliza por propuesta, vigencia desde
  * el día siguiente al fin de la anterior). Además, la póliza nueva, la anterior (RENOVADA), la
  * propuesta y policy.renewed.v1 se guardan en una sola transacción (paso 6.6).
+ *
+ * <p>Fase 7: antes de generar, los siniestros se confirman con claims-service (la fuente), no
+ * con la copia claim_ref, que puede tener un evento de atraso. Es el paso irreversible, así que
+ * aquí se elige consistencia sobre disponibilidad (CP): con un siniestro abierto, o si el
+ * historial cambió desde la evaluación, no se renueva; si claims-service no responde, 503 y
+ * reintentar. La evaluación sigue usando la copia local (rápida, AP).
  */
 public class GenerarPolizaRenovadaUseCase {
     private final RenovacionRepository renovacionRepository;
@@ -33,6 +42,7 @@ public class GenerarPolizaRenovadaUseCase {
     private final TransaccionPort transaccion;
     private final ClockPort clock;
     private final IdGeneratorPort ids;
+    private final HistorialSiniestrosPort historialSiniestros;
 
     public GenerarPolizaRenovadaUseCase(
             RenovacionRepository renovacionRepository,
@@ -40,13 +50,15 @@ public class GenerarPolizaRenovadaUseCase {
             DomainEventPublisherPort eventos,
             TransaccionPort transaccion,
             ClockPort clock,
-            IdGeneratorPort ids) {
+            IdGeneratorPort ids,
+            HistorialSiniestrosPort historialSiniestros) {
         this.renovacionRepository = renovacionRepository;
         this.polizaRepository = polizaRepository;
         this.eventos = eventos;
         this.transaccion = transaccion;
         this.clock = clock;
         this.ids = ids;
+        this.historialSiniestros = historialSiniestros;
     }
 
     public PolizaResponse execute(UUID renovacionId) {
@@ -68,6 +80,8 @@ public class GenerarPolizaRenovadaUseCase {
                 polizaRepository
                         .buscarPorId(propuesta.polizaOrigenId())
                         .orElseThrow(() -> new RecursoNoEncontradoException("Póliza de origen"));
+
+        confirmarSiniestros(propuesta);
 
         LocalDate inicio = origen.getVigencia().fin().plusDays(1);
         Poliza renovada =
@@ -97,5 +111,20 @@ public class GenerarPolizaRenovadaUseCase {
                             return nueva;
                         });
         return toResponse(guardada);
+    }
+
+    /** Confirma con claims-service que nada cambió desde la evaluación (lanza si no se puede renovar). */
+    private void confirmarSiniestros(PropuestaRenovacion propuesta) {
+        List<SiniestroRef> actuales = historialSiniestros.listarPorPoliza(propuesta.polizaOrigenId());
+        if (actuales.stream().anyMatch(SiniestroRef::abierto)) {
+            throw new ReglaNegocioException(
+                    "SINIESTROS_PENDIENTES",
+                    "La póliza tiene siniestros abiertos (confirmado con el servicio de siniestros). No se puede renovar.");
+        }
+        if (actuales.size() != propuesta.siniestrosConsiderados()) {
+            throw new ReglaNegocioException(
+                    "RENOVACION_DESACTUALIZADA",
+                    "El historial de siniestros cambió desde la evaluación. Evalúa la renovación de nuevo.");
+        }
     }
 }

@@ -47,9 +47,36 @@ app:
     relay-interval-ms: ${OUTBOX_RELAY_INTERVAL_MS:1000}
     batch-size: ${OUTBOX_BATCH_SIZE:100}
     confirm-timeout-ms: ${OUTBOX_CONFIRM_TIMEOUT_MS:5000}
+  # Fase 7: al generar una póliza renovada se confirman los siniestros con claims-service (CP).
+  claims-service:
+    url: ${CLAIMS_SERVICE_URL:http://claims-service:8080}
+    timeout: ${CLAIMS_SERVICE_TIMEOUT:2s}
   jwt:
     jwks-uri: ${JWT_JWKS_URI:http://identity-service:8080/.well-known/jwks.json}
     issuer: ${JWT_ISSUER:andina-identity}
+
+# Fase 7 (tabla 6.2 de la propuesta): policy -> claims con timeout de 2 s, un reintento (GET) y
+# circuit breaker. Solo las caídas de claims-service cuentan y se reintentan.
+resilience4j:
+  circuitbreaker:
+    instances:
+      claims:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${CLAIMS_CB_WAIT_OPEN:30s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.andinaseguros.policy.interfaceadapters.out.siniestros.ClaimsServiceHistorialAdapter$ClaimsServiceCaido
+  retry:
+    instances:
+      claims:
+        max-attempts: 2
+        wait-duration: 200ms
+        retry-exceptions:
+          - com.andinaseguros.policy.interfaceadapters.out.siniestros.ClaimsServiceHistorialAdapter$ClaimsServiceCaido
 
 springdoc:
   # Swagger y el contrato OpenAPI solo en desarrollo (SWAGGER_ENABLED=true en Compose).
