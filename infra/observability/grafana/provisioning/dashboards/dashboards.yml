@@ -2,7 +2,7 @@ apiVersion: 1
 
 providers:
   - name: andina
-    folder: Andina Seguros
+    folder: Backend Seguros
     type: file
     options:
       path: /var/lib/grafana/dashboards
