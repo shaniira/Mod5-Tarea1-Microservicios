@@ -41,7 +41,7 @@ docker compose -f docker-compose.yml -f infra/observability/docker-compose.obser
                                      # + Grafana :3000, Jaeger :16686, Prometheus :9090, Alertmanager :9093
 ```
 
-Una instalación nueva arranca con datos demo (usuario `admin` / `Admin123*`, clientes, vehículos y tablas tarifarias). Detalle, perfiles de prueba (WhatsApp y JSON.pe simulados, HTTPS local) y operación: [DOCKER-EJECUCION.md](DOCKER-EJECUCION.md) y la [guía de operación](doc/5.%20Microservicios/o_GUIA-OPERACION.md).
+Una instalación nueva arranca con datos demo (usuario `admin` / `Admin123*`, clientes, vehículos y tablas tarifarias). **Para instalarlo en otra máquina y configurar las variables de entorno: [GUIA-INSTALACION-EQUIPO.md](GUIA-INSTALACION-EQUIPO.md). Para probarlo caso por caso: [CASOS-DE-PRUEBA.md](CASOS-DE-PRUEBA.md).** Detalle, perfiles de prueba (WhatsApp y JSON.pe simulados, HTTPS local) y operación: [DOCKER-EJECUCION.md](DOCKER-EJECUCION.md) y la [guía de operación](doc/5.%20Microservicios/o_GUIA-OPERACION.md).
 
 ## Cómo se comprobó
 
