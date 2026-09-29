@@ -35,11 +35,11 @@ No necesitas Java ni Maven instalados: todo se compila dentro de Docker.
 ```bash
 git clone <url-del-repositorio>
 cd Mod5-Tarea1-Microservicios
-git checkout docs/migracion-microservicios
+git checkout feat/migracion-microservicios
 git pull
 ```
 
-La rama de trabajo es `docs/migracion-microservicios`. El código del monolito original ya no está en la rama; queda en la etiqueta `monolito-final` (no lo necesitas para correr el proyecto).
+La rama de trabajo es `feat/migracion-microservicios`. El código del monolito original ya no está en la rama; queda en la etiqueta `monolito-final` (no lo necesitas para correr el proyecto).
 
 ## 4. Variables de entorno (archivo `.env`)
 

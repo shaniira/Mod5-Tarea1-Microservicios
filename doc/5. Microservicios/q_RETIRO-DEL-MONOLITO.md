@@ -1,6 +1,6 @@
 # Retiro del monolito del repositorio (cierre de la migración)
 
-**Fecha:** 2026-09-28 · **Responsable:** Shanira · **Rama:** `docs/migracion-microservicios`
+**Fecha:** 2026-09-28 · **Responsable:** Shanira · **Rama:** `feat/migracion-microservicios` (antes `docs/migracion-microservicios`)
 
 Este documento explica cómo se sacó del repositorio el monolito (`Arquitectura-Clean`): por qué, qué dependía todavía de él, qué se hizo paso a paso y en qué archivos, qué errores aparecieron, cómo se resolvieron y cómo se verificó que el sistema funciona sin él.
 
