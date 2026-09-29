@@ -16,7 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Se pasa la carpeta, no "/k8s/*.yaml": ese comodín lo expandiría el shell del runner, donde
+      # /k8s no existe, y kubeconform recibiría el texto literal. kubeconform recorre la carpeta y
+      # valida solo los .yaml/.yml/.json (el README se ignora).
       - name: kubeconform
         run: |
           docker run --rm -v "$PWD/k8s:/k8s" ghcr.io/yannh/kubeconform:v0.6.7 \
-            -summary -strict -kubernetes-version 1.30.0 /k8s/*.yaml
+            -summary -strict -kubernetes-version 1.30.0 /k8s
